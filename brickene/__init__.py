@@ -1,5 +1,8 @@
 # type: ignore[attr-defined]
-"""brickene – A flow-graph based visual builder for block-assembled organic molecules."""
+"""
+brickene –
+A flow-graph based visual builder for block-assembled organic molecules.
+"""
 
 import sys
 

@@ -21,7 +21,10 @@ class Color(str, Enum):
 
 app = typer.Typer(
     name="brickene",
-    help="brickene – A flow-graph based visual builder for block-assembled organic molecules.",
+    help=(
+        "brickene – "
+        "A flow-graph based visual builder for block-assembled organic molecules."
+    ),
     add_completion=False,
 )
 console = Console()

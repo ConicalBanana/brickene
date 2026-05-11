@@ -55,46 +55,51 @@ class Atom(Site):
     symbol: str
 
 
-@dataclasses.dataclass
-class BrickGraph:
-    """Contain the atom-and-port graph that defines a single brick.
+class BrickNode:
+    """Represent a single brick and its internal site graph.
 
     Args:
-        nodes: Sites contained in the graph.
+        brick_type: Classification of the brick.
+        nodes: Sites contained in the brick.
         edges: Undirected edges between sites.
-        smiles: Optional SMILES representation for round-tripping.
     """
 
-    nodes: list[Site] = dataclasses.field(default_factory=list)
-    edges: list[tuple[Site, Site]] = dataclasses.field(default_factory=list)
+    def __init__(
+        self,
+        brick_type: BrickType,
+        nodes: list[Site] | None = None,
+        edges: list[tuple[Site, Site]] | None = None,
+    ):
+        self.brick_type = brick_type
+        self.nodes = list(nodes) if nodes is not None else []
+        self.edges = list(edges) if edges is not None else []
 
     @property
     def ports(self) -> list[Port]:
-        """Return all connection ports in the graph."""
+        """Return all connection ports in the brick."""
 
         return [node for node in self.nodes if isinstance(node, Port)]
 
     @property
     def atoms(self) -> list[Atom]:
-        """Return all atoms in the graph."""
+        """Return all atoms in the brick."""
 
         return [node for node in self.nodes if isinstance(node, Atom)]
 
     @classmethod
-    def from_smiles(cls, smiles: str) -> BrickGraph:
-        """Build a brick graph from a SMILES string.
-
-        Mapped dummy atoms such as ``[*:1]`` are converted into ``Port``
-        instances, while all other atoms become ``Atom`` instances.
+    def from_smiles(
+        cls,
+        smiles: str,
+        brick_type: BrickType = BrickType.SKELETON,
+    ) -> BrickNode:
+        """Build a brick node from a SMILES string.
 
         Args:
             smiles: SMILES representation of the brick.
+            brick_type: Classification of the brick.
 
         Returns:
-            Parsed brick graph.
-
-        Raises:
-            ValueError: If the SMILES string cannot be parsed.
+            Brick node initialized with a parsed internal graph.
         """
 
         mol = Chem.MolFromSmiles(smiles)
@@ -109,7 +114,8 @@ class BrickGraph:
         next_port_index = max(port_indices, default=0) + 1
         next_atom_index = max(port_indices, default=0) + 1
 
-        graph = cls()
+        nodes: list[Site] = []
+        edges: list[tuple[Site, Site]] = []
         atom_idx_to_site: dict[int, Site] = {}
 
         for atom in mol.GetAtoms():
@@ -123,28 +129,81 @@ class BrickGraph:
                 site = Atom(index=next_atom_index, symbol=atom.GetSymbol())
                 next_atom_index += 1
 
-            graph.nodes.append(site)
+            nodes.append(site)
             atom_idx_to_site[atom.GetIdx()] = site
 
         for bond in mol.GetBonds():
-            graph.edges.append(
+            edges.append(
                 (
                     atom_idx_to_site[bond.GetBeginAtomIdx()],
                     atom_idx_to_site[bond.GetEndAtomIdx()],
                 )
             )
 
-        return graph
+        return cls(brick_type=brick_type, nodes=nodes, edges=edges)
 
-    def to_smiles(self) -> str:
-        """Convert the graph into a SMILES string.
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> BrickNode:
+        """Rebuild a brick node from serialized data.
+
+        Args:
+            payload: JSON-compatible serialized brick node.
 
         Returns:
-            SMILES representation of the graph.
-
-        Raises:
-            ValueError: If the graph contains an unsupported edge endpoint.
+            Reconstructed brick node.
         """
+
+        graph_payload = payload.get("graph", payload)
+        nodes: list[Site] = []
+        node_by_index: dict[int, Site] = {}
+
+        for node_payload in graph_payload.get("nodes", []):
+            node = cls._site_from_dict(node_payload)
+            nodes.append(node)
+            node_by_index[node.index] = node
+
+        edges = [
+            (node_by_index[left_index], node_by_index[right_index])
+            for left_index, right_index in graph_payload.get("edges", [])
+        ]
+
+        return cls(
+            brick_type=BrickType[payload["brick_type"]],
+            nodes=nodes,
+            edges=edges,
+        )
+
+    @classmethod
+    def load_config(cls, fp: Path) -> BrickNode:
+        """Load a brick node from a JSON configuration file.
+
+        Args:
+            fp: Path to the JSON configuration file.
+
+        Returns:
+            Loaded brick node.
+        """
+
+        payload = json.loads(fp.read_text(encoding="utf-8"))
+        return cls.from_dict(payload)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the brick node into a JSON-compatible dictionary."""
+
+        return {
+            "brick_type": self.brick_type.name,
+            "nodes": [self._site_to_dict(node) for node in self.nodes],
+            "edges": [[left.index, right.index] for left, right in self.edges],
+        }
+
+    def dump_config(self) -> str:
+        """Serialize the brick node into a JSON string."""
+
+        return json.dumps(self.to_dict(), indent=2, sort_keys=True)
+
+    def to_smiles(self) -> str:
+        """Convert the brick definition into a SMILES string."""
+
         if not self.nodes:
             return ""
 
@@ -176,40 +235,14 @@ class BrickGraph:
 
         return Chem.MolToSmiles(mol)
 
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize the graph into a JSON-compatible dictionary."""
-
-        return {
-            "smiles": self.to_smiles(),
-            "nodes": [self._site_to_dict(node) for node in self.nodes],
-            "edges": [[left.index, right.index] for left, right in self.edges],
-        }
-
-    @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> BrickGraph:
-        """Rebuild a brick graph from serialized data.
+    def save_config(self, fp: Path) -> None:
+        """Write the brick node configuration to disk.
 
         Args:
-            payload: JSON-compatible serialized brick graph.
-
-        Returns:
-            Reconstructed brick graph.
+            fp: Output JSON path.
         """
 
-        nodes: list[Site] = []
-        node_by_index: dict[int, Site] = {}
-
-        for node_payload in payload.get("nodes", []):
-            node = cls._site_from_dict(node_payload)
-            nodes.append(node)
-            node_by_index[node.index] = node
-
-        edges = [
-            (node_by_index[left_index], node_by_index[right_index])
-            for left_index, right_index in payload.get("edges", [])
-        ]
-
-        return cls(nodes=nodes, edges=edges)
+        fp.write_text(self.dump_config(), encoding="utf-8")
 
     @staticmethod
     def _site_to_dict(site: Site) -> dict[str, Any]:
@@ -251,98 +284,3 @@ class BrickGraph:
             return Atom(index=payload["index"], symbol=payload["symbol"])
 
         raise ValueError(f"Unsupported site kind: {kind}")
-
-
-class BrickNode:
-    """Represent a single brick and its internal site graph.
-
-    Args:
-        brick_type: Classification of the brick.
-        bg: Internal graph describing atoms and ports.
-    """
-
-    def __init__(self, brick_type: BrickType, bg: BrickGraph | None = None):
-        self.brick_type = brick_type
-        self.bg = bg if bg is not None else BrickGraph()
-
-    @property
-    def nodes(self) -> list[Site]:
-        """Expose the sites in the brick graph."""
-
-        return self.bg.nodes
-
-    @property
-    def edges(self) -> list[tuple[Site, Site]]:
-        """Expose the site edges in the brick graph."""
-
-        return self.bg.edges
-
-    @property
-    def ports(self) -> list[Port]:
-        """Expose the brick graph ports directly on the brick node."""
-
-        return self.bg.ports
-
-    @property
-    def atoms(self) -> list[Atom]:
-        """Expose the brick graph atoms directly on the brick node."""
-
-        return self.bg.atoms
-
-    @classmethod
-    def from_smiles(
-        cls,
-        smiles: str,
-        brick_type: BrickType = BrickType.SKELETON,
-    ) -> BrickNode:
-        """Build a brick node from a SMILES string.
-
-        Args:
-            smiles: SMILES representation of the brick.
-            brick_type: Classification of the brick.
-
-        Returns:
-            Brick node initialized with a parsed internal graph.
-        """
-
-        return cls(brick_type=brick_type, bg=BrickGraph.from_smiles(smiles))
-
-    @classmethod
-    def load_config(cls, fp: Path) -> BrickNode:
-        """Load a brick node from a JSON configuration file.
-
-        Args:
-            fp: Path to the JSON configuration file.
-
-        Returns:
-            Loaded brick node.
-        """
-
-        payload = json.loads(fp.read_text(encoding="utf-8"))
-        return cls(
-            brick_type=BrickType[payload["brick_type"]],
-            bg=BrickGraph.from_dict(payload["graph"]),
-        )
-
-    def dump_config(self) -> str:
-        """Serialize the brick node into a JSON string."""
-
-        payload = {
-            "brick_type": self.brick_type.name,
-            "graph": self.bg.to_dict(),
-        }
-        return json.dumps(payload, indent=2, sort_keys=True)
-
-    def to_smiles(self) -> str:
-        """Convert the brick definition into a SMILES string."""
-
-        return self.bg.to_smiles()
-
-    def save_config(self, fp: Path) -> None:
-        """Write the brick node configuration to disk.
-
-        Args:
-            fp: Output JSON path.
-        """
-
-        fp.write_text(self.dump_config(), encoding="utf-8")

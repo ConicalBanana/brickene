@@ -4,8 +4,8 @@ from pathlib import Path
 
 from rdkit import Chem
 
-from brickene.core.network import BrickGraph as BrickNetwork
-from brickene.core.node import BrickGraph, BrickNode, BrickType
+from brickene.core.network import BrickGraph
+from brickene.core.node import BrickNode, BrickType
 
 
 def canonical_smiles(smiles: str) -> str:
@@ -16,15 +16,15 @@ def canonical_smiles(smiles: str) -> str:
     return Chem.MolToSmiles(mol)
 
 
-def test_brick_graph_from_smiles_extracts_atoms_ports_and_edges() -> None:
-    """A brick graph should expose ports and molecular connectivity."""
+def test_brick_node_from_smiles_extracts_atoms_ports_and_edges() -> None:
+    """A brick node should expose ports and molecular connectivity."""
 
-    graph = BrickGraph.from_smiles("[*:1]CC([*:2])O")
+    node = BrickNode.from_smiles("[*:1]CC([*:2])O")
 
-    assert sorted(port.index for port in graph.ports) == [1, 2]
-    assert len(graph.atoms) == 3
-    assert len(graph.nodes) == 5
-    assert len(graph.edges) == 4
+    assert sorted(port.index for port in node.ports) == [1, 2]
+    assert len(node.atoms) == 3
+    assert len(node.nodes) == 5
+    assert len(node.edges) == 4
 
 
 def test_brick_node_config_round_trip(tmp_path: Path) -> None:
@@ -51,7 +51,7 @@ def test_network_to_smiles_connects_ports() -> None:
 
     left_node = BrickNode.from_smiles("[*:1]C")
     right_node = BrickNode.from_smiles("C[*:1]")
-    network = BrickNetwork()
+    network = BrickGraph()
 
     network.add_node(left_node)
     network.add_node(right_node)

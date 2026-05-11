@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brickene Frontend</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="menu-region" aria-label="Application menu">
+        <div class="menu-row">
+          <div class="brand-block">
+            <p class="brand-label">Brickene</p>
+            <h1>Web Framework</h1>
+          </div>
+
+          <div class="menu-actions-wrap">
+            <nav class="menu-actions" aria-label="Primary navigation">
+              <button type="button" class="menu-button is-active" data-menu="file">File</button>
+              <button type="button" class="menu-button" data-menu="edit">Edit</button>
+              <button type="button" class="menu-button" data-menu="node">Node</button>
+              <button type="button" class="menu-button" data-menu="view">View</button>
+            </nav>
+
+            <div id="submenu-dropdown" class="submenu-dropdown" aria-label="Sub-menu placeholder">
+              <p class="submenu-label">Sub-menu</p>
+              <div id="submenu-content" class="submenu-content" role="menu"></div>
+            </div>
+          </div>
+
+          <div class="menu-state" aria-live="polite">
+            <span class="state-badge">Desktop layout</span>
+            <p id="menu-state-copy">Menu commands are scaffolded for future integration.</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="canvas-region" aria-label="Canvas workspace">
+        <div class="canvas-grid" aria-hidden="true"></div>
+
+        <section class="canvas-stage" role="img" aria-label="Empty node canvas">
+          <div class="stage-frame"></div>
+          <div class="stage-copy">
+            <p class="overlay-label">Canvas</p>
+            <h2>Integral drawing layer</h2>
+            <p>
+              Nodes, ports, and edges can be mounted on this surface without changing
+              the page framework.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

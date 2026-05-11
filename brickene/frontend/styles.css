@@ -1,0 +1,233 @@
+:root {
+  --page-bg: #f5f5f5;
+  --surface: #ffffff;
+  --surface-muted: #fafafa;
+  --border: #1a1a1a;
+  --grid: rgba(26, 26, 26, 0.08);
+  --text: #111111;
+  --text-muted: #525252;
+  --accent: #dcdcdc;
+  --shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+  --menu-height: 10vh;
+  --canvas-height: 90vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  min-width: 1200px;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: Consolas, "Liberation Mono", Menlo, Monaco, monospace;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: var(--menu-height) var(--canvas-height);
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.menu-region {
+  display: block;
+  padding: 0.75rem 1rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: 260px 1fr 340px;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.brand-block,
+.menu-state {
+  min-width: 0;
+}
+
+.brand-label,
+.submenu-label,
+.overlay-label,
+.state-badge {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.brand-block h1,
+.canvas-overlay h2,
+.stage-copy h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.menu-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.menu-actions-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.menu-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.5rem 0.9rem;
+  min-width: 6.25rem;
+  cursor: pointer;
+}
+
+.menu-button:hover,
+.menu-button:focus-visible,
+.menu-button.is-active {
+  background: var(--border);
+  color: var(--surface);
+  outline: none;
+}
+
+.menu-state {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+}
+
+.menu-state p {
+  margin: 0;
+  text-align: right;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.state-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--surface-muted);
+}
+
+.submenu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 5;
+  display: none;
+  width: 14rem;
+  padding: 0.45rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.submenu-content {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.3rem;
+}
+
+.submenu-dropdown.is-open {
+  display: block;
+}
+
+.submenu-pill {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 2rem;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.submenu-pill:hover,
+.submenu-pill:focus-visible {
+  background: var(--border);
+  color: var(--surface);
+  outline: none;
+}
+
+.canvas-region {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.canvas-grid,
+.canvas-stage {
+  position: absolute;
+}
+
+.canvas-grid {
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.canvas-stage {
+  inset: 1.25rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow);
+}
+
+.stage-frame {
+  position: absolute;
+  inset: 1rem;
+  border: 1px dashed var(--border);
+}
+
+.stage-copy {
+  position: relative;
+  z-index: 1;
+  width: 420px;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-align: center;
+}
+
+.stage-copy p,
+.stage-copy li {
+  line-height: 1.5;
+}

@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "brickene"
-version = "0.1.0"
+version = "0.1.1"
 description = "brickene – A flow-graph based visual builder for block-assembled organic molecules."
 readme = "README.md"
 authors = ["none <zhichen_xu@outlook.com>"]
@@ -24,12 +24,15 @@ classifiers = [  #! Update me
   "Topic :: Software Development :: Libraries :: Python Modules",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.11.15",
 ]
 
 [tool.poetry.scripts]
 # Entry points for the package https://python-poetry.org/docs/pyproject/#scripts
 "brickene" = "brickene.__main__:app"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
 
 [[tool.poetry.source]]
 name = "tsinghua"
@@ -37,10 +40,12 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 priority = "primary"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "3.11.15"
 
 typer = {extras = ["all"], version = "^0.4.0"}
-rich = "^10.14.0"
+rich = "^10.13.0"
+rdkit = "2022.9.5"
+networkx = ">=3.4.2,<3.5"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"

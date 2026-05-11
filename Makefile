@@ -14,10 +14,19 @@ endif
 #* Docker variables
 IMAGE := brickene
 VERSION := latest
+POETRY_EXPORT_PLUGIN := poetry-plugin-export
 
 .PHONY: lock install pre-commit-install formatting test check-codestyle lint install-docs start-docs docker-build docker-remove cleanup help
 
+define ensure_poetry_export_plugin
+	@if ! poetry help export >/dev/null 2>&1; then \
+		echo "Installing $(POETRY_EXPORT_PLUGIN) for Poetry..."; \
+		poetry self add $(POETRY_EXPORT_PLUGIN); \
+	fi
+endef
+
 lock:
+	$(ensure_poetry_export_plugin)
 	poetry lock -n && poetry export --without-hashes > requirements.txt
 
 install:

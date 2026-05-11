@@ -189,9 +189,37 @@ textarea {
   background: var(--surface-muted);
 }
 
-.canvas-grid,
-.canvas-stage {
+.canvas-viewport {
   position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: default;
+}
+
+.canvas-viewport.is-pan-ready {
+  cursor: grab;
+}
+
+.canvas-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.canvas-layer,
+.component-layer,
+.canvas-context-menu,
+.canvas-grid,
+.canvas-plane {
+  position: absolute;
+}
+
+.canvas-layer,
+.component-layer {
+  inset: 0;
+}
+
+.canvas-layer {
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.58);
 }
 
 .canvas-grid {
@@ -202,32 +230,98 @@ textarea {
   background-size: 32px 32px;
 }
 
-.canvas-stage {
-  inset: 1.25rem;
+.canvas-plane {
+  inset: -35%;
+  background:
+    linear-gradient(90deg, transparent 0 49.9%, rgba(26, 26, 26, 0.1) 49.9% 50.1%, transparent 50.1% 100%),
+    linear-gradient(0deg, transparent 0 49.9%, rgba(26, 26, 26, 0.1) 49.9% 50.1%, transparent 50.1% 100%);
+}
+
+.canvas-origin-marker {
+  position: absolute;
+  top: calc(50% - 8px);
+  left: calc(50% - 8px);
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.canvas-axis {
+  position: absolute;
+  background: rgba(26, 26, 26, 0.14);
+}
+
+.canvas-axis-horizontal {
+  top: calc(50% - 1px);
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.canvas-axis-vertical {
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 1px);
+  width: 2px;
+}
+
+.component-layer {
+  z-index: 1;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: var(--shadow);
+  background: transparent;
+  pointer-events: none;
 }
 
-.stage-frame {
-  position: absolute;
-  inset: 1rem;
-  border: 1px dashed var(--border);
+.component-frame {
+  display: none;
 }
 
-.stage-copy {
+.component-copy {
   position: relative;
   z-index: 1;
   width: 420px;
   padding: 1rem 1.25rem;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.92);
   text-align: center;
+  pointer-events: none;
 }
 
-.stage-copy p,
-.stage-copy li {
+.component-copy p,
+.component-copy li {
   line-height: 1.5;
+}
+
+.canvas-context-menu {
+  z-index: 3;
+  display: none;
+  min-width: 12rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.canvas-context-menu.is-open {
+  display: block;
+}
+
+.context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.context-menu-item:hover,
+.context-menu-item:focus-visible {
+  background: var(--border);
+  color: var(--surface);
+  outline: none;
 }

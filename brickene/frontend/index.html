@@ -37,19 +37,34 @@
       </header>
 
       <main class="canvas-region" aria-label="Canvas workspace">
-        <div class="canvas-grid" aria-hidden="true"></div>
-
-        <section class="canvas-stage" role="img" aria-label="Empty node canvas">
-          <div class="stage-frame"></div>
-          <div class="stage-copy">
-            <p class="overlay-label">Canvas</p>
-            <h2>Integral drawing layer</h2>
-            <p>
-              Nodes, ports, and edges can be mounted on this surface without changing
-              the page framework.
-            </p>
+        <div id="canvas-viewport" class="canvas-viewport">
+          <div id="canvas-layer" class="canvas-layer" aria-label="Canvas layer">
+            <div class="canvas-grid" aria-hidden="true"></div>
+            <div class="canvas-plane" aria-hidden="true">
+              <div class="canvas-origin-marker"></div>
+              <div class="canvas-axis canvas-axis-horizontal"></div>
+              <div class="canvas-axis canvas-axis-vertical"></div>
+            </div>
           </div>
-        </section>
+
+          <section class="component-layer" aria-label="Component layer">
+            <div class="component-frame"></div>
+            <div class="component-copy" role="img" aria-label="Component layer placeholder">
+              <p class="overlay-label">Component layer</p>
+              <h2>Nodes and edges reserve</h2>
+              <p>
+                This front layer is reserved for future node, port, and edge components.
+              </p>
+            </div>
+          </section>
+
+          <div id="canvas-context-menu" class="canvas-context-menu" role="menu" aria-label="Canvas context menu">
+            <button type="button" class="context-menu-item" data-action="center">Center canvas</button>
+            <button type="button" class="context-menu-item" data-action="reset">Reset translation</button>
+            <button type="button" class="context-menu-item" data-action="node">Create node placeholder</button>
+            <button type="button" class="context-menu-item" data-action="close">Close menu</button>
+          </div>
+        </div>
       </main>
     </div>
 

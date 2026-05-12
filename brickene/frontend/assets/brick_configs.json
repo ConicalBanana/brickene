@@ -5,163 +5,203 @@
     "edges": [
       [
         2,
-        11
+        11,
+        "SINGLE"
       ],
       [
         11,
-        12
+        12,
+        "AROMATIC"
       ],
       [
         12,
-        4
+        4,
+        "SINGLE"
       ],
       [
         12,
-        13
+        13,
+        "AROMATIC"
       ],
       [
         13,
-        14
+        14,
+        "AROMATIC"
       ],
       [
         14,
-        15
+        15,
+        "AROMATIC"
       ],
       [
         14,
-        16
+        16,
+        "AROMATIC"
       ],
       [
         16,
-        17
+        17,
+        "AROMATIC"
       ],
       [
         17,
-        18
+        18,
+        "AROMATIC"
       ],
       [
         17,
-        19
+        19,
+        "SINGLE"
       ],
       [
         19,
-        20
+        20,
+        "AROMATIC"
       ],
       [
         20,
-        21
+        21,
+        "AROMATIC"
       ],
       [
         21,
-        10
+        10,
+        "SINGLE"
       ],
       [
         21,
-        22
+        22,
+        "AROMATIC"
       ],
       [
         22,
-        23
+        23,
+        "SINGLE"
       ],
       [
         23,
-        24
+        24,
+        "AROMATIC"
       ],
       [
         24,
-        25
+        25,
+        "AROMATIC"
       ],
       [
         25,
-        26
+        26,
+        "AROMATIC"
       ],
       [
         26,
-        27
+        27,
+        "AROMATIC"
       ],
       [
         26,
-        28
+        28,
+        "AROMATIC"
       ],
       [
         28,
-        3
+        3,
+        "SINGLE"
       ],
       [
         28,
-        29
+        29,
+        "AROMATIC"
       ],
       [
         29,
-        1
+        1,
+        "SINGLE"
       ],
       [
         29,
-        30
+        30,
+        "AROMATIC"
       ],
       [
         24,
-        31
+        31,
+        "SINGLE"
       ],
       [
         31,
-        5
+        5,
+        "SINGLE"
       ],
       [
         31,
-        6
+        6,
+        "SINGLE"
       ],
       [
         31,
-        32
+        32,
+        "SINGLE"
       ],
       [
         32,
-        33
+        33,
+        "AROMATIC"
       ],
       [
         33,
-        9
+        9,
+        "SINGLE"
       ],
       [
         20,
-        34
+        34,
+        "SINGLE"
       ],
       [
         34,
-        7
+        7,
+        "SINGLE"
       ],
       [
         34,
-        8
+        8,
+        "SINGLE"
       ],
       [
         15,
-        11
+        11,
+        "AROMATIC"
       ],
       [
         34,
-        16
+        16,
+        "SINGLE"
       ],
       [
         18,
-        13
+        13,
+        "AROMATIC"
       ],
       [
         33,
-        19
+        19,
+        "AROMATIC"
       ],
       [
         32,
-        22
+        22,
+        "AROMATIC"
       ],
       [
         27,
-        23
+        23,
+        "AROMATIC"
       ],
       [
         30,
-        25
+        25,
+        "AROMATIC"
       ]
     ],
     "id": "1",
@@ -357,39 +397,48 @@
     "edges": [
       [
         1,
-        5
+        5,
+        "SINGLE"
       ],
       [
         5,
-        6
+        6,
+        "AROMATIC"
       ],
       [
         6,
-        3
+        3,
+        "SINGLE"
       ],
       [
         6,
-        7
+        7,
+        "AROMATIC"
       ],
       [
         7,
-        4
+        4,
+        "SINGLE"
       ],
       [
         7,
-        8
+        8,
+        "AROMATIC"
       ],
       [
         8,
-        2
+        2,
+        "SINGLE"
       ],
       [
         8,
-        9
+        9,
+        "AROMATIC"
       ],
       [
         9,
-        5
+        5,
+        "AROMATIC"
       ]
     ],
     "id": "2",
@@ -454,55 +503,68 @@
     "edges": [
       [
         1,
-        5
+        5,
+        "SINGLE"
       ],
       [
         5,
-        6
+        6,
+        "AROMATIC"
       ],
       [
         6,
-        3
+        3,
+        "SINGLE"
       ],
       [
         6,
-        7
+        7,
+        "AROMATIC"
       ],
       [
         7,
-        8
+        8,
+        "AROMATIC"
       ],
       [
         8,
-        9
+        9,
+        "AROMATIC"
       ],
       [
         8,
-        10
+        10,
+        "AROMATIC"
       ],
       [
         10,
-        4
+        4,
+        "SINGLE"
       ],
       [
         10,
-        11
+        11,
+        "AROMATIC"
       ],
       [
         11,
-        2
+        2,
+        "SINGLE"
       ],
       [
         11,
-        12
+        12,
+        "AROMATIC"
       ],
       [
         9,
-        5
+        5,
+        "AROMATIC"
       ],
       [
         12,
-        7
+        7,
+        "AROMATIC"
       ]
     ],
     "id": "3",
@@ -583,35 +645,43 @@
     "edges": [
       [
         2,
-        3
+        3,
+        "SINGLE"
       ],
       [
         3,
-        4
+        4,
+        "SINGLE"
       ],
       [
         4,
-        5
+        5,
+        "SINGLE"
       ],
       [
         5,
-        6
+        6,
+        "SINGLE"
       ],
       [
         6,
-        7
+        7,
+        "SINGLE"
       ],
       [
         7,
-        8
+        8,
+        "SINGLE"
       ],
       [
         6,
-        9
+        9,
+        "SINGLE"
       ],
       [
         9,
-        1
+        1,
+        "SINGLE"
       ]
     ],
     "id": "4",
@@ -674,51 +744,63 @@
     "edges": [
       [
         2,
-        3
+        3,
+        "SINGLE"
       ],
       [
         3,
-        4
+        4,
+        "SINGLE"
       ],
       [
         4,
-        5
+        5,
+        "SINGLE"
       ],
       [
         5,
-        6
+        6,
+        "SINGLE"
       ],
       [
         6,
-        7
+        7,
+        "SINGLE"
       ],
       [
         7,
-        8
+        8,
+        "SINGLE"
       ],
       [
         8,
-        9
+        9,
+        "SINGLE"
       ],
       [
         9,
-        1
+        1,
+        "SINGLE"
       ],
       [
         8,
-        10
+        10,
+        "SINGLE"
       ],
       [
         10,
-        11
+        11,
+        "SINGLE"
       ],
       [
         11,
-        12
+        12,
+        "SINGLE"
       ],
       [
         12,
-        13
+        13,
+        "SINGLE"
       ]
     ],
     "id": "5",

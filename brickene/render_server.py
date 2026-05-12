@@ -11,7 +11,12 @@ from urllib.parse import urlparse
 
 import typer
 
-from brickene.core.rendering import DEFAULT_CATALOG_PATH, DEFAULT_IMAGE_SIZE, render_state_image_bytes
+from brickene.core.rendering import (
+    DEFAULT_CATALOG_PATH,
+    DEFAULT_IMAGE_SIZE,
+    render_state_image_bytes,
+    render_state_smiles,
+)
 
 app = typer.Typer(help="Run the Brickene RDKit render server.")
 
@@ -59,9 +64,14 @@ def create_handler(catalog_path: Path, image_size: int) -> type[BaseHTTPRequestH
             )
 
         def do_POST(self) -> None:
-            """Render a posted graph payload into a PNG image."""
+            """Render a posted graph payload into backend representations.
 
-            if urlparse(self.path).path != "/render":
+            The payload may include optional edge bond type metadata via
+            ``bondType`` or ``bond_type`` on individual edges.
+            """
+
+            request_path = urlparse(self.path).path
+            if request_path not in {"/render", "/smiles"}:
                 self._send_json(
                     HTTPStatus.NOT_FOUND,
                     {"error": "Not found."},
@@ -72,17 +82,32 @@ def create_handler(catalog_path: Path, image_size: int) -> type[BaseHTTPRequestH
                 content_length = int(self.headers.get("Content-Length", "0"))
                 request_body = self.rfile.read(content_length)
                 payload = json.loads(request_body.decode("utf-8"))
-                image_bytes = render_state_image_bytes(
-                    payload,
-                    image_size=image_size,
-                    catalog_path=catalog_path,
-                )
             except json.JSONDecodeError:
                 self._send_json(
                     HTTPStatus.BAD_REQUEST,
                     {"error": "Request body must be valid JSON."},
                 )
                 return
+
+            if not isinstance(payload, dict):
+                self._send_json(
+                    HTTPStatus.BAD_REQUEST,
+                    {"error": "Request body must decode to a JSON object."},
+                )
+                return
+
+            try:
+                if request_path == "/render":
+                    image_bytes = render_state_image_bytes(
+                        payload,
+                        image_size=image_size,
+                        catalog_path=catalog_path,
+                    )
+                else:
+                    smiles = render_state_smiles(
+                        payload,
+                        catalog_path=catalog_path,
+                    )
             except (TypeError, ValueError) as exc:
                 self._send_json(
                     HTTPStatus.BAD_REQUEST,
@@ -96,6 +121,13 @@ def create_handler(catalog_path: Path, image_size: int) -> type[BaseHTTPRequestH
                 )
                 return
 
+            if request_path == "/smiles":
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"smiles": smiles},
+                )
+                return
+
             self.send_response(HTTPStatus.OK)
             self._send_cors_headers()
             self.send_header("Content-Type", "image/png")
@@ -106,7 +138,14 @@ def create_handler(catalog_path: Path, image_size: int) -> type[BaseHTTPRequestH
         def log_message(self, format: str, *args: Any) -> None:
             """Write concise request logs to stdout."""
 
-            typer.echo("%s - - [%s] %s" % (self.address_string(), self.log_date_time_string(), format % args))
+            typer.echo(
+                "%s - - [%s] %s"
+                % (
+                    self.address_string(),
+                    self.log_date_time_string(),
+                    format % args,
+                )
+            )
 
         def _send_cors_headers(self) -> None:
             """Write the standard CORS headers for frontend access."""
@@ -154,8 +193,14 @@ def serve(
 def main(
     host: str = typer.Option("127.0.0.1", help="Host interface to bind."),
     port: int = typer.Option(8765, help="TCP port to bind."),
-    catalog_path: Path = typer.Option(DEFAULT_CATALOG_PATH, help="Path to the brick catalog JSON."),
-    image_size: int = typer.Option(DEFAULT_IMAGE_SIZE, help="Width and height of the rendered PNG."),
+    catalog_path: Path = typer.Option(
+        DEFAULT_CATALOG_PATH,
+        help="Path to the brick catalog JSON.",
+    ),
+    image_size: int = typer.Option(
+        DEFAULT_IMAGE_SIZE,
+        help="Width and height of the rendered PNG.",
+    ),
 ) -> None:
     """Start the HTTP render interface for frontend preview requests."""
 

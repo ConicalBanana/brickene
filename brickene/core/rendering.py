@@ -89,7 +89,13 @@ def build_graph_from_state(
         except KeyError as exc:
             raise ValueError("Edge references a slot that is not present in the node state.") from exc
 
-        graph.add_edge(start_brick, end_brick, left_port=start_port, right_port=end_port)
+        graph.add_edge(
+            start_brick,
+            end_brick,
+            left_port=start_port,
+            right_port=end_port,
+            bond_type=_read_edge_bond_type(edge_state),
+        )
 
     return graph
 
@@ -117,8 +123,31 @@ def build_molecule_from_state(
     if molecule is None:
         raise ValueError("Failed to construct an RDKit molecule from the graph state.")
 
+    molecule = cap_hanging_ports_with_hydrogen(molecule)
+
     AllChem.Compute2DCoords(molecule)
     return molecule
+
+
+def render_state_smiles(
+    payload: dict[str, Any],
+    catalog_path: Path = DEFAULT_CATALOG_PATH,
+) -> str:
+    """Render a frontend graph state payload to a SMILES string.
+
+    Args:
+        payload: Frontend graph state payload.
+        catalog_path: Path to the brick catalog JSON.
+
+    Returns:
+        Canonical SMILES string with dangling ports capped by hydrogen.
+    """
+
+    molecule = build_molecule_from_state(payload, catalog_path=catalog_path)
+    if molecule is None:
+        return ""
+
+    return Chem.MolToSmiles(molecule)
 
 
 def render_state_image(
@@ -209,6 +238,40 @@ def trim_white_padding(image: Image.Image) -> Image.Image:
     return rgb_image.crop(bounds)
 
 
+def cap_hanging_ports_with_hydrogen(molecule: Chem.Mol) -> Chem.Mol:
+    """Replace dangling dummy port atoms with implicit hydrogens.
+
+    Args:
+        molecule: RDKit molecule that may still contain unconnected dummy atoms.
+
+    Returns:
+        Sanitized molecule with dangling dummy atoms removed.
+
+    Raises:
+        ValueError: If a dangling dummy atom is connected to multiple neighbors.
+    """
+
+    editable_molecule = Chem.RWMol(molecule)
+    dummy_atom_indices: list[int] = []
+
+    for atom in editable_molecule.GetAtoms():
+        if atom.GetAtomicNum() != 0:
+            continue
+
+        neighbors = list(atom.GetNeighbors())
+        if len(neighbors) > 1:
+            raise ValueError("Dangling ports must connect to at most one neighboring atom.")
+
+        dummy_atom_indices.append(atom.GetIdx())
+
+    for atom_index in sorted(dummy_atom_indices, reverse=True):
+        editable_molecule.RemoveAtom(atom_index)
+
+    capped_molecule = editable_molecule.GetMol()
+    Chem.SanitizeMol(capped_molecule)
+    return capped_molecule
+
+
 def _resolve_port_assignments(node_state: dict[str, Any]) -> dict[int, int]:
     """Map frontend slot ids to actual brick port indices.
 
@@ -264,3 +327,13 @@ def _read_edge_value(
         return nested_payload[nested_value_key]
 
     raise ValueError(f"Edge state is missing {direct_key}.")
+
+
+def _read_edge_bond_type(edge_state: dict[str, Any]) -> str | None:
+    """Read one optional edge bond type from a frontend payload."""
+
+    bond_type = edge_state.get("bondType", edge_state.get("bond_type"))
+    if bond_type is None:
+        return None
+
+    return str(bond_type).upper()

@@ -55,6 +55,21 @@ class Atom(Site):
     symbol: str
 
 
+@dataclasses.dataclass(frozen=True)
+class Edge:
+    """Represent one bond between two sites inside a brick graph.
+
+    Args:
+        left: One endpoint site.
+        right: The other endpoint site.
+        bond_type: RDKit bond type name, such as ``SINGLE`` or ``DOUBLE``.
+    """
+
+    left: Site
+    right: Site
+    bond_type: str = "SINGLE"
+
+
 class BrickNode:
     """Represent a single brick and its internal site graph.
 
@@ -68,7 +83,7 @@ class BrickNode:
         self,
         brick_type: BrickType,
         nodes: list[Site] | None = None,
-        edges: list[tuple[Site, Site]] | None = None,
+        edges: list[Edge] | None = None,
     ):
         self.brick_type = brick_type
         self.nodes = list(nodes) if nodes is not None else []
@@ -115,7 +130,7 @@ class BrickNode:
         next_atom_index = max(port_indices, default=0) + 1
 
         nodes: list[Site] = []
-        edges: list[tuple[Site, Site]] = []
+        edges: list[Edge] = []
         atom_idx_to_site: dict[int, Site] = {}
 
         for atom in mol.GetAtoms():
@@ -134,9 +149,10 @@ class BrickNode:
 
         for bond in mol.GetBonds():
             edges.append(
-                (
-                    atom_idx_to_site[bond.GetBeginAtomIdx()],
-                    atom_idx_to_site[bond.GetEndAtomIdx()],
+                Edge(
+                    left=atom_idx_to_site[bond.GetBeginAtomIdx()],
+                    right=atom_idx_to_site[bond.GetEndAtomIdx()],
+                    bond_type=cls._bond_type_to_name(bond.GetBondType()),
                 )
             )
 
@@ -163,8 +179,8 @@ class BrickNode:
             node_by_index[node.index] = node
 
         edges = [
-            (node_by_index[left_index], node_by_index[right_index])
-            for left_index, right_index in graph_payload.get("edges", [])
+            cls._edge_from_dict(edge_payload, node_by_index)
+            for edge_payload in graph_payload.get("edges", [])
         ]
 
         return cls(
@@ -193,7 +209,7 @@ class BrickNode:
         return {
             "brick_type": self.brick_type.name,
             "nodes": [self._site_to_dict(node) for node in self.nodes],
-            "edges": [[left.index, right.index] for left, right in self.edges],
+            "edges": [self._edge_to_dict(edge) for edge in self.edges],
         }
 
     def dump_config(self) -> str:
@@ -221,17 +237,21 @@ class BrickNode:
 
             site_to_atom_index[site.index] = mol.AddAtom(atom)
 
-        for left_site, right_site in self.edges:
+        for edge in self.edges:
             try:
-                left_idx = site_to_atom_index[left_site.index]
-                right_idx = site_to_atom_index[right_site.index]
+                left_idx = site_to_atom_index[edge.left.index]
+                right_idx = site_to_atom_index[edge.right.index]
             except KeyError as exc:
                 raise ValueError(
                     "Edges must reference sites present in the graph."
                 ) from exc
 
             if mol.GetBondBetweenAtoms(left_idx, right_idx) is None:
-                mol.AddBond(left_idx, right_idx, Chem.BondType.SINGLE)
+                mol.AddBond(
+                    left_idx,
+                    right_idx,
+                    self._bond_type_from_name(edge.bond_type),
+                )
 
         return Chem.MolToSmiles(mol)
 
@@ -263,6 +283,60 @@ class BrickNode:
             return {"kind": "atom", "index": site.index, "symbol": site.symbol}
 
         raise TypeError(f"Unsupported site type: {type(site)!r}")
+
+    @staticmethod
+    def _edge_to_dict(edge: Edge) -> list[int | str]:
+        """Serialize one edge into a JSON-compatible list payload."""
+
+        return [edge.left.index, edge.right.index, edge.bond_type]
+
+    @classmethod
+    def _edge_from_dict(
+        cls,
+        payload: Any,
+        node_by_index: dict[int, Site],
+    ) -> Edge:
+        """Deserialize one edge from a JSON-compatible payload."""
+
+        if isinstance(payload, dict):
+            left_index = int(payload["left"])
+            right_index = int(payload["right"])
+            bond_type = cls._bond_type_to_name(payload.get("bond_type"))
+        elif isinstance(payload, (list, tuple)):
+            if len(payload) == 2:
+                left_index, right_index = (int(payload[0]), int(payload[1]))
+                bond_type = "SINGLE"
+            elif len(payload) == 3:
+                left_index, right_index = (int(payload[0]), int(payload[1]))
+                bond_type = cls._bond_type_to_name(payload[2])
+            else:
+                raise ValueError(f"Unsupported edge payload: {payload!r}")
+        else:
+            raise ValueError(f"Unsupported edge payload: {payload!r}")
+
+        return Edge(
+            left=node_by_index[left_index],
+            right=node_by_index[right_index],
+            bond_type=bond_type,
+        )
+
+    @staticmethod
+    def _bond_type_to_name(bond_type: Any) -> str:
+        """Normalize an RDKit bond type or bond label into a name."""
+
+        if bond_type is None:
+            return "SINGLE"
+        if isinstance(bond_type, Chem.BondType):
+            return str(bond_type)
+        if isinstance(bond_type, str):
+            return bond_type.upper()
+        raise TypeError(f"Unsupported bond type: {bond_type!r}")
+
+    @staticmethod
+    def _bond_type_from_name(bond_type: str) -> Chem.BondType:
+        """Convert one serialized bond type name back into an RDKit value."""
+
+        return getattr(Chem.BondType, bond_type.upper())
 
     @staticmethod
     def _site_from_dict(payload: dict[str, Any]) -> Site:

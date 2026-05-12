@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from brickene.core.node import Atom, BrickNode, BrickType, Port, Site
+from brickene.core.node import Atom, BrickNode, BrickType, Edge, Port, Site
 
 RAW_TYPE_TO_BRICK_TYPE: dict[str, BrickType] = {
     "bridge": BrickType.BRIDGE,
@@ -97,11 +97,12 @@ def apply_preferred_port_type(
         updated_nodes.append(updated_site)
 
     updated_edges = [
-        (
-            replacement_by_index[left.index],
-            replacement_by_index[right.index],
+        Edge(
+            left=replacement_by_index[edge.left.index],
+            right=replacement_by_index[edge.right.index],
+            bond_type=edge.bond_type,
         )
-        for left, right in node.edges
+        for edge in node.edges
     ]
 
     return BrickNode(
@@ -143,7 +144,9 @@ def get_connected_symbol_by_port(node: BrickNode) -> dict[int, str | None]:
 
     connected_symbol_by_port = {port.index: None for port in node.ports}
 
-    for left_site, right_site in node.edges:
+    for edge in node.edges:
+        left_site = edge.left
+        right_site = edge.right
         port_site: Port | None = None
         atom_site: Atom | None = None
 

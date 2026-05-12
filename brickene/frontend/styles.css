@@ -207,6 +207,7 @@ textarea {
 .canvas-layer,
 .component-layer,
 .component-world,
+.edge-layer,
 .node-container,
 .canvas-context-menu,
 .node-context-menu,
@@ -280,6 +281,25 @@ textarea {
   inset: 0;
 }
 
+.edge-layer {
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.edge-line,
+.edge-line-draft {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.edge-line-draft {
+  stroke-dasharray: 6 4;
+  opacity: 0.72;
+}
+
 .selection-rect {
   z-index: 3;
   display: none;
@@ -302,6 +322,7 @@ textarea {
   box-shadow: var(--shadow);
   cursor: move;
   user-select: none;
+  overflow: visible;
 }
 
 .node-component.is-selected {
@@ -320,12 +341,18 @@ textarea {
   gap: 0.35rem;
 }
 
+.node-content {
+  display: grid;
+  gap: 0.55rem;
+}
+
 .node-header {
   padding-bottom: 0.55rem;
   border-bottom: 1px solid var(--accent);
 }
 
 .node-title,
+.node-meta,
 .node-subtitle,
 .node-description,
 .node-slot {
@@ -338,6 +365,7 @@ textarea {
 }
 
 .node-subtitle,
+.node-meta,
 .node-description,
 .node-slot {
   color: var(--text-muted);
@@ -350,7 +378,7 @@ textarea {
 }
 
 .node-footer {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 0.4rem;
 }
 
@@ -360,6 +388,46 @@ textarea {
   justify-content: center;
   min-height: 1.85rem;
   border: 1px solid var(--accent);
+  background: var(--surface-muted);
+}
+
+.node-slot.is-occupied {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.node-port {
+  position: absolute;
+  top: var(--port-top);
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: crosshair;
+}
+
+.node-port-left {
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+.node-port-right {
+  left: 100%;
+  transform: translate(-50%, -50%);
+}
+
+.node-port.is-connected {
+  background: var(--border);
+}
+
+.node-port.is-armed,
+.node-port.is-target {
+  outline: 2px solid var(--border);
+  outline-offset: 2px;
+}
+
+.node-port.is-target {
   background: var(--surface-muted);
 }
 

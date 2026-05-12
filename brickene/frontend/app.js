@@ -13,23 +13,46 @@ const stateMap = {
 };
 
 const nodeSize = { width: 220, height: 152 };
+const defaultPortCount = 3;
+
+function createPortSlots(nport) {
+  return Array.from({ length: nport }, (_, index) => ({
+    id: index,
+    label: `P${index + 1}`,
+    side: index === 0 ? "left" : "right",
+    edgeId: null,
+  }));
+}
+
+function buildNode(config) {
+  const nport = config.nport ?? defaultPortCount;
+
+  return {
+    ...config,
+    nport,
+    portSlots: config.portSlots?.map((slot) => ({ ...slot })) ?? createPortSlots(nport),
+  };
+}
+
 const initialNodes = [
-  {
+  buildNode({
     id: 1,
     title: "Node 1",
     subtitle: "Main branch",
     description: "Future text, ports, and interaction widgets can be mounted here.",
     x: 96,
     y: 88,
-  },
-  {
+    nport: 3,
+  }),
+  buildNode({
     id: 2,
     title: "Node 2",
     subtitle: "Side branch",
     description: "Node bodies already support selection, drag, and menu actions.",
     x: 388,
     y: 228,
-  },
+    nport: 4,
+  }),
 ];
 
 const submenuDropdown = document.getElementById("submenu-dropdown");
@@ -40,6 +63,7 @@ const canvasViewport = document.getElementById("canvas-viewport");
 const canvasLayer = document.getElementById("canvas-layer");
 const componentLayer = document.getElementById("component-layer");
 const componentWorld = document.getElementById("component-world");
+const edgeLayer = document.getElementById("edge-layer");
 const nodeContainer = document.getElementById("node-container");
 const selectionRect = document.getElementById("selection-rect");
 const canvasContextMenu = document.getElementById("canvas-context-menu");
@@ -48,8 +72,10 @@ const canvasContextItems = document.querySelectorAll("#canvas-context-menu .cont
 const nodeContextItems = document.querySelectorAll("#node-context-menu .context-menu-item");
 
 let activeMenuKey = "file";
-let nodes = initialNodes.map((node) => ({ ...node }));
+let nodes = initialNodes.map((node) => buildNode(node));
+let edges = [];
 let nextNodeId = nodes.length + 1;
+let nextEdgeId = 1;
 let selectedNodeIds = new Set();
 let canvasOffset = { x: 0, y: 0 };
 let canvasPanState = null;
@@ -142,6 +168,134 @@ function normalizeRect(startPoint, endPoint) {
   };
 }
 
+function getPortLayout(node) {
+  const rightSlots = node.portSlots.filter((slot) => slot.side === "right");
+  const topInset = 28;
+  const bottomInset = 28;
+  const usableHeight = nodeSize.height - topInset - bottomInset;
+
+  return node.portSlots.map((slot) => {
+    if (slot.side === "left") {
+      return {
+        ...slot,
+        x: 0,
+        y: nodeSize.height / 2,
+      };
+    }
+
+    const rightIndex = rightSlots.findIndex((rightSlot) => rightSlot.id === slot.id);
+    const y = rightSlots.length <= 1
+      ? nodeSize.height / 2
+      : topInset + (usableHeight / (rightSlots.length - 1)) * rightIndex;
+
+    return {
+      ...slot,
+      x: nodeSize.width,
+      y,
+    };
+  });
+}
+
+function findPortSlot(nodeId, slotId) {
+  const node = findNode(nodeId);
+  return node?.portSlots.find((slot) => slot.id === slotId) || null;
+}
+
+function getPortWorldPoint(nodeId, slotId) {
+  const node = findNode(nodeId);
+  if (!node) {
+    return null;
+  }
+
+  const slot = getPortLayout(node).find((port) => port.id === slotId);
+  if (!slot) {
+    return null;
+  }
+
+  return {
+    x: node.x + slot.x,
+    y: node.y + slot.y,
+  };
+}
+
+function getOccupiedPortCount(node) {
+  return node.portSlots.filter((slot) => slot.edgeId !== null).length;
+}
+
+function findHoveredPort(clientX, clientY) {
+  const target = document.elementFromPoint(clientX, clientY)?.closest(".node-port");
+  if (!target) {
+    return null;
+  }
+
+  return {
+    nodeId: Number(target.dataset.nodeId),
+    slotId: Number(target.dataset.slotId),
+  };
+}
+
+function updateNodePortEdge(nodeId, slotId, edgeId) {
+  nodes = nodes.map((node) => {
+    if (node.id !== nodeId) {
+      return node;
+    }
+
+    return {
+      ...node,
+      portSlots: node.portSlots.map((slot) => (
+        slot.id === slotId ? { ...slot, edgeId } : slot
+      )),
+    };
+  });
+}
+
+function renderEdges() {
+  const edgeMarkup = edges
+    .map((edge) => {
+      const fromPoint = getPortWorldPoint(edge.from.nodeId, edge.from.slotId);
+      const toPoint = getPortWorldPoint(edge.to.nodeId, edge.to.slotId);
+
+      if (!fromPoint || !toPoint) {
+        return "";
+      }
+
+      return `
+        <line
+          class="edge-line"
+          x1="${fromPoint.x}"
+          y1="${fromPoint.y}"
+          x2="${toPoint.x}"
+          y2="${toPoint.y}"
+          data-edge-id="${edge.id}"
+        ></line>
+      `;
+    })
+    .join("");
+
+  let draftMarkup = "";
+
+  if (componentInteraction?.type === "edge-drag") {
+    const sourcePoint = getPortWorldPoint(
+      componentInteraction.sourceNodeId,
+      componentInteraction.sourceSlotId,
+    );
+
+    if (sourcePoint) {
+      draftMarkup = `
+        <line
+          class="edge-line-draft"
+          x1="${sourcePoint.x}"
+          y1="${sourcePoint.y}"
+          x2="${componentInteraction.pointerWorld.x}"
+          y2="${componentInteraction.pointerWorld.y}"
+        ></line>
+      `;
+    }
+  }
+
+  edgeLayer.innerHTML = `${edgeMarkup}${draftMarkup}`;
+}
+
 function hasSelectionChanged(nextSelection) {
   if (selectedNodeIds.size !== nextSelection.length) {
     return true;
@@ -156,6 +310,8 @@ function renderNodes() {
       const element = document.createElement("article");
       const isSelected = selectedNodeIds.has(node.id);
       const isDragging = componentInteraction?.type === "node-drag" && componentInteraction.nodeId === node.id;
+      const portLayout = getPortLayout(node);
+      const occupiedPorts = getOccupiedPortCount(node);
 
       element.className = `node-component${isSelected ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}`;
       element.dataset.nodeId = String(node.id);
@@ -163,19 +319,44 @@ function renderNodes() {
       element.style.top = `${node.y}px`;
       element.setAttribute("aria-selected", String(isSelected));
       element.innerHTML = `
-        <div class="node-header">
-          <p class="overlay-label">Rectangular node</p>
-          <p class="node-title">${node.title}</p>
-          <p class="node-subtitle">${node.subtitle}</p>
+        <div class="node-content">
+          <div class="node-header">
+            <p class="overlay-label">Rectangular node</p>
+            <p class="node-title">${node.title}</p>
+            <p class="node-subtitle">${node.subtitle}</p>
+            <p class="node-meta">${occupiedPorts}/${node.nport} ports occupied</p>
+          </div>
+          <div class="node-body">
+            <p class="node-description">${node.description}</p>
+          </div>
+          <div class="node-footer" aria-hidden="true">
+            ${node.portSlots.map((slot) => `
+              <span class="node-slot${slot.edgeId !== null ? " is-occupied" : ""}">
+                ${slot.label} ${slot.edgeId === null ? "open" : "linked"}
+              </span>
+            `).join("")}
+          </div>
         </div>
-        <div class="node-body">
-          <p class="node-description">${node.description}</p>
-        </div>
-        <div class="node-footer" aria-hidden="true">
-          <span class="node-slot">Area A</span>
-          <span class="node-slot">Area B</span>
-          <span class="node-slot">Area C</span>
-        </div>
+        ${portLayout.map((slot) => {
+          const isArmed = componentInteraction?.type === "edge-drag"
+            && componentInteraction.sourceNodeId === node.id
+            && componentInteraction.sourceSlotId === slot.id;
+          const isTarget = componentInteraction?.type === "edge-drag"
+            && componentInteraction.hoverPort?.nodeId === node.id
+            && componentInteraction.hoverPort?.slotId === slot.id;
+
+          return `
+            <button
+              type="button"
+              class="node-port node-port-${slot.side}${slot.edgeId !== null ? " is-connected" : ""}${isArmed ? " is-armed" : ""}${isTarget ? " is-target" : ""}"
+              data-node-id="${node.id}"
+              data-slot-id="${slot.id}"
+              style="--port-top: ${slot.y}px"
+              title="${slot.label}: ${slot.edgeId === null ? "open" : "linked"}"
+              aria-label="${node.title} ${slot.label}"
+            ></button>
+          `;
+        }).join("")}
       `;
       return element;
     }),
@@ -204,26 +385,39 @@ function findNode(nodeId) {
 }
 
 function createNodeAt(worldX, worldY) {
-  const newNode = {
+  const newNode = buildNode({
     id: nextNodeId,
     title: `Node ${nextNodeId}`,
     subtitle: "New instance",
     description: "Placeholder text and interaction areas can be expanded here later.",
     x: worldX,
     y: worldY,
-  };
+    nport: defaultPortCount,
+  });
 
   nextNodeId += 1;
   nodes = [...nodes, newNode];
-  renderNodes();
   selectOnlyNode(newNode.id);
+  renderEdges();
   return newNode;
 }
 
 function deleteNode(nodeId) {
+  const deletedEdgeIds = edges
+    .filter((edge) => edge.from.nodeId === nodeId || edge.to.nodeId === nodeId)
+    .map((edge) => edge.id);
+
+  edges = edges.filter((edge) => !deletedEdgeIds.includes(edge.id));
   nodes = nodes.filter((node) => node.id !== nodeId);
-  selectedNodeIds.delete(nodeId);
+  nodes = nodes.map((node) => ({
+    ...node,
+    portSlots: node.portSlots.map((slot) => (
+      deletedEdgeIds.includes(slot.edgeId) ? { ...slot, edgeId: null } : slot
+    )),
+  }));
+  selectedNodeIds = new Set([...selectedNodeIds].filter((selectedId) => selectedId !== nodeId));
   renderNodes();
+  renderEdges();
 }
 
 function showSelectionBox(rect) {
@@ -270,6 +464,43 @@ function openNodeContextMenu(clientX, clientY, nodeId) {
   positionFloatingMenu(nodeContextMenu, clientX, clientY);
   closeCanvasContextMenu();
   nodeContextMenu.classList.add("is-open");
+}
+
+function createEdgeBetweenPorts(sourcePort, targetPort) {
+  if (sourcePort.nodeId === targetPort.nodeId && sourcePort.slotId === targetPort.slotId) {
+    return { success: false, message: "Choose a different port slot." };
+  }
+
+  const sourceSlot = findPortSlot(sourcePort.nodeId, sourcePort.slotId);
+  const targetSlot = findPortSlot(targetPort.nodeId, targetPort.slotId);
+
+  if (!sourceSlot || !targetSlot) {
+    return { success: false, message: "Port slot not found." };
+  }
+
+  if (sourceSlot.edgeId !== null || targetSlot.edgeId !== null) {
+    return { success: false, message: "Each port slot can only carry one edge." };
+  }
+
+  const edge = {
+    id: nextEdgeId,
+    from: { ...sourcePort },
+    to: { ...targetPort },
+  };
+
+  nextEdgeId += 1;
+  edges = [...edges, edge];
+  updateNodePortEdge(sourcePort.nodeId, sourcePort.slotId, edge.id);
+  updateNodePortEdge(targetPort.nodeId, targetPort.slotId, edge.id);
+  renderNodes();
+  renderEdges();
+
+  const sourceNode = findNode(sourcePort.nodeId);
+  const targetNode = findNode(targetPort.nodeId);
+  return {
+    success: true,
+    message: `${sourceNode?.title ?? "Source"} ${sourceSlot.label} linked to ${targetNode?.title ?? "Target"} ${targetSlot.label}.`,
+  };
 }
 
 function syncPanShortcutState() {
@@ -362,6 +593,7 @@ function beginNodeDrag(event, nodeId) {
   };
   canvasViewport.setPointerCapture(event.pointerId);
   renderNodes();
+  renderEdges();
 }
 
 function beginMarqueeSelection(event) {
@@ -377,8 +609,60 @@ function beginMarqueeSelection(event) {
   canvasViewport.setPointerCapture(event.pointerId);
 }
 
+function beginEdgeDrag(event, nodeId, slotId) {
+  const slot = findPortSlot(nodeId, slotId);
+
+  if (!slot) {
+    return;
+  }
+
+  if (slot.edgeId !== null) {
+    selectOnlyNode(nodeId);
+    setCanvasMessage(`${slot.label} is already occupied.`);
+    return;
+  }
+
+  componentInteraction = {
+    type: "edge-drag",
+    pointerId: event.pointerId,
+    sourceNodeId: nodeId,
+    sourceSlotId: slotId,
+    pointerWorld: clientToWorldPoint(event.clientX, event.clientY),
+    hoverPort: null,
+  };
+  canvasViewport.setPointerCapture(event.pointerId);
+  selectOnlyNode(nodeId);
+  renderEdges();
+  setCanvasMessage(`Connecting from ${slot.label}.`);
+}
+
 function endComponentInteraction(event) {
   if (!componentInteraction || event.pointerId !== componentInteraction.pointerId) {
+    return;
+  }
+
+  const interaction = componentInteraction;
+
+  if (interaction.type === "edge-drag") {
+    if (canvasViewport.hasPointerCapture(event.pointerId)) {
+      canvasViewport.releasePointerCapture(event.pointerId);
+    }
+
+    componentInteraction = null;
+    renderNodes();
+    renderEdges();
+
+    const targetPort = findHoveredPort(event.clientX, event.clientY);
+    if (!targetPort) {
+      setCanvasMessage("Edge creation cancelled.");
+      return;
+    }
+
+    const result = createEdgeBetweenPorts(
+      { nodeId: interaction.sourceNodeId, slotId: interaction.sourceSlotId },
+      targetPort,
+    );
+    setCanvasMessage(result.message);
     return;
   }
 
@@ -386,9 +670,9 @@ function endComponentInteraction(event) {
     canvasViewport.releasePointerCapture(event.pointerId);
   }
 
-  if (componentInteraction.type === "marquee") {
+  if (interaction.type === "marquee") {
     hideSelectionBox();
-    if (!componentInteraction.moved) {
+    if (!interaction.moved) {
       clearSelection();
       setCanvasMessage("Selection cleared.");
     } else {
@@ -396,11 +680,12 @@ function endComponentInteraction(event) {
     }
   }
 
-  if (componentInteraction.type === "node-drag") {
-    const movedNodeId = componentInteraction.nodeId;
-    const didMove = componentInteraction.moved;
+  if (interaction.type === "node-drag") {
+    const movedNodeId = interaction.nodeId;
+    const didMove = interaction.moved;
     componentInteraction = null;
     renderNodes();
+    renderEdges();
     setCanvasMessage(didMove ? `Node ${movedNodeId} moved.` : `Node ${movedNodeId} selected.`);
     return;
   }
@@ -469,6 +754,8 @@ window.addEventListener("blur", () => {
   cancelCanvasPan();
   componentInteraction = null;
   hideSelectionBox();
+  renderNodes();
+  renderEdges();
   syncPanShortcutState();
 });
 
@@ -502,7 +789,17 @@ canvasViewport.addEventListener("pointerdown", (event) => {
   }
 
   closeAllContextMenus();
+  const portElement = event.target.closest(".node-port");
   const nodeElement = event.target.closest(".node-component");
+
+  if (portElement) {
+    beginEdgeDrag(
+      event,
+      Number(portElement.dataset.nodeId),
+      Number(portElement.dataset.slotId),
+    );
+    return;
+  }
 
   if (nodeElement) {
     const nodeId = Number(nodeElement.dataset.nodeId);
@@ -520,6 +817,14 @@ canvasViewport.addEventListener("pointermove", (event) => {
     return;
   }
 
+  if (componentInteraction.type === "edge-drag") {
+    componentInteraction.pointerWorld = clientToWorldPoint(event.clientX, event.clientY);
+    componentInteraction.hoverPort = findHoveredPort(event.clientX, event.clientY);
+    renderNodes();
+    renderEdges();
+    return;
+  }
+
   if (componentInteraction.type === "node-drag") {
     const nextX = componentInteraction.originX + event.clientX - componentInteraction.startX;
     const nextY = componentInteraction.originY + event.clientY - componentInteraction.startY;
@@ -532,6 +837,7 @@ canvasViewport.addEventListener("pointermove", (event) => {
     ));
     componentInteraction.moved = moved;
     renderNodes();
+    renderEdges();
     return;
   }
 
@@ -585,5 +891,6 @@ nodeContextItems.forEach((item) => {
 renderSubmenu("file", document.querySelector('.menu-button[data-menu="file"]'));
 submenuDropdown.classList.add("is-open");
 renderNodes();
+renderEdges();
 applyViewportOffset();
 syncPanShortcutState();

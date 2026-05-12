@@ -47,22 +47,23 @@
             </div>
           </div>
 
-          <section class="component-layer" aria-label="Component layer">
-            <div class="component-frame"></div>
-            <div class="component-copy" role="img" aria-label="Component layer placeholder">
-              <p class="overlay-label">Component layer</p>
-              <h2>Nodes and edges reserve</h2>
-              <p>
-                This front layer is reserved for future node, port, and edge components.
-              </p>
+          <section id="component-layer" class="component-layer" aria-label="Component layer">
+            <div id="component-world" class="component-world">
+              <div id="node-container" class="node-container" aria-live="polite"></div>
             </div>
+            <div id="selection-rect" class="selection-rect" aria-hidden="true"></div>
           </section>
 
           <div id="canvas-context-menu" class="canvas-context-menu" role="menu" aria-label="Canvas context menu">
+            <button type="button" class="context-menu-item" data-action="node">Create new node</button>
             <button type="button" class="context-menu-item" data-action="center">Center canvas</button>
             <button type="button" class="context-menu-item" data-action="reset">Reset translation</button>
-            <button type="button" class="context-menu-item" data-action="node">Create node placeholder</button>
             <button type="button" class="context-menu-item" data-action="close">Close menu</button>
+          </div>
+
+          <div id="node-context-menu" class="node-context-menu" role="menu" aria-label="Node context menu">
+            <button type="button" class="context-menu-item node-context-item" data-action="delete">Delete node</button>
+            <button type="button" class="context-menu-item node-context-item" data-action="close">Close menu</button>
           </div>
         </div>
       </main>

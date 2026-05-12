@@ -206,7 +206,10 @@ textarea {
 
 .canvas-layer,
 .component-layer,
+.component-world,
+.node-container,
 .canvas-context-menu,
+.node-context-menu,
 .canvas-grid,
 .canvas-plane {
   position: absolute;
@@ -268,43 +271,121 @@ textarea {
 
 .component-layer {
   z-index: 1;
-  display: grid;
-  place-items: center;
   background: transparent;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
-.component-frame {
-  display: none;
+.component-world,
+.node-container {
+  inset: 0;
 }
 
-.component-copy {
-  position: relative;
-  z-index: 1;
-  width: 420px;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.92);
-  text-align: center;
-  pointer-events: none;
-}
-
-.component-copy p,
-.component-copy li {
-  line-height: 1.5;
-}
-
-.canvas-context-menu {
+.selection-rect {
   z-index: 3;
   display: none;
-  min-width: 12rem;
+  border: 1px dashed var(--border);
+  background: rgba(17, 17, 17, 0.08);
+  pointer-events: none;
+}
+
+.selection-rect.is-visible {
+  display: block;
+}
+
+.node-component {
+  position: absolute;
+  width: 220px;
+  min-height: 152px;
+  padding: 0.7rem 0.8rem 0.8rem;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow);
+  cursor: move;
+  user-select: none;
+}
+
+.node-component.is-selected {
+  outline: 2px solid var(--border);
+  outline-offset: 2px;
+}
+
+.node-component.is-dragging {
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.14);
+}
+
+.node-header,
+.node-body,
+.node-footer {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.node-header {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--accent);
+}
+
+.node-title,
+.node-subtitle,
+.node-description,
+.node-slot {
+  margin: 0;
+}
+
+.node-title {
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.node-subtitle,
+.node-description,
+.node-slot {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.node-body {
+  padding: 0.65rem 0;
+}
+
+.node-footer {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.node-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.85rem;
+  border: 1px solid var(--accent);
+  background: var(--surface-muted);
+}
+
+.canvas-context-menu,
+.node-context-menu {
+  position: absolute;
+  z-index: 4;
+  display: none;
+  width: max-content;
+  max-width: calc(100% - 1rem);
   padding: 0.35rem;
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 
-.canvas-context-menu.is-open {
+.canvas-context-menu {
+  min-width: 12rem;
+}
+
+.node-context-menu {
+  min-width: 9rem;
+}
+
+.canvas-context-menu.is-open,
+.node-context-menu.is-open {
   display: block;
 }
 

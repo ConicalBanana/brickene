@@ -3,6 +3,21 @@
   const { dom } = frontend;
   const FILE_EXTENSION = ".brickene";
 
+  function buildTimestampedFilename() {
+    const now = new Date();
+    const timestamp = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+      "-",
+      String(now.getHours()).padStart(2, "0"),
+      String(now.getMinutes()).padStart(2, "0"),
+      String(now.getSeconds()).padStart(2, "0"),
+    ].join("");
+
+    return `canvas-${timestamp}${FILE_EXTENSION}`;
+  }
+
   function getNodeStates() {
     return frontend.getGraphState().nodes.map((node) => ({
       id: node.id,
@@ -149,6 +164,22 @@
     return exportGraphState();
   }
 
+  function createNewCanvas() {
+    const graph = frontend.getGraphState();
+
+    graph.nodes = [];
+    graph.edges = [];
+    graph.nextNodeId = 1;
+    graph.nextEdgeId = 1;
+
+    clearGraphSelections();
+    frontend.closeAllContextMenus();
+    frontend.renderNodes();
+    frontend.notifyGraphChanged({ reason: "graph-new" });
+    frontend.setCanvasMessage("New canvas created.");
+    return exportGraphState();
+  }
+
   function save() {
     const blob = new Blob([`${JSON.stringify(exportGraphState(), null, 2)}\n`], {
       type: "application/json",
@@ -157,7 +188,7 @@
     const link = document.createElement("a");
 
     link.href = downloadUrl;
-    link.download = `graph${FILE_EXTENSION}`;
+    link.download = buildTimestampedFilename();
     document.body.append(link);
     link.click();
     link.remove();
@@ -180,6 +211,11 @@
   async function handleMenuAction(menuKey, actionKey) {
     if (menuKey !== "file") {
       return false;
+    }
+
+    if (actionKey === "new") {
+      createNewCanvas();
+      return true;
     }
 
     if (actionKey === "save") {
@@ -219,6 +255,7 @@
   frontend.getEdgeStates = getEdgeStates;
   frontend.exportGraphState = exportGraphState;
   frontend.importGraphState = importGraphState;
+  frontend.createNewCanvas = createNewCanvas;
   frontend.handleMenuAction = handleMenuAction;
   frontend.bindPersistenceEvents = bindPersistenceEvents;
   frontend.save = save;

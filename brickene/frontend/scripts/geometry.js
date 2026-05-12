@@ -17,8 +17,12 @@
     const { canvasOffset } = frontend.getUiState();
     const transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px)`;
 
-    dom.canvasLayer.style.transform = transform;
     dom.componentWorld.style.transform = transform;
+    if (dom.canvasGrid) {
+      dom.canvasGrid.style.backgroundPosition = `${canvasOffset.x}px ${canvasOffset.y}px`;
+    }
+    dom.canvasLayer.style.setProperty("--canvas-offset-x", `${canvasOffset.x}px`);
+    dom.canvasLayer.style.setProperty("--canvas-offset-y", `${canvasOffset.y}px`);
   }
 
   function clientToWorldPoint(clientX, clientY) {

@@ -2,6 +2,45 @@
   const frontend = window.BrickeneFrontend;
   const { dom } = frontend;
 
+  function shouldIgnoreWheelPan(eventTarget) {
+    return Boolean(
+      eventTarget.closest(".canvas-context-menu, .node-context-menu, .submenu-dropdown"),
+    );
+  }
+
+  function applyCanvasOffset(deltaX, deltaY) {
+    const ui = frontend.getUiState();
+
+    ui.canvasOffset = {
+      x: ui.canvasOffset.x + deltaX,
+      y: ui.canvasOffset.y + deltaY,
+    };
+    frontend.applyViewportOffset();
+    frontend.setCanvasMessage(`Canvas translated to x ${ui.canvasOffset.x}, y ${ui.canvasOffset.y}.`);
+  }
+
+  function handleCanvasWheel(event) {
+    if (!(event.target instanceof Element) || shouldIgnoreWheelPan(event.target)) {
+      return;
+    }
+
+    const ui = frontend.getUiState();
+    if (ui.canvasPanState || ui.componentInteraction) {
+      return;
+    }
+
+    const wheelDeltaX = event.deltaX + (event.shiftKey ? event.deltaY : 0);
+    const wheelDeltaY = event.shiftKey ? 0 : event.deltaY;
+
+    if (!wheelDeltaX && !wheelDeltaY) {
+      return;
+    }
+
+    event.preventDefault();
+    frontend.closeAllContextMenus();
+    applyCanvasOffset(-wheelDeltaX, -wheelDeltaY);
+  }
+
   function syncPanShortcutState() {
     const ui = frontend.getUiState();
 
@@ -244,6 +283,8 @@
   }
 
   function bindViewportEvents() {
+    dom.canvasViewport.addEventListener("wheel", handleCanvasWheel, { passive: false });
+
     dom.canvasViewport.addEventListener("pointerdown", (event) => {
       const ui = frontend.getUiState();
       if (ui.isSpacePressed || dom.canvasContextMenu.contains(event.target) || dom.nodeContextMenu.contains(event.target)) {
@@ -392,5 +433,6 @@
   frontend.beginMarqueeSelection = beginMarqueeSelection;
   frontend.endComponentInteraction = endComponentInteraction;
   frontend.cancelCanvasPan = cancelCanvasPan;
+  frontend.handleCanvasWheel = handleCanvasWheel;
   frontend.bootstrap = bootstrap;
 })();

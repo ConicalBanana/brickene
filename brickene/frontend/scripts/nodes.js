@@ -131,6 +131,14 @@
     return getPortOptionById(node, slot.actualPortId);
   }
 
+  function getEffectiveSlotSide(node, slot) {
+    if (node.isStartNode) {
+      return "right";
+    }
+
+    return slot.side;
+  }
+
   function getSlotPortLabel(node, slot) {
     const portOption = getSlotPortOption(node, slot);
     return portOption?.label || "Unassigned";
@@ -151,6 +159,7 @@
       brickName: brickDefinition?.name || "Unknown",
       brickImageSrc: brickDefinition?.imageSrc || "",
       brickType: brickDefinition?.brick_type || "UNCONFIGURED",
+      isStartNode: Boolean(nodeConfig.isStartNode),
       portPool,
       nport: portSlots.length,
       portSlots,
@@ -168,8 +177,8 @@
 
   function getPortSlotGroups(node) {
     return {
-      leftSlots: node.portSlots.filter((slot) => slot.side === "left"),
-      rightSlots: node.portSlots.filter((slot) => slot.side === "right"),
+      leftSlots: node.portSlots.filter((slot) => getEffectiveSlotSide(node, slot) === "left"),
+      rightSlots: node.portSlots.filter((slot) => getEffectiveSlotSide(node, slot) === "right"),
     };
   }
 
@@ -230,7 +239,27 @@
         src="${escapeHtml(node.brickImageSrc)}"
         alt="${escapeHtml(node.brickName)} structure"
       />
+      <div class="node-structure-mask" aria-hidden="true"></div>
     `;
+  }
+
+  function setNodeStartState(nodeId, isStartNode) {
+    const graph = frontend.getGraphState();
+    const node = findNode(nodeId);
+
+    if (!node || node.isStartNode === isStartNode) {
+      return { updated: false };
+    }
+
+    graph.nodes = graph.nodes.map((graphNode) => (
+      graphNode.id === nodeId
+        ? { ...graphNode, isStartNode }
+        : graphNode
+    ));
+
+    renderNodes();
+    frontend.notifyGraphChanged({ reason: "node-start-state", nodeId });
+    return { updated: true };
   }
 
   function renderPortEntry(node, slot, side, ui) {
@@ -406,6 +435,25 @@
     frontend.setCanvasMessage(`Node ${nodeId} slot ${slotId + 1} assigned to ${result.portLabel}.`);
   }
 
+  function handleNodeStartStateChange(event) {
+    const checkbox = event.target.closest(".node-start-toggle");
+    if (!checkbox) {
+      return;
+    }
+
+    const nodeId = Number(checkbox.dataset.nodeId);
+    const result = setNodeStartState(nodeId, checkbox.checked);
+    if (!result.updated) {
+      return;
+    }
+
+    frontend.setCanvasMessage(
+      checkbox.checked
+        ? `Node ${nodeId} marked as start node.`
+        : `Node ${nodeId} start node cleared.`,
+    );
+  }
+
   function bindNodeControlEvents() {
     dom.nodeContainer.addEventListener("pointerdown", (event) => {
       if (event.target.closest(".node-control")) {
@@ -421,6 +469,11 @@
 
       if (event.target.closest(".node-port-select")) {
         handlePortAssignmentChange(event);
+        return;
+      }
+
+      if (event.target.closest(".node-start-toggle")) {
+        handleNodeStartStateChange(event);
       }
     });
   }
@@ -443,7 +496,6 @@
             <div class="node-header">
               <p class="overlay-label">${escapeHtml(node.brickType)}</p>
               <p class="node-title">${escapeHtml(node.title)}</p>
-              <p class="node-subtitle">${node.nport} mapped port${node.nport === 1 ? "" : "s"}</p>
             </div>
             <div class="node-body">
               <label class="node-type-field">
@@ -461,12 +513,22 @@
               </div>
             </div>
           </div>
-          <div class="node-port-area" aria-hidden="true">
-            <p class="node-port-area-label">Port components</p>
-            <div class="node-port-area-content">
+          <div class="node-port-area">
+            <label class="node-start-option">
+              <input
+                type="checkbox"
+                class="node-start-toggle node-control"
+                data-node-id="${node.id}"
+                ${node.isStartNode ? "checked" : ""}
+              />
+              <span>Start node</span>
+            </label>
+            <div class="node-port-area-content${node.isStartNode ? " is-start-node" : ""}">
+              ${node.isStartNode ? "" : `
               <div class="node-port-column node-port-column-left">
                 ${leftSlots.map((slot) => renderPortEntry(node, slot, "left", ui)).join("")}
               </div>
+              `}
               <div class="node-port-column node-port-column-right">
                 ${rightSlots.map((slot) => renderPortEntry(node, slot, "right", ui)).join("")}
               </div>
@@ -569,12 +631,14 @@
   frontend.createPortSlots = createPortSlots;
   frontend.createPortSlotsFromBrick = createPortSlotsFromBrick;
   frontend.buildNode = buildNode;
+  frontend.getEffectiveSlotSide = getEffectiveSlotSide;
   frontend.getPortSlotGroups = getPortSlotGroups;
   frontend.findNode = findNode;
   frontend.findPortSlot = findPortSlot;
   frontend.getSlotPortLabel = getSlotPortLabel;
   frontend.updateNodePortEdge = updateNodePortEdge;
   frontend.setNodeBrickName = setNodeBrickName;
+  frontend.setNodeStartState = setNodeStartState;
   frontend.renderNodes = renderNodes;
   frontend.setSelectedNodes = setSelectedNodes;
   frontend.clearSelection = clearSelection;

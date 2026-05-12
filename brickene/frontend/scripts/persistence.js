@@ -9,6 +9,7 @@
       title: node.title,
       type: node.type,
       nodeTypeId: node.brickId,
+      isStartNode: Boolean(node.isStartNode),
       position: {
         x: node.x,
         y: node.y,
@@ -62,6 +63,7 @@
       title: nodeState.title,
       type: nodeState.type || "rectangular",
       brickId: nodeState.nodeTypeId || nodeState.brickId,
+      isStartNode: Boolean(nodeState.isStartNode),
       x: Number(position.x ?? nodeState.x ?? 0),
       y: Number(position.y ?? nodeState.y ?? 0),
       portSlots: portConfiguration.map((slot, index) => ({

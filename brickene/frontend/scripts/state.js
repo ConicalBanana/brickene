@@ -15,6 +15,7 @@
       node: "Node controls now map brick definitions into port slots.",
       view: "View controls will tune the integral canvas workspace.",
     },
+    renderApiUrl: "http://127.0.0.1:8765/render",
     nodeSize: { width: 260, height: 196 },
     defaultPortCount: 3,
     initialNodeConfigs: [

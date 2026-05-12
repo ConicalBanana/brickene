@@ -211,11 +211,20 @@
 
     const sourceSlot = frontend.findPortSlot(sourcePort.nodeId, sourcePort.slotId);
     const targetSlot = frontend.findPortSlot(targetPort.nodeId, targetPort.slotId);
+    const sourceNode = frontend.findNode(sourcePort.nodeId);
+    const targetNode = frontend.findNode(targetPort.nodeId);
     if (!sourceSlot || !targetSlot) {
       return { success: false, message: "Port not found." };
     }
 
-    if (sourceSlot.side !== "right" || targetSlot.side !== "left") {
+    if (!sourceNode || !targetNode) {
+      return { success: false, message: "Node not found." };
+    }
+
+    if (
+      frontend.getEffectiveSlotSide(sourceNode, sourceSlot) !== "right"
+      || frontend.getEffectiveSlotSide(targetNode, targetSlot) !== "left"
+    ) {
       return { success: false, message: "Only right-side to left-side connections are allowed." };
     }
 

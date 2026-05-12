@@ -126,7 +126,14 @@
   function renderEdges() {
     const graph = frontend.getGraphState();
     const ui = frontend.getUiState();
+    const activeRetargetEdgeId = ui.componentInteraction?.type === "edge-retarget"
+      ? ui.componentInteraction.edgeId
+      : null;
     const edgeMarkup = graph.edges.map((edge) => {
+      if (edge.id === activeRetargetEdgeId) {
+        return "";
+      }
+
       const segment = getEdgeWorldSegment(edge);
 
       if (!segment) {
@@ -159,6 +166,19 @@
 
     let draftMarkup = "";
     if (ui.componentInteraction?.type === "edge-drag") {
+      const from = getPortWorldPoint(ui.componentInteraction.sourceNodeId, ui.componentInteraction.sourceSlotId);
+      if (from) {
+        draftMarkup = `
+          <line
+            class="edge-line-draft"
+            x1="${from.x}"
+            y1="${from.y}"
+            x2="${ui.componentInteraction.pointerWorld.x}"
+            y2="${ui.componentInteraction.pointerWorld.y}"
+          ></line>
+        `;
+      }
+    } else if (ui.componentInteraction?.type === "edge-retarget" && ui.componentInteraction.moved) {
       const from = getPortWorldPoint(ui.componentInteraction.sourceNodeId, ui.componentInteraction.sourceSlotId);
       if (from) {
         draftMarkup = `
@@ -204,9 +224,32 @@
     frontend.setCanvasMessage(`Lining from ${slotPortLabel}.`);
   }
 
-  function createEdgeBetweenPorts(sourcePort, targetPort) {
-    const graph = frontend.getGraphState();
+  function beginEdgeRetarget(event, edgeId) {
+    const edge = findEdge(edgeId);
+    if (!edge) {
+      return;
+    }
 
+    frontend.getUiState().componentInteraction = {
+      type: "edge-retarget",
+      pointerId: event.pointerId,
+      edgeId,
+      sourceNodeId: edge.from.nodeId,
+      sourceSlotId: edge.from.slotId,
+      originalTargetNodeId: edge.to.nodeId,
+      originalTargetSlotId: edge.to.slotId,
+      pointerWorld: frontend.clientToWorldPoint(event.clientX, event.clientY),
+      hoverPort: null,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+    };
+    event.preventDefault();
+    frontend.setEdgeDragSelectionState(true);
+    dom.canvasViewport.setPointerCapture(event.pointerId);
+  }
+
+  function canConnectPorts(sourcePort, targetPort) {
     if (sourcePort.nodeId === targetPort.nodeId && sourcePort.slotId === targetPort.slotId) {
       return { success: false, message: "Choose a different port." };
     }
@@ -230,6 +273,18 @@
       return { success: false, message: "Only right-side to left-side connections are allowed." };
     }
 
+    return { success: true, sourceSlot, targetSlot };
+  }
+
+  function createEdgeBetweenPorts(sourcePort, targetPort) {
+    const graph = frontend.getGraphState();
+    const connectionCheck = canConnectPorts(sourcePort, targetPort);
+    if (!connectionCheck.success) {
+      return connectionCheck;
+    }
+
+    const { sourceSlot, targetSlot } = connectionCheck;
+
     if (sourceSlot.edgeId !== null || targetSlot.edgeId !== null) {
       return { success: false, message: "Each port can only hold one line." };
     }
@@ -248,6 +303,46 @@
     frontend.renderNodes();
     frontend.notifyGraphChanged({ reason: "edge-created", edgeId: edge.id });
     return { success: true, message: "Line created." };
+  }
+
+  function retargetEdgeDestination(edgeId, targetPort) {
+    const graph = frontend.getGraphState();
+    const edge = findEdge(edgeId);
+    if (!edge) {
+      return { success: false, message: "Edge not found." };
+    }
+
+    const sourcePort = { ...edge.from };
+    const connectionCheck = canConnectPorts(sourcePort, targetPort);
+    if (!connectionCheck.success) {
+      return connectionCheck;
+    }
+
+    const { targetSlot } = connectionCheck;
+    const isSameTarget = edge.to.nodeId === targetPort.nodeId && edge.to.slotId === targetPort.slotId;
+    if (isSameTarget) {
+      return { success: true, message: `Edge ${edgeId} unchanged.` };
+    }
+
+    if (targetSlot.edgeId !== null && targetSlot.edgeId !== edgeId) {
+      return { success: false, message: "Each port can only hold one line." };
+    }
+
+    const previousTarget = { ...edge.to };
+    graph.edges = graph.edges.map((graphEdge) => (
+      graphEdge.id === edgeId
+        ? {
+          ...graphEdge,
+          to: { ...targetPort },
+        }
+        : graphEdge
+    ));
+    frontend.updateNodePortEdge(previousTarget.nodeId, previousTarget.slotId, null);
+    frontend.updateNodePortEdge(targetPort.nodeId, targetPort.slotId, edgeId);
+    selectOnlyEdge(edgeId);
+    frontend.renderNodes();
+    frontend.notifyGraphChanged({ reason: "edge-retargeted", edgeId });
+    return { success: true, message: `Edge ${edgeId} destination updated.` };
   }
 
   function deleteEdge(edgeId) {
@@ -297,7 +392,9 @@
   frontend.findHoveredPort = findHoveredPort;
   frontend.renderEdges = renderEdges;
   frontend.beginEdgeDrag = beginEdgeDrag;
+  frontend.beginEdgeRetarget = beginEdgeRetarget;
   frontend.createEdgeBetweenPorts = createEdgeBetweenPorts;
+  frontend.retargetEdgeDestination = retargetEdgeDestination;
   frontend.deleteEdge = deleteEdge;
   frontend.deleteSelectedEdges = deleteSelectedEdges;
 })();

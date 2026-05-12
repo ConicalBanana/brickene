@@ -236,6 +236,34 @@
       return;
     }
 
+    if (ui.componentInteraction.type === "edge-retarget") {
+      if (dom.canvasViewport.hasPointerCapture(event.pointerId)) {
+        dom.canvasViewport.releasePointerCapture(event.pointerId);
+      }
+
+      const interaction = ui.componentInteraction;
+      setEdgeDragSelectionState(false);
+      ui.componentInteraction = null;
+      frontend.renderNodes();
+
+      if (!interaction.moved) {
+        frontend.selectOnlyEdge(interaction.edgeId);
+        frontend.setCanvasMessage(`Edge ${interaction.edgeId} selected.`);
+        return;
+      }
+
+      const targetPort = frontend.findHoveredPort(event.clientX, event.clientY);
+      if (!targetPort) {
+        frontend.deleteEdge(interaction.edgeId);
+        frontend.setCanvasMessage(`Edge ${interaction.edgeId} deleted.`);
+        return;
+      }
+
+      const result = frontend.retargetEdgeDestination(interaction.edgeId, targetPort);
+      frontend.setCanvasMessage(result.message);
+      return;
+    }
+
     if (dom.canvasViewport.hasPointerCapture(event.pointerId)) {
       dom.canvasViewport.releasePointerCapture(event.pointerId);
     }
@@ -415,8 +443,8 @@
       }
 
       if (edgeId !== null) {
-        frontend.selectOnlyEdge(edgeId);
-        frontend.setCanvasMessage(`Edge ${edgeId} selected.`);
+        event.preventDefault();
+        frontend.beginEdgeRetarget(event, edgeId);
         return;
       }
 
@@ -440,6 +468,17 @@
       if (ui.componentInteraction.type === "edge-drag") {
         ui.componentInteraction.pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
         ui.componentInteraction.hoverPort = frontend.findHoveredPort(event.clientX, event.clientY);
+        frontend.renderNodes();
+        return;
+      }
+
+      if (ui.componentInteraction.type === "edge-retarget") {
+        ui.componentInteraction.pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
+        ui.componentInteraction.hoverPort = frontend.findHoveredPort(event.clientX, event.clientY);
+        ui.componentInteraction.moved = (
+          Math.abs(event.clientX - ui.componentInteraction.startX) > 2
+          || Math.abs(event.clientY - ui.componentInteraction.startY) > 2
+        );
         frontend.renderNodes();
         return;
       }

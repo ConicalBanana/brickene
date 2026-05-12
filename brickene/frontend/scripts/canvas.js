@@ -1,0 +1,396 @@
+(() => {
+  const frontend = window.BrickeneFrontend;
+  const { dom } = frontend;
+
+  function syncPanShortcutState() {
+    const ui = frontend.getUiState();
+
+    dom.canvasViewport.classList.toggle(
+      "is-pan-ready",
+      ui.isSpacePressed && !ui.canvasPanState && !ui.componentInteraction,
+    );
+
+    if (ui.isSpacePressed && !ui.panHandlersBound) {
+      dom.canvasViewport.addEventListener("pointerdown", handleCanvasPointerDown);
+      dom.canvasViewport.addEventListener("pointermove", handleCanvasPointerMove);
+      dom.canvasViewport.addEventListener("pointerup", endCanvasPan);
+      dom.canvasViewport.addEventListener("pointercancel", endCanvasPan);
+      ui.panHandlersBound = true;
+    }
+
+    if (!ui.isSpacePressed && ui.panHandlersBound) {
+      dom.canvasViewport.removeEventListener("pointerdown", handleCanvasPointerDown);
+      dom.canvasViewport.removeEventListener("pointermove", handleCanvasPointerMove);
+      dom.canvasViewport.removeEventListener("pointerup", endCanvasPan);
+      dom.canvasViewport.removeEventListener("pointercancel", endCanvasPan);
+      ui.panHandlersBound = false;
+    }
+  }
+
+  function handleCanvasPointerDown(event) {
+    if (event.button !== 0 || dom.canvasContextMenu.contains(event.target) || dom.nodeContextMenu.contains(event.target)) {
+      return;
+    }
+
+    const ui = frontend.getUiState();
+    ui.canvasPanState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: ui.canvasOffset.x,
+      originY: ui.canvasOffset.y,
+    };
+
+    frontend.closeAllContextMenus();
+    dom.canvasViewport.classList.add("is-dragging");
+    dom.canvasViewport.classList.remove("is-pan-ready");
+    dom.canvasViewport.setPointerCapture(event.pointerId);
+  }
+
+  function handleCanvasPointerMove(event) {
+    const ui = frontend.getUiState();
+    if (!ui.canvasPanState || event.pointerId !== ui.canvasPanState.pointerId) {
+      return;
+    }
+
+    ui.canvasOffset = {
+      x: ui.canvasPanState.originX + event.clientX - ui.canvasPanState.startX,
+      y: ui.canvasPanState.originY + event.clientY - ui.canvasPanState.startY,
+    };
+    frontend.applyViewportOffset();
+    frontend.setCanvasMessage(`Canvas translated to x ${ui.canvasOffset.x}, y ${ui.canvasOffset.y}.`);
+  }
+
+  function cancelCanvasPan() {
+    const ui = frontend.getUiState();
+
+    ui.canvasPanState = null;
+    dom.canvasViewport.classList.remove("is-dragging");
+    syncPanShortcutState();
+  }
+
+  function endCanvasPan(event) {
+    const ui = frontend.getUiState();
+    if (!ui.canvasPanState || event.pointerId !== ui.canvasPanState.pointerId) {
+      return;
+    }
+
+    dom.canvasViewport.classList.remove("is-dragging");
+    dom.canvasViewport.releasePointerCapture(event.pointerId);
+    ui.canvasPanState = null;
+    syncPanShortcutState();
+  }
+
+  function beginNodeDrag(event, nodeId) {
+    const node = frontend.findNode(nodeId);
+    if (!node) {
+      return;
+    }
+
+    frontend.getUiState().componentInteraction = {
+      type: "node-drag",
+      pointerId: event.pointerId,
+      nodeId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: node.x,
+      originY: node.y,
+      moved: false,
+    };
+    dom.canvasViewport.setPointerCapture(event.pointerId);
+    frontend.renderNodes();
+  }
+
+  function beginMarqueeSelection(event) {
+    const point = frontend.clientToLayerPoint(event.clientX, event.clientY);
+
+    frontend.getUiState().componentInteraction = {
+      type: "marquee",
+      pointerId: event.pointerId,
+      startPoint: point,
+      endPoint: point,
+      moved: false,
+    };
+    frontend.showSelectionBox(frontend.normalizeRect(point, point));
+    dom.canvasViewport.setPointerCapture(event.pointerId);
+  }
+
+  function endComponentInteraction(event) {
+    const ui = frontend.getUiState();
+    if (!ui.componentInteraction || event.pointerId !== ui.componentInteraction.pointerId) {
+      return;
+    }
+
+    if (ui.componentInteraction.type === "edge-drag") {
+      if (dom.canvasViewport.hasPointerCapture(event.pointerId)) {
+        dom.canvasViewport.releasePointerCapture(event.pointerId);
+      }
+
+      const interaction = ui.componentInteraction;
+      ui.componentInteraction = null;
+      frontend.renderNodes();
+
+      const targetPort = frontend.findHoveredPort(event.clientX, event.clientY);
+      if (!targetPort) {
+        frontend.setCanvasMessage("Lining cancelled.");
+        return;
+      }
+
+      const result = frontend.createEdgeBetweenPorts(
+        { nodeId: interaction.sourceNodeId, slotId: interaction.sourceSlotId },
+        targetPort,
+      );
+      frontend.setCanvasMessage(result.message);
+      return;
+    }
+
+    if (dom.canvasViewport.hasPointerCapture(event.pointerId)) {
+      dom.canvasViewport.releasePointerCapture(event.pointerId);
+    }
+
+    if (ui.componentInteraction.type === "marquee") {
+      frontend.hideSelectionBox();
+      if (!ui.componentInteraction.moved) {
+        frontend.clearSelection();
+        frontend.setCanvasMessage("Selection cleared.");
+      } else {
+        frontend.setCanvasMessage(`${ui.selectedNodeIds.size} node(s) selected.`);
+      }
+    }
+
+    if (ui.componentInteraction.type === "node-drag") {
+      const movedNodeId = ui.componentInteraction.nodeId;
+      const didMove = ui.componentInteraction.moved;
+      ui.componentInteraction = null;
+      frontend.renderNodes();
+      frontend.setCanvasMessage(didMove ? `Node ${movedNodeId} moved.` : `Node ${movedNodeId} selected.`);
+      return;
+    }
+
+    ui.componentInteraction = null;
+  }
+
+  function bindMenuEvents() {
+    dom.menuButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const ui = frontend.getUiState();
+        const menuKey = button.dataset.menu || "file";
+        const isSameMenu = ui.activeMenuKey === menuKey;
+        const isOpen = dom.submenuDropdown.classList.contains("is-open");
+
+        dom.menuButtons.forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        ui.activeMenuKey = menuKey;
+        frontend.renderSubmenu(menuKey, button);
+
+        if (isSameMenu && isOpen) {
+          dom.submenuDropdown.classList.remove("is-open");
+          return;
+        }
+
+        dom.submenuDropdown.classList.add("is-open");
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!dom.submenuDropdown.contains(event.target) && !event.target.closest(".menu-button")) {
+        dom.submenuDropdown.classList.remove("is-open");
+      }
+
+      if (!dom.canvasContextMenu.contains(event.target) && !dom.nodeContextMenu.contains(event.target)) {
+        frontend.closeAllContextMenus();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      const { activeMenuKey } = frontend.getUiState();
+      const activeButton = document.querySelector(`.menu-button[data-menu="${activeMenuKey}"]`);
+      if (activeButton) {
+        frontend.positionDropdown(activeButton);
+      }
+      frontend.closeAllContextMenus();
+    });
+  }
+
+  function bindKeyboardEvents() {
+    document.addEventListener("keydown", (event) => {
+      if (event.code !== "Space") {
+        return;
+      }
+
+      frontend.getUiState().isSpacePressed = true;
+      syncPanShortcutState();
+    });
+
+    document.addEventListener("keyup", (event) => {
+      if (event.code !== "Space") {
+        return;
+      }
+
+      frontend.getUiState().isSpacePressed = false;
+      syncPanShortcutState();
+    });
+
+    window.addEventListener("blur", () => {
+      const ui = frontend.getUiState();
+
+      ui.isSpacePressed = false;
+      cancelCanvasPan();
+      ui.componentInteraction = null;
+      frontend.hideSelectionBox();
+      frontend.renderNodes();
+      syncPanShortcutState();
+    });
+  }
+
+  function bindViewportEvents() {
+    dom.canvasViewport.addEventListener("pointerdown", (event) => {
+      const ui = frontend.getUiState();
+      if (ui.isSpacePressed || dom.canvasContextMenu.contains(event.target) || dom.nodeContextMenu.contains(event.target)) {
+        return;
+      }
+
+      if (event.button === 2) {
+        event.preventDefault();
+        cancelCanvasPan();
+        frontend.hideSelectionBox();
+        ui.componentInteraction = null;
+
+        const nodeElement = event.target.closest(".node-component");
+        if (nodeElement) {
+          const nodeId = Number(nodeElement.dataset.nodeId);
+          frontend.selectOnlyNode(nodeId);
+          frontend.openNodeContextMenu(event.clientX, event.clientY, nodeId);
+          frontend.setCanvasMessage(`Node ${nodeId} context menu opened.`);
+          return;
+        }
+
+        frontend.openCanvasContextMenu(event.clientX, event.clientY);
+        frontend.setCanvasMessage("Canvas context menu opened.");
+        return;
+      }
+
+      if (event.button !== 0) {
+        return;
+      }
+
+      frontend.closeAllContextMenus();
+      const portElement = event.target.closest(".node-port");
+      const nodeElement = event.target.closest(".node-component");
+
+      if (portElement) {
+        const nodeId = Number(portElement.dataset.nodeId);
+        const slotId = Number(portElement.dataset.slotId);
+        frontend.selectOnlyNode(nodeId);
+        frontend.beginEdgeDrag(event, nodeId, slotId);
+        return;
+      }
+
+      if (nodeElement) {
+        const nodeId = Number(nodeElement.dataset.nodeId);
+        frontend.selectOnlyNode(nodeId);
+        beginNodeDrag(event, nodeId);
+        return;
+      }
+
+      frontend.clearSelection();
+      beginMarqueeSelection(event);
+    });
+
+    dom.canvasViewport.addEventListener("pointermove", (event) => {
+      const ui = frontend.getUiState();
+      if (!ui.componentInteraction || event.pointerId !== ui.componentInteraction.pointerId) {
+        return;
+      }
+
+      if (ui.componentInteraction.type === "edge-drag") {
+        ui.componentInteraction.pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
+        ui.componentInteraction.hoverPort = frontend.findHoveredPort(event.clientX, event.clientY);
+        frontend.renderNodes();
+        return;
+      }
+
+      if (ui.componentInteraction.type === "node-drag") {
+        const graph = frontend.getGraphState();
+        const nextX = ui.componentInteraction.originX + event.clientX - ui.componentInteraction.startX;
+        const nextY = ui.componentInteraction.originY + event.clientY - ui.componentInteraction.startY;
+        const moved = Math.abs(event.clientX - ui.componentInteraction.startX) > 2 || Math.abs(event.clientY - ui.componentInteraction.startY) > 2;
+
+        graph.nodes = graph.nodes.map((node) => (
+          node.id === ui.componentInteraction.nodeId
+            ? { ...node, x: nextX, y: nextY }
+            : node
+        ));
+        ui.componentInteraction.moved = moved;
+        frontend.renderNodes();
+        return;
+      }
+
+      if (ui.componentInteraction.type === "marquee") {
+        const nextPoint = frontend.clientToLayerPoint(event.clientX, event.clientY);
+        const rect = frontend.normalizeRect(ui.componentInteraction.startPoint, nextPoint);
+        ui.componentInteraction.endPoint = nextPoint;
+        ui.componentInteraction.moved = rect.right - rect.left > 2 || rect.bottom - rect.top > 2;
+        frontend.showSelectionBox(rect);
+        frontend.updateSelectionFromRect(rect);
+      }
+    });
+
+    dom.canvasViewport.addEventListener("pointerup", endComponentInteraction);
+    dom.canvasViewport.addEventListener("pointercancel", endComponentInteraction);
+    dom.canvasViewport.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+
+    dom.canvasContextItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        const action = item.dataset.action;
+        const ui = frontend.getUiState();
+
+        if (action === "center" || action === "reset") {
+          ui.canvasOffset = { x: 0, y: 0 };
+          frontend.applyViewportOffset();
+          frontend.setCanvasMessage("Canvas translation reset to origin.");
+        } else if (action === "node") {
+          const node = frontend.createNodeAt(ui.canvasContextTarget.x, ui.canvasContextTarget.y);
+          frontend.setCanvasMessage(`Node ${node.id} created at (${Math.round(node.x)}, ${Math.round(node.y)}).`);
+        }
+
+        frontend.closeCanvasContextMenu();
+      });
+    });
+
+    dom.nodeContextItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        const action = item.dataset.action;
+        const { activeNodeContextId } = frontend.getUiState();
+
+        if (action === "delete" && activeNodeContextId !== null) {
+          frontend.deleteNode(activeNodeContextId);
+          frontend.setCanvasMessage(`Node ${activeNodeContextId} deleted.`);
+        }
+
+        frontend.closeNodeContextMenu();
+      });
+    });
+  }
+
+  function bootstrap() {
+    frontend.seedGraphState();
+    frontend.renderSubmenu("file", document.querySelector('.menu-button[data-menu="file"]'));
+    dom.submenuDropdown.classList.add("is-open");
+    frontend.renderNodes();
+    frontend.applyViewportOffset();
+    syncPanShortcutState();
+    bindMenuEvents();
+    bindKeyboardEvents();
+    bindViewportEvents();
+  }
+
+  frontend.syncPanShortcutState = syncPanShortcutState;
+  frontend.beginNodeDrag = beginNodeDrag;
+  frontend.beginMarqueeSelection = beginMarqueeSelection;
+  frontend.endComponentInteraction = endComponentInteraction;
+  frontend.cancelCanvasPan = cancelCanvasPan;
+  frontend.bootstrap = bootstrap;
+})();

@@ -1,5 +1,6 @@
 (() => {
   const frontend = window.BrickeneFrontend = window.BrickeneFrontend || {};
+  const GRAPH_CHANGE_EVENT = "brickene:graphchange";
 
   frontend.config = {
     submenuMap: {
@@ -49,6 +50,10 @@
     edgeLayer: document.getElementById("edge-layer"),
     nodeContainer: document.getElementById("node-container"),
     selectionRect: document.getElementById("selection-rect"),
+    renderLayer: document.getElementById("render-layer"),
+    renderPreviewWindow: document.getElementById("render-preview-window"),
+    renderPreviewImage: document.getElementById("render-preview-image"),
+    renderPreviewMeta: document.getElementById("render-preview-meta"),
     canvasContextMenu: document.getElementById("canvas-context-menu"),
     nodeContextMenu: document.getElementById("node-context-menu"),
     edgeContextMenu: document.getElementById("edge-context-menu"),
@@ -81,4 +86,18 @@
 
   frontend.getGraphState = () => frontend.state.graph;
   frontend.getUiState = () => frontend.state.ui;
+  frontend.GRAPH_CHANGE_EVENT = GRAPH_CHANGE_EVENT;
+  frontend.notifyGraphChanged = (detail = {}) => {
+    if (!frontend.dom.canvasViewport) {
+      return;
+    }
+
+    frontend.dom.canvasViewport.dispatchEvent(new CustomEvent(GRAPH_CHANGE_EVENT, {
+      detail: {
+        reason: detail.reason || "graph-updated",
+        timestamp: Date.now(),
+        ...detail,
+      },
+    }));
+  };
 })();

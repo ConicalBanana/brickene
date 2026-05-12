@@ -182,8 +182,10 @@
       return;
     }
 
+    const slotPortLabel = frontend.getSlotPortLabel(frontend.findNode(nodeId), slot);
+
     if (slot.edgeId !== null) {
-      frontend.setCanvasMessage(`${slot.label} is already occupied.`);
+      frontend.setCanvasMessage(`${slotPortLabel} is already occupied.`);
       return;
     }
 
@@ -197,7 +199,7 @@
     };
     dom.canvasViewport.setPointerCapture(event.pointerId);
     frontend.renderNodes();
-    frontend.setCanvasMessage(`Lining from ${slot.label}.`);
+    frontend.setCanvasMessage(`Lining from ${slotPortLabel}.`);
   }
 
   function createEdgeBetweenPorts(sourcePort, targetPort) {
@@ -233,6 +235,7 @@
     frontend.updateNodePortEdge(targetPort.nodeId, targetPort.slotId, edge.id);
     selectOnlyEdge(edge.id);
     frontend.renderNodes();
+    frontend.notifyGraphChanged({ reason: "edge-created", edgeId: edge.id });
     return { success: true, message: "Line created." };
   }
 
@@ -257,6 +260,7 @@
       ui.activeEdgeContextId = null;
     }
     frontend.renderNodes();
+    frontend.notifyGraphChanged({ reason: "edge-deleted", edgeId });
     return true;
   }
 

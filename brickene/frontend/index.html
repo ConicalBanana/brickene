@@ -55,6 +55,16 @@
             <div id="selection-rect" class="selection-rect" aria-hidden="true"></div>
           </section>
 
+          <section id="render-layer" class="render-layer" aria-label="Render layer">
+            <div id="render-preview-window" class="render-preview-window">
+              <p class="render-preview-label">Render preview</p>
+              <div class="render-preview-frame" aria-hidden="true">
+                <img id="render-preview-image" class="render-preview-image" alt="Rendered graph preview" hidden />
+              </div>
+              <p id="render-preview-meta" class="render-preview-meta">Awaiting preview refresh.</p>
+            </div>
+          </section>
+
           <div id="canvas-context-menu" class="canvas-context-menu" role="menu" aria-label="Canvas context menu">
             <button type="button" class="context-menu-item" data-action="node">Create new node</button>
             <button type="button" class="context-menu-item" data-action="center">Center canvas</button>
@@ -81,6 +91,7 @@
     <script src="./scripts/geometry.js"></script>
     <script src="./scripts/nodes.js"></script>
     <script src="./scripts/edges.js"></script>
+    <script src="./scripts/render-layer.js"></script>
     <script src="./scripts/canvas.js"></script>
     <script src="./app.js"></script>
   </body>

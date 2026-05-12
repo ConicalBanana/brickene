@@ -209,6 +209,7 @@ textarea {
 .component-layer,
 .component-world,
 .node-container,
+.render-layer,
 .canvas-context-menu,
 .node-context-menu,
 .canvas-grid,
@@ -274,6 +275,53 @@ textarea {
   z-index: 1;
   background: transparent;
   pointer-events: auto;
+}
+
+.render-layer {
+  inset: 0;
+  z-index: 5;
+  background: transparent;
+  pointer-events: none;
+}
+
+.render-preview-window {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: min(300px, calc(100vw - 32px));
+  height: min(300px, calc(100vh - var(--menu-height) - 32px));
+  padding: 0.8rem;
+  border: 1px dashed rgba(17, 17, 17, 0.38);
+  background: transparent;
+}
+
+.render-preview-label,
+.render-preview-meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.render-preview-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: calc(100% - 2.9rem);
+  margin-top: 0.7rem;
+  margin-bottom: 0.5rem;
+  border: 1px dashed rgba(17, 17, 17, 0.18);
+  background: transparent;
+  overflow: hidden;
+}
+
+.render-preview-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .component-world,
@@ -572,6 +620,22 @@ textarea {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.node-port-select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.16rem 0.22rem;
+  border: 1px dashed var(--accent);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  line-height: 1.05;
+}
+
+.node-port-select:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 1px;
 }
 
 .canvas-context-menu,

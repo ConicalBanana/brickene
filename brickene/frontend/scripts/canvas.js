@@ -228,6 +228,9 @@
       const didMove = ui.componentInteraction.moved;
       ui.componentInteraction = null;
       frontend.renderNodes();
+      if (didMove) {
+        frontend.notifyGraphChanged({ reason: "node-moved", nodeId: movedNodeId });
+      }
       frontend.setCanvasMessage(didMove ? `Node ${movedNodeId} moved.` : `Node ${movedNodeId} selected.`);
       return;
     }
@@ -495,7 +498,9 @@
     frontend.seedGraphState();
     frontend.renderSubmenu("file", document.querySelector('.menu-button[data-menu="file"]'));
     dom.submenuDropdown.classList.add("is-open");
+    frontend.bindRenderLayer();
     frontend.renderNodes();
+    frontend.notifyGraphChanged({ reason: "bootstrap" });
     frontend.applyViewportOffset();
     syncPanShortcutState();
     bindMenuEvents();

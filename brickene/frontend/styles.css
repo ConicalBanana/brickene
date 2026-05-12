@@ -10,6 +10,7 @@
   --shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
   --menu-height: 10vh;
   --canvas-height: 90vh;
+  --port-info-gap: 8px;
 }
 
 * {
@@ -207,7 +208,6 @@ textarea {
 .canvas-layer,
 .component-layer,
 .component-world,
-.edge-layer,
 .node-container,
 .canvas-context-menu,
 .node-context-menu,
@@ -277,12 +277,13 @@ textarea {
 }
 
 .component-world,
+.edge-layer,
 .node-container {
   inset: 0;
 }
 
 .edge-layer {
-  inset: 0;
+  position: absolute;
   overflow: visible;
   pointer-events: none;
 }
@@ -315,8 +316,8 @@ textarea {
 .node-component {
   position: absolute;
   width: 220px;
-  min-height: 152px;
-  padding: 0.7rem 0.8rem 0.8rem;
+  min-height: 0;
+  padding: 0;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--shadow);
@@ -335,15 +336,79 @@ textarea {
 }
 
 .node-header,
-.node-body,
-.node-footer {
+.node-body {
   display: grid;
   gap: 0.35rem;
 }
 
 .node-content {
   display: grid;
-  gap: 0.55rem;
+  grid-template-rows: auto auto;
+}
+
+.node-info-area,
+.node-port-area {
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+}
+
+.node-info-area {
+  padding-top: 0.7rem;
+  padding-bottom: 0.55rem;
+}
+
+.node-port-area {
+  position: relative;
+  padding-top: 0.55rem;
+  padding-bottom: 0.8rem;
+  border-top: 1px solid var(--accent);
+  background: rgba(250, 250, 250, 0.88);
+}
+
+.node-port-area-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+  margin-top: 0.55rem;
+}
+
+.node-port-column {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.node-port-column-left {
+  align-content: start;
+}
+
+.node-port-column-right {
+  align-content: start;
+}
+
+.node-port-entry {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+}
+
+.node-port-entry-left {
+  justify-content: flex-start;
+  gap: var(--port-info-gap);
+}
+
+.node-port-entry-right {
+  justify-content: flex-end;
+  gap: var(--port-info-gap);
+}
+
+.node-port-area-label {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .node-header {
@@ -352,10 +417,10 @@ textarea {
 }
 
 .node-title,
-.node-meta,
 .node-subtitle,
 .node-description,
-.node-slot {
+.node-port-slot-id,
+.node-port-name {
   margin: 0;
 }
 
@@ -365,9 +430,9 @@ textarea {
 }
 
 .node-subtitle,
-.node-meta,
 .node-description,
-.node-slot {
+.node-port-slot-id,
+.node-port-name {
   color: var(--text-muted);
   font-size: 0.78rem;
   line-height: 1.45;
@@ -377,58 +442,71 @@ textarea {
   padding: 0.65rem 0;
 }
 
-.node-footer {
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.node-slot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.85rem;
-  border: 1px solid var(--accent);
-  background: var(--surface-muted);
-}
-
-.node-slot.is-occupied {
-  border-color: var(--border);
-  color: var(--text);
-}
-
 .node-port {
-  position: absolute;
-  top: var(--port-top);
+  position: relative;
+  top: auto;
   width: 14px;
   height: 14px;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
   cursor: crosshair;
+  transform: none;
 }
 
-.node-port-left {
-  left: 0;
-  transform: translate(-50%, -50%);
-}
-
-.node-port-right {
-  left: 100%;
-  transform: translate(-50%, -50%);
-}
-
-.node-port.is-connected {
-  background: var(--border);
-}
-
-.node-port.is-armed,
-.node-port.is-target {
+.node-port.is-hover-target {
   outline: 2px solid var(--border);
   outline-offset: 2px;
 }
 
-.node-port.is-target {
+.node-port-left {
+  margin-left: calc(-0.8rem - 8px);
+}
+
+.node-port-right {
+  margin-right: calc(-0.8rem - 8px);
+  order: 2;
+}
+
+.node-port-info {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  width: 84px;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid var(--accent);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+}
+
+.node-port-info-left {
+  margin-left: 0;
+}
+
+.node-port-info-right {
+  order: 1;
+  margin-right: 0;
+}
+
+.node-port-slot-id {
+  color: var(--text);
+  font-size: 0.64rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.node-port-name {
+  margin-top: 0;
+  padding: 0.18rem 0.22rem;
+  border: 1px dashed var(--accent);
   background: var(--surface-muted);
+  font-size: 0.66rem;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .canvas-context-menu,

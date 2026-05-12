@@ -20,6 +20,7 @@ function createPortSlots(nport) {
     id: index,
     label: `P${index + 1}`,
     side: index === 0 ? "left" : "right",
+    actualPortName: "Unassigned",
     edgeId: null,
   }));
 }
@@ -32,6 +33,102 @@ function buildNode(config) {
     nport,
     portSlots: config.portSlots?.map((slot) => ({ ...slot })) ?? createPortSlots(nport),
   };
+}
+
+function getPortSlotGroups(node) {
+  return {
+    leftSlot: node.portSlots.find((slot) => slot.side === "left") || null,
+    rightSlots: node.portSlots.filter((slot) => slot.side === "right"),
+  };
+}
+
+function findPortSlot(nodeId, slotId) {
+  const node = findNode(nodeId);
+  return node?.portSlots.find((slot) => slot.id === slotId) || null;
+}
+
+function getPortWorldPoint(nodeId, slotId) {
+  const portElement = nodeContainer.querySelector(
+    `.node-port[data-node-id="${nodeId}"][data-slot-id="${slotId}"]`,
+  );
+  if (!portElement) {
+    return null;
+  }
+
+  const worldRect = componentWorld.getBoundingClientRect();
+  const portRect = portElement.getBoundingClientRect();
+
+  return {
+    x: portRect.left - worldRect.left + portRect.width / 2,
+    y: portRect.top - worldRect.top + portRect.height / 2,
+  };
+}
+
+function updateNodePortEdge(nodeId, slotId, edgeId) {
+  nodes = nodes.map((node) => {
+    if (node.id !== nodeId) {
+      return node;
+    }
+
+    return {
+      ...node,
+      portSlots: node.portSlots.map((slot) => (
+        slot.id === slotId ? { ...slot, edgeId } : slot
+      )),
+    };
+  });
+}
+
+function findHoveredPort(clientX, clientY) {
+  const port = document.elementFromPoint(clientX, clientY)?.closest(".node-port");
+  if (!port) {
+    return null;
+  }
+
+  return {
+    nodeId: Number(port.dataset.nodeId),
+    slotId: Number(port.dataset.slotId),
+  };
+}
+
+function renderEdges() {
+  const edgeMarkup = edges.map((edge) => {
+    const from = getPortWorldPoint(edge.from.nodeId, edge.from.slotId);
+    const to = getPortWorldPoint(edge.to.nodeId, edge.to.slotId);
+
+    if (!from || !to) {
+      return "";
+    }
+
+    return `
+      <line
+        class="edge-line"
+        x1="${from.x}"
+        y1="${from.y}"
+        x2="${to.x}"
+        y2="${to.y}"
+        data-edge-id="${edge.id}"
+      ></line>
+    `;
+  }).join("");
+
+  let draftMarkup = "";
+  if (componentInteraction?.type === "edge-drag") {
+    const from = getPortWorldPoint(componentInteraction.sourceNodeId, componentInteraction.sourceSlotId);
+    if (from) {
+      draftMarkup = `
+        <line
+          class="edge-line-draft"
+          x1="${from.x}"
+          y1="${from.y}"
+          x2="${componentInteraction.pointerWorld.x}"
+          y2="${componentInteraction.pointerWorld.y}"
+        ></line>
+      `;
+    }
+  }
+
+  edgeLayer.innerHTML = `${edgeMarkup}${draftMarkup}`;
 }
 
 const initialNodes = [
@@ -168,134 +265,6 @@ function normalizeRect(startPoint, endPoint) {
   };
 }
 
-function getPortLayout(node) {
-  const rightSlots = node.portSlots.filter((slot) => slot.side === "right");
-  const topInset = 28;
-  const bottomInset = 28;
-  const usableHeight = nodeSize.height - topInset - bottomInset;
-
-  return node.portSlots.map((slot) => {
-    if (slot.side === "left") {
-      return {
-        ...slot,
-        x: 0,
-        y: nodeSize.height / 2,
-      };
-    }
-
-    const rightIndex = rightSlots.findIndex((rightSlot) => rightSlot.id === slot.id);
-    const y = rightSlots.length <= 1
-      ? nodeSize.height / 2
-      : topInset + (usableHeight / (rightSlots.length - 1)) * rightIndex;
-
-    return {
-      ...slot,
-      x: nodeSize.width,
-      y,
-    };
-  });
-}
-
-function findPortSlot(nodeId, slotId) {
-  const node = findNode(nodeId);
-  return node?.portSlots.find((slot) => slot.id === slotId) || null;
-}
-
-function getPortWorldPoint(nodeId, slotId) {
-  const node = findNode(nodeId);
-  if (!node) {
-    return null;
-  }
-
-  const slot = getPortLayout(node).find((port) => port.id === slotId);
-  if (!slot) {
-    return null;
-  }
-
-  return {
-    x: node.x + slot.x,
-    y: node.y + slot.y,
-  };
-}
-
-function getOccupiedPortCount(node) {
-  return node.portSlots.filter((slot) => slot.edgeId !== null).length;
-}
-
-function findHoveredPort(clientX, clientY) {
-  const target = document.elementFromPoint(clientX, clientY)?.closest(".node-port");
-  if (!target) {
-    return null;
-  }
-
-  return {
-    nodeId: Number(target.dataset.nodeId),
-    slotId: Number(target.dataset.slotId),
-  };
-}
-
-function updateNodePortEdge(nodeId, slotId, edgeId) {
-  nodes = nodes.map((node) => {
-    if (node.id !== nodeId) {
-      return node;
-    }
-
-    return {
-      ...node,
-      portSlots: node.portSlots.map((slot) => (
-        slot.id === slotId ? { ...slot, edgeId } : slot
-      )),
-    };
-  });
-}
-
-function renderEdges() {
-  const edgeMarkup = edges
-    .map((edge) => {
-      const fromPoint = getPortWorldPoint(edge.from.nodeId, edge.from.slotId);
-      const toPoint = getPortWorldPoint(edge.to.nodeId, edge.to.slotId);
-
-      if (!fromPoint || !toPoint) {
-        return "";
-      }
-
-      return `
-        <line
-          class="edge-line"
-          x1="${fromPoint.x}"
-          y1="${fromPoint.y}"
-          x2="${toPoint.x}"
-          y2="${toPoint.y}"
-          data-edge-id="${edge.id}"
-        ></line>
-      `;
-    })
-    .join("");
-
-  let draftMarkup = "";
-
-  if (componentInteraction?.type === "edge-drag") {
-    const sourcePoint = getPortWorldPoint(
-      componentInteraction.sourceNodeId,
-      componentInteraction.sourceSlotId,
-    );
-
-    if (sourcePoint) {
-      draftMarkup = `
-        <line
-          class="edge-line-draft"
-          x1="${sourcePoint.x}"
-          y1="${sourcePoint.y}"
-          x2="${componentInteraction.pointerWorld.x}"
-          y2="${componentInteraction.pointerWorld.y}"
-        ></line>
-      `;
-    }
-  }
-
-  edgeLayer.innerHTML = `${edgeMarkup}${draftMarkup}`;
-}
-
 function hasSelectionChanged(nextSelection) {
   if (selectedNodeIds.size !== nextSelection.length) {
     return true;
@@ -310,8 +279,7 @@ function renderNodes() {
       const element = document.createElement("article");
       const isSelected = selectedNodeIds.has(node.id);
       const isDragging = componentInteraction?.type === "node-drag" && componentInteraction.nodeId === node.id;
-      const portLayout = getPortLayout(node);
-      const occupiedPorts = getOccupiedPortCount(node);
+      const { leftSlot, rightSlots } = getPortSlotGroups(node);
 
       element.className = `node-component${isSelected ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}`;
       element.dataset.nodeId = String(node.id);
@@ -320,47 +288,62 @@ function renderNodes() {
       element.setAttribute("aria-selected", String(isSelected));
       element.innerHTML = `
         <div class="node-content">
-          <div class="node-header">
-            <p class="overlay-label">Rectangular node</p>
-            <p class="node-title">${node.title}</p>
-            <p class="node-subtitle">${node.subtitle}</p>
-            <p class="node-meta">${occupiedPorts}/${node.nport} ports occupied</p>
+          <div class="node-info-area">
+            <div class="node-header">
+              <p class="overlay-label">Rectangular node</p>
+              <p class="node-title">${node.title}</p>
+              <p class="node-subtitle">${node.subtitle}</p>
+            </div>
+            <div class="node-body">
+              <p class="node-description">${node.description}</p>
+            </div>
           </div>
-          <div class="node-body">
-            <p class="node-description">${node.description}</p>
-          </div>
-          <div class="node-footer" aria-hidden="true">
-            ${node.portSlots.map((slot) => `
-              <span class="node-slot${slot.edgeId !== null ? " is-occupied" : ""}">
-                ${slot.label} ${slot.edgeId === null ? "open" : "linked"}
-              </span>
-            `).join("")}
+          <div class="node-port-area" aria-hidden="true">
+            <p class="node-port-area-label">Port components</p>
+            <div class="node-port-area-content">
+              <div class="node-port-column node-port-column-left">
+                ${leftSlot ? `
+                  <div class="node-port-entry node-port-entry-left">
+                    <button
+                      type="button"
+                      class="node-port node-port-left${componentInteraction?.type === "edge-drag" && componentInteraction.hoverPort?.nodeId === node.id && componentInteraction.hoverPort?.slotId === leftSlot.id ? " is-hover-target" : ""}"
+                      data-node-id="${node.id}"
+                      data-slot-id="${leftSlot.id}"
+                      aria-label="${node.title} ${leftSlot.label}"
+                    ></button>
+                    <div class="node-port-info node-port-info-left">
+                      <p class="node-port-slot-id">${leftSlot.label}</p>
+                      <p class="node-port-name">${leftSlot.actualPortName}</p>
+                    </div>
+                  </div>
+                ` : ""}
+              </div>
+              <div class="node-port-column node-port-column-right">
+                ${rightSlots.map((slot) => `
+                  <div class="node-port-entry node-port-entry-right">
+                    <button
+                      type="button"
+                      class="node-port node-port-right${componentInteraction?.type === "edge-drag" && componentInteraction.hoverPort?.nodeId === node.id && componentInteraction.hoverPort?.slotId === slot.id ? " is-hover-target" : ""}"
+                      data-node-id="${node.id}"
+                      data-slot-id="${slot.id}"
+                      aria-label="${node.title} ${slot.label}"
+                    ></button>
+                    <div class="node-port-info node-port-info-right">
+                      <p class="node-port-slot-id">${slot.label}</p>
+                      <p class="node-port-name">${slot.actualPortName}</p>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
           </div>
         </div>
-        ${portLayout.map((slot) => {
-          const isArmed = componentInteraction?.type === "edge-drag"
-            && componentInteraction.sourceNodeId === node.id
-            && componentInteraction.sourceSlotId === slot.id;
-          const isTarget = componentInteraction?.type === "edge-drag"
-            && componentInteraction.hoverPort?.nodeId === node.id
-            && componentInteraction.hoverPort?.slotId === slot.id;
-
-          return `
-            <button
-              type="button"
-              class="node-port node-port-${slot.side}${slot.edgeId !== null ? " is-connected" : ""}${isArmed ? " is-armed" : ""}${isTarget ? " is-target" : ""}"
-              data-node-id="${node.id}"
-              data-slot-id="${slot.id}"
-              style="--port-top: ${slot.y}px"
-              title="${slot.label}: ${slot.edgeId === null ? "open" : "linked"}"
-              aria-label="${node.title} ${slot.label}"
-            ></button>
-          `;
-        }).join("")}
       `;
       return element;
     }),
   );
+
+  renderEdges();
 }
 
 function setSelectedNodes(nodeIds) {
@@ -397,27 +380,79 @@ function createNodeAt(worldX, worldY) {
 
   nextNodeId += 1;
   nodes = [...nodes, newNode];
+  renderNodes();
   selectOnlyNode(newNode.id);
-  renderEdges();
   return newNode;
 }
 
 function deleteNode(nodeId) {
-  const deletedEdgeIds = edges
+  const removedEdgeIds = edges
     .filter((edge) => edge.from.nodeId === nodeId || edge.to.nodeId === nodeId)
     .map((edge) => edge.id);
 
-  edges = edges.filter((edge) => !deletedEdgeIds.includes(edge.id));
+  edges = edges.filter((edge) => !removedEdgeIds.includes(edge.id));
   nodes = nodes.filter((node) => node.id !== nodeId);
   nodes = nodes.map((node) => ({
     ...node,
     portSlots: node.portSlots.map((slot) => (
-      deletedEdgeIds.includes(slot.edgeId) ? { ...slot, edgeId: null } : slot
+      removedEdgeIds.includes(slot.edgeId) ? { ...slot, edgeId: null } : slot
     )),
   }));
-  selectedNodeIds = new Set([...selectedNodeIds].filter((selectedId) => selectedId !== nodeId));
+  selectedNodeIds.delete(nodeId);
   renderNodes();
-  renderEdges();
+}
+
+function beginEdgeDrag(event, nodeId, slotId) {
+  const slot = findPortSlot(nodeId, slotId);
+  if (!slot) {
+    return;
+  }
+
+  if (slot.edgeId !== null) {
+    setCanvasMessage(`${slot.label} is already occupied.`);
+    return;
+  }
+
+  componentInteraction = {
+    type: "edge-drag",
+    pointerId: event.pointerId,
+    sourceNodeId: nodeId,
+    sourceSlotId: slotId,
+    pointerWorld: clientToWorldPoint(event.clientX, event.clientY),
+    hoverPort: null,
+  };
+  canvasViewport.setPointerCapture(event.pointerId);
+  renderNodes();
+  setCanvasMessage(`Lining from ${slot.label}.`);
+}
+
+function createEdgeBetweenPorts(sourcePort, targetPort) {
+  if (sourcePort.nodeId === targetPort.nodeId && sourcePort.slotId === targetPort.slotId) {
+    return { success: false, message: "Choose a different port." };
+  }
+
+  const sourceSlot = findPortSlot(sourcePort.nodeId, sourcePort.slotId);
+  const targetSlot = findPortSlot(targetPort.nodeId, targetPort.slotId);
+  if (!sourceSlot || !targetSlot) {
+    return { success: false, message: "Port not found." };
+  }
+
+  if (sourceSlot.edgeId !== null || targetSlot.edgeId !== null) {
+    return { success: false, message: "Each port can only hold one line." };
+  }
+
+  const edge = {
+    id: nextEdgeId,
+    from: { ...sourcePort },
+    to: { ...targetPort },
+  };
+
+  nextEdgeId += 1;
+  edges = [...edges, edge];
+  updateNodePortEdge(sourcePort.nodeId, sourcePort.slotId, edge.id);
+  updateNodePortEdge(targetPort.nodeId, targetPort.slotId, edge.id);
+  renderNodes();
+  return { success: true, message: "Line created." };
 }
 
 function showSelectionBox(rect) {
@@ -441,12 +476,24 @@ function updateSelectionFromRect(localRect) {
   };
 
   const nextSelection = nodes
-    .filter((node) => (
-      node.x >= worldRect.left
-      && node.y >= worldRect.top
-      && node.x + nodeSize.width <= worldRect.right
-      && node.y + nodeSize.height <= worldRect.bottom
-    ))
+    .filter((node) => {
+      const nodeElement = nodeContainer.querySelector(`[data-node-id="${node.id}"]`);
+      if (!nodeElement) {
+        return false;
+      }
+
+      const nodeLeft = nodeElement.offsetLeft;
+      const nodeTop = nodeElement.offsetTop;
+      const nodeRight = nodeLeft + nodeElement.offsetWidth;
+      const nodeBottom = nodeTop + nodeElement.offsetHeight;
+
+      return (
+        nodeLeft >= worldRect.left
+        && nodeTop >= worldRect.top
+        && nodeRight <= worldRect.right
+        && nodeBottom <= worldRect.bottom
+      );
+    })
     .map((node) => node.id);
 
   setSelectedNodes(nextSelection);
@@ -464,43 +511,6 @@ function openNodeContextMenu(clientX, clientY, nodeId) {
   positionFloatingMenu(nodeContextMenu, clientX, clientY);
   closeCanvasContextMenu();
   nodeContextMenu.classList.add("is-open");
-}
-
-function createEdgeBetweenPorts(sourcePort, targetPort) {
-  if (sourcePort.nodeId === targetPort.nodeId && sourcePort.slotId === targetPort.slotId) {
-    return { success: false, message: "Choose a different port slot." };
-  }
-
-  const sourceSlot = findPortSlot(sourcePort.nodeId, sourcePort.slotId);
-  const targetSlot = findPortSlot(targetPort.nodeId, targetPort.slotId);
-
-  if (!sourceSlot || !targetSlot) {
-    return { success: false, message: "Port slot not found." };
-  }
-
-  if (sourceSlot.edgeId !== null || targetSlot.edgeId !== null) {
-    return { success: false, message: "Each port slot can only carry one edge." };
-  }
-
-  const edge = {
-    id: nextEdgeId,
-    from: { ...sourcePort },
-    to: { ...targetPort },
-  };
-
-  nextEdgeId += 1;
-  edges = [...edges, edge];
-  updateNodePortEdge(sourcePort.nodeId, sourcePort.slotId, edge.id);
-  updateNodePortEdge(targetPort.nodeId, targetPort.slotId, edge.id);
-  renderNodes();
-  renderEdges();
-
-  const sourceNode = findNode(sourcePort.nodeId);
-  const targetNode = findNode(targetPort.nodeId);
-  return {
-    success: true,
-    message: `${sourceNode?.title ?? "Source"} ${sourceSlot.label} linked to ${targetNode?.title ?? "Target"} ${targetSlot.label}.`,
-  };
 }
 
 function syncPanShortcutState() {
@@ -593,7 +603,6 @@ function beginNodeDrag(event, nodeId) {
   };
   canvasViewport.setPointerCapture(event.pointerId);
   renderNodes();
-  renderEdges();
 }
 
 function beginMarqueeSelection(event) {
@@ -609,52 +618,23 @@ function beginMarqueeSelection(event) {
   canvasViewport.setPointerCapture(event.pointerId);
 }
 
-function beginEdgeDrag(event, nodeId, slotId) {
-  const slot = findPortSlot(nodeId, slotId);
-
-  if (!slot) {
-    return;
-  }
-
-  if (slot.edgeId !== null) {
-    selectOnlyNode(nodeId);
-    setCanvasMessage(`${slot.label} is already occupied.`);
-    return;
-  }
-
-  componentInteraction = {
-    type: "edge-drag",
-    pointerId: event.pointerId,
-    sourceNodeId: nodeId,
-    sourceSlotId: slotId,
-    pointerWorld: clientToWorldPoint(event.clientX, event.clientY),
-    hoverPort: null,
-  };
-  canvasViewport.setPointerCapture(event.pointerId);
-  selectOnlyNode(nodeId);
-  renderEdges();
-  setCanvasMessage(`Connecting from ${slot.label}.`);
-}
-
 function endComponentInteraction(event) {
   if (!componentInteraction || event.pointerId !== componentInteraction.pointerId) {
     return;
   }
 
-  const interaction = componentInteraction;
-
-  if (interaction.type === "edge-drag") {
+  if (componentInteraction.type === "edge-drag") {
     if (canvasViewport.hasPointerCapture(event.pointerId)) {
       canvasViewport.releasePointerCapture(event.pointerId);
     }
 
+    const interaction = componentInteraction;
     componentInteraction = null;
     renderNodes();
-    renderEdges();
 
     const targetPort = findHoveredPort(event.clientX, event.clientY);
     if (!targetPort) {
-      setCanvasMessage("Edge creation cancelled.");
+      setCanvasMessage("Lining cancelled.");
       return;
     }
 
@@ -670,9 +650,9 @@ function endComponentInteraction(event) {
     canvasViewport.releasePointerCapture(event.pointerId);
   }
 
-  if (interaction.type === "marquee") {
+  if (componentInteraction.type === "marquee") {
     hideSelectionBox();
-    if (!interaction.moved) {
+    if (!componentInteraction.moved) {
       clearSelection();
       setCanvasMessage("Selection cleared.");
     } else {
@@ -680,12 +660,11 @@ function endComponentInteraction(event) {
     }
   }
 
-  if (interaction.type === "node-drag") {
-    const movedNodeId = interaction.nodeId;
-    const didMove = interaction.moved;
+  if (componentInteraction.type === "node-drag") {
+    const movedNodeId = componentInteraction.nodeId;
+    const didMove = componentInteraction.moved;
     componentInteraction = null;
     renderNodes();
-    renderEdges();
     setCanvasMessage(didMove ? `Node ${movedNodeId} moved.` : `Node ${movedNodeId} selected.`);
     return;
   }
@@ -755,7 +734,6 @@ window.addEventListener("blur", () => {
   componentInteraction = null;
   hideSelectionBox();
   renderNodes();
-  renderEdges();
   syncPanShortcutState();
 });
 
@@ -793,11 +771,10 @@ canvasViewport.addEventListener("pointerdown", (event) => {
   const nodeElement = event.target.closest(".node-component");
 
   if (portElement) {
-    beginEdgeDrag(
-      event,
-      Number(portElement.dataset.nodeId),
-      Number(portElement.dataset.slotId),
-    );
+    const nodeId = Number(portElement.dataset.nodeId);
+    const slotId = Number(portElement.dataset.slotId);
+    selectOnlyNode(nodeId);
+    beginEdgeDrag(event, nodeId, slotId);
     return;
   }
 
@@ -821,7 +798,6 @@ canvasViewport.addEventListener("pointermove", (event) => {
     componentInteraction.pointerWorld = clientToWorldPoint(event.clientX, event.clientY);
     componentInteraction.hoverPort = findHoveredPort(event.clientX, event.clientY);
     renderNodes();
-    renderEdges();
     return;
   }
 
@@ -837,7 +813,6 @@ canvasViewport.addEventListener("pointermove", (event) => {
     ));
     componentInteraction.moved = moved;
     renderNodes();
-    renderEdges();
     return;
   }
 
@@ -891,6 +866,5 @@ nodeContextItems.forEach((item) => {
 renderSubmenu("file", document.querySelector('.menu-button[data-menu="file"]'));
 submenuDropdown.classList.add("is-open");
 renderNodes();
-renderEdges();
 applyViewportOffset();
 syncPanShortcutState();

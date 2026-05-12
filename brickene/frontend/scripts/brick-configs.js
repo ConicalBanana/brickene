@@ -124,6 +124,21 @@
         { index: 12, kind: "atom", symbol: "C" },
         { index: 13, kind: "atom", symbol: "C" }
       ]
+    },
+    "900": {
+      alias: [],
+      brick_type: "TOOL",
+      id: "900",
+      name: "Dulplicator",
+      edges: [],
+      nodes: [
+        { index: 1, kind: "port", side: "left" },
+        { index: 2, kind: "port", side: "left" },
+        { index: 3, kind: "port", side: "left" },
+        { index: 4, kind: "port", side: "left" },
+        { index: 5, kind: "port", side: "left" },
+        { index: 6, kind: "port", side: "right" }
+      ]
     }
   };
 })();

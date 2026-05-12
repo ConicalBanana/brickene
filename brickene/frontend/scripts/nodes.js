@@ -43,12 +43,15 @@
 
   function normalizeBrickDefinition(configKey, definition) {
     const id = String(definition.id ?? configKey);
+    const isToolNode = definition.brick_type === "TOOL";
 
     return {
       ...definition,
       id,
       name: definition.name || configKey,
-      imageSrc: `../assets/brick_images/${encodeURIComponent(id)}.png`,
+      imageSrc: isToolNode ? "" : `../assets/brick_images/${encodeURIComponent(id)}.png`,
+      hideStructurePreview: isToolNode,
+      lockPortAssignments: isToolNode,
     };
   }
 
@@ -69,12 +72,15 @@
 
   function getBrickPortNodes(brickRef) {
     const definition = getBrickDefinition(brickRef);
-    return definition?.nodes.filter((node) => node.kind === "port") || [];
+    return (definition?.nodes || [])
+      .filter((node) => node.kind === "port")
+      .slice()
+      .sort((left, right) => Number(left.index) - Number(right.index));
   }
 
   function formatPortNotation(portNode) {
     const connectedSymbol = portNode.connected_symbol || "?";
-    return `${portNode.index},${connectedSymbol}`;
+    return connectedSymbol === "?" ? String(portNode.index) : `${portNode.index},${connectedSymbol}`;
   }
 
   function createPortPoolFromBrick(brickRef) {
@@ -83,6 +89,7 @@
       index: portNode.index,
       connectedSymbol: portNode.connected_symbol || "?",
       preferredBrickType: portNode.preferred_brick_type || "",
+      side: portNode.side || null,
       label: formatPortNotation(portNode),
     }));
   }
@@ -114,13 +121,18 @@
     return {
       portPool,
       portSlots: portPool.map((portOption, index) => ({
-      id: index,
-      label: `P${index + 1}`,
-      side: getSlotSide(index, portPool.length),
-      actualPortId: portOption.id,
-      edgeId: null,
+        id: index,
+        label: `P${index + 1}`,
+        side: portOption.side || getSlotSide(index, portPool.length),
+        actualPortId: portOption.id,
+        edgeId: null,
       })),
     };
+  }
+
+  function getPortSortValue(node, slot) {
+    const portOption = getSlotPortOption(node, slot);
+    return Number(portOption?.index ?? slot.actualPortId ?? slot.id);
   }
 
   function getPortOptionById(node, portId) {
@@ -159,7 +171,9 @@
       brickName: brickDefinition?.name || "Unknown",
       brickImageSrc: brickDefinition?.imageSrc || "",
       brickType: brickDefinition?.brick_type || "UNCONFIGURED",
+      hideStructurePreview: Boolean(brickDefinition?.hideStructurePreview),
       isStartNode: Boolean(nodeConfig.isStartNode),
+      lockPortAssignments: Boolean(brickDefinition?.lockPortAssignments),
       portPool,
       nport: portSlots.length,
       portSlots,
@@ -177,8 +191,14 @@
 
   function getPortSlotGroups(node) {
     return {
-      leftSlots: node.portSlots.filter((slot) => getEffectiveSlotSide(node, slot) === "left"),
-      rightSlots: node.portSlots.filter((slot) => getEffectiveSlotSide(node, slot) === "right"),
+      leftSlots: node.portSlots
+        .filter((slot) => getEffectiveSlotSide(node, slot) === "left")
+        .slice()
+        .sort((left, right) => getPortSortValue(node, left) - getPortSortValue(node, right)),
+      rightSlots: node.portSlots
+        .filter((slot) => getEffectiveSlotSide(node, slot) === "right")
+        .slice()
+        .sort((left, right) => getPortSortValue(node, left) - getPortSortValue(node, right)),
     };
   }
 
@@ -243,13 +263,54 @@
     `;
   }
 
+  function removeNodeEdgesBySlotPredicate(nodeId, predicate) {
+    const graph = frontend.getGraphState();
+    const ui = frontend.getUiState();
+    const removedEdgeIds = graph.edges
+      .filter((edge) => {
+        if (edge.from.nodeId === nodeId) {
+          const slot = frontend.findPortSlot(nodeId, edge.from.slotId);
+          return slot ? predicate(slot) : false;
+        }
+
+        if (edge.to.nodeId === nodeId) {
+          const slot = frontend.findPortSlot(nodeId, edge.to.slotId);
+          return slot ? predicate(slot) : false;
+        }
+
+        return false;
+      })
+      .map((edge) => edge.id);
+
+    if (!removedEdgeIds.length) {
+      return 0;
+    }
+
+    graph.edges = graph.edges.filter((edge) => !removedEdgeIds.includes(edge.id));
+    graph.nodes = graph.nodes.map((graphNode) => ({
+      ...graphNode,
+      portSlots: graphNode.portSlots.map((slot) => (
+        removedEdgeIds.includes(slot.edgeId) ? { ...slot, edgeId: null } : slot
+      )),
+    }));
+    ui.selectedEdgeIds = new Set(
+      [...ui.selectedEdgeIds].filter((edgeId) => !removedEdgeIds.includes(edgeId)),
+    );
+    return removedEdgeIds.length;
+  }
+
   function setNodeStartState(nodeId, isStartNode) {
     const graph = frontend.getGraphState();
     const node = findNode(nodeId);
 
     if (!node || node.isStartNode === isStartNode) {
-      return { updated: false };
+      return { updated: false, removedEdgeCount: 0 };
     }
+
+    const removedEdgeCount = removeNodeEdgesBySlotPredicate(
+      nodeId,
+      (slot) => slot.side === "left",
+    );
 
     graph.nodes = graph.nodes.map((graphNode) => (
       graphNode.id === nodeId
@@ -259,7 +320,26 @@
 
     renderNodes();
     frontend.notifyGraphChanged({ reason: "node-start-state", nodeId });
-    return { updated: true };
+    return { updated: true, removedEdgeCount };
+  }
+
+  function renderPortAssignmentControl(node, slot) {
+    const slotPortLabel = getSlotPortLabel(node, slot);
+
+    if (node.lockPortAssignments) {
+      return `<p class="node-port-name">${escapeHtml(slotPortLabel)}</p>`;
+    }
+
+    return `
+      <select
+        class="node-port-select node-control"
+        data-node-id="${node.id}"
+        data-slot-id="${slot.id}"
+        aria-label="${escapeHtml(node.title)} slot ${slot.id + 1} port assignment"
+      >
+        ${renderPortAssignmentOptions(node, slot.actualPortId)}
+      </select>
+    `;
   }
 
   function renderPortEntry(node, slot, side, ui) {
@@ -280,25 +360,11 @@
             aria-label="${escapeHtml(node.title)} ${escapeHtml(slotPortLabel)}"
           ></button>
           <div class="node-port-info node-port-info-left">
-            <select
-              class="node-port-select node-control"
-              data-node-id="${node.id}"
-              data-slot-id="${slot.id}"
-              aria-label="${escapeHtml(node.title)} slot ${slot.id + 1} port assignment"
-            >
-              ${renderPortAssignmentOptions(node, slot.actualPortId)}
-            </select>
+            ${renderPortAssignmentControl(node, slot)}
           </div>
         ` : `
           <div class="node-port-info node-port-info-right">
-            <select
-              class="node-port-select node-control"
-              data-node-id="${node.id}"
-              data-slot-id="${slot.id}"
-              aria-label="${escapeHtml(node.title)} slot ${slot.id + 1} port assignment"
-            >
-              ${renderPortAssignmentOptions(node, slot.actualPortId)}
-            </select>
+            ${renderPortAssignmentControl(node, slot)}
           </div>
           <button
             type="button"
@@ -449,8 +515,8 @@
 
     frontend.setCanvasMessage(
       checkbox.checked
-        ? `Node ${nodeId} marked as start node.`
-        : `Node ${nodeId} start node cleared.`,
+        ? `Node ${nodeId} marked as start node.${result.removedEdgeCount ? ` ${result.removedEdgeCount} left edge(s) cleared.` : ""}`
+        : `Node ${nodeId} start node cleared.${result.removedEdgeCount ? ` ${result.removedEdgeCount} left edge(s) cleared.` : ""}`,
     );
   }
 
@@ -508,9 +574,11 @@
                   ${renderNodeTypeOptions(node.brickId)}
                 </select>
               </label>
+              ${node.hideStructurePreview ? "" : `
               <div class="node-structure-preview">
                 ${renderStructurePreview(node)}
               </div>
+              `}
             </div>
           </div>
           <div class="node-port-area">
@@ -592,6 +660,7 @@
       type: "rectangular",
       title: `Node ${graph.nextNodeId}`,
       brickId: defaultBrickId,
+      isStartNode: graph.nodes.length === 0,
       x: worldX,
       y: worldY,
     });

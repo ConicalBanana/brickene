@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,7 @@ DEFAULT_CATALOG_PATH = (
     Path(__file__).resolve().parent.parent / "frontend" / "assets" / "brick_configs.json"
 )
 DEFAULT_IMAGE_SIZE = 1024
+TOOL_BRICK_TYPE = "TOOL"
 
 
 def load_brick_catalog(catalog_path: Path = DEFAULT_CATALOG_PATH) -> dict[str, dict[str, Any]]:
@@ -32,6 +34,44 @@ def load_brick_catalog(catalog_path: Path = DEFAULT_CATALOG_PATH) -> dict[str, d
     """
 
     return json.loads(catalog_path.read_text(encoding="utf-8"))
+
+
+def expand_tool_nodes(
+    node_states: list[dict[str, Any]],
+    edge_states: list[dict[str, Any]],
+    catalog: dict[str, dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Expand TOOL nodes into direct graph branches before molecule assembly.
+
+    Args:
+        node_states: Frontend node state payloads.
+        edge_states: Frontend edge state payloads.
+        catalog: Brick catalog keyed by node type id.
+
+    Returns:
+        Expanded node and edge payloads with TOOL nodes removed.
+    """
+
+    expanded_nodes = deepcopy(node_states)
+    expanded_edges = deepcopy(edge_states)
+
+    while True:
+        tool_node = next(
+            (
+                node_state
+                for node_state in expanded_nodes
+                if _is_tool_node(node_state, catalog)
+            ),
+            None,
+        )
+        if tool_node is None:
+            return expanded_nodes, expanded_edges
+
+        expanded_nodes, expanded_edges = _expand_single_tool_node(
+            tool_node,
+            expanded_nodes,
+            expanded_edges,
+        )
 
 
 def build_graph_from_state(
@@ -57,6 +97,7 @@ def build_graph_from_state(
         raise ValueError("State payload must include node and edge lists.")
 
     catalog = load_brick_catalog(catalog_path)
+    node_states, edge_states = expand_tool_nodes(node_states, edge_states, catalog)
     graph = BrickGraph()
     bricks_by_frontend_id: dict[int, BrickNode] = {}
     port_assignments: dict[int, dict[int, int]] = {}
@@ -337,3 +378,245 @@ def _read_edge_bond_type(edge_state: dict[str, Any]) -> str | None:
         return None
 
     return str(bond_type).upper()
+
+
+def _is_tool_node(
+    node_state: dict[str, Any],
+    catalog: dict[str, dict[str, Any]],
+) -> bool:
+    """Return whether one frontend node payload references a TOOL definition."""
+
+    node_type_id = str(node_state.get("nodeTypeId") or node_state.get("brickId") or "")
+    definition = catalog.get(node_type_id)
+    return bool(definition and definition.get("brick_type") == TOOL_BRICK_TYPE)
+
+
+def _expand_single_tool_node(
+    tool_node: dict[str, Any],
+    node_states: list[dict[str, Any]],
+    edge_states: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Expand one TOOL node into duplicated downstream branches."""
+
+    tool_node_id = int(tool_node["id"])
+    port_configuration = tool_node.get("portConfiguration")
+    if not isinstance(port_configuration, list):
+        raise ValueError("Tool node state must include a portConfiguration list.")
+
+    left_slot_ids = {
+        int(port_state.get("slotId", port_state.get("id")))
+        for port_state in port_configuration
+        if port_state.get("side") == "left"
+    }
+    right_slot_ids = {
+        int(port_state.get("slotId", port_state.get("id")))
+        for port_state in port_configuration
+        if port_state.get("side") == "right"
+    }
+
+    incoming_edges = sorted(
+        [
+            edge_state
+            for edge_state in edge_states
+            if int(_read_edge_value(edge_state, "endNode", "to", "nodeId"))
+            == tool_node_id
+            and int(_read_edge_value(edge_state, "endPort", "to", "slotId"))
+            in left_slot_ids
+        ],
+        key=lambda edge_state: (
+            int(_read_edge_value(edge_state, "endPort", "to", "slotId")),
+            int(edge_state.get("id", 0)),
+        ),
+    )
+    outgoing_edges = [
+        edge_state
+        for edge_state in edge_states
+        if int(_read_edge_value(edge_state, "startNode", "from", "nodeId"))
+        == tool_node_id
+        and int(_read_edge_value(edge_state, "startPort", "from", "slotId"))
+        in right_slot_ids
+    ]
+
+    if len(outgoing_edges) > 1:
+        raise ValueError("Tool nodes must define at most one outgoing edge.")
+
+    remaining_nodes = [
+        node_state
+        for node_state in node_states
+        if int(node_state["id"]) != tool_node_id
+    ]
+    remaining_edges = [
+        edge_state
+        for edge_state in edge_states
+        if int(_read_edge_value(edge_state, "startNode", "from", "nodeId"))
+        != tool_node_id
+        and int(_read_edge_value(edge_state, "endNode", "to", "nodeId"))
+        != tool_node_id
+    ]
+
+    if not incoming_edges or not outgoing_edges:
+        return remaining_nodes, remaining_edges
+
+    output_edge = outgoing_edges[0]
+    root_node_id = int(_read_edge_value(output_edge, "endNode", "to", "nodeId"))
+    root_slot_id = int(_read_edge_value(output_edge, "endPort", "to", "slotId"))
+    downstream_node_ids, downstream_edge_ids = _collect_downstream_subgraph(
+        root_node_id,
+        remaining_edges,
+    )
+
+    next_node_id = max((int(node_state["id"]) for node_state in remaining_nodes), default=0) + 1
+    next_edge_id = max((int(edge_state.get("id", 0)) for edge_state in remaining_edges), default=0) + 1
+    additional_nodes: list[dict[str, Any]] = []
+    additional_edges: list[dict[str, Any]] = []
+    rewritten_incoming_edges: list[dict[str, Any]] = []
+
+    for index, incoming_edge in enumerate(incoming_edges):
+        branch_root_id = root_node_id
+        if index > 0:
+            (
+                cloned_nodes,
+                cloned_edges,
+                node_id_map,
+                next_node_id,
+                next_edge_id,
+            ) = _clone_downstream_subgraph(
+                downstream_node_ids,
+                downstream_edge_ids,
+                remaining_nodes,
+                remaining_edges,
+                next_node_id,
+                next_edge_id,
+            )
+            additional_nodes.extend(cloned_nodes)
+            additional_edges.extend(cloned_edges)
+            branch_root_id = node_id_map[root_node_id]
+
+        rewritten_edge = deepcopy(incoming_edge)
+        _write_edge_endpoint(rewritten_edge, "end", branch_root_id, root_slot_id)
+        rewritten_incoming_edges.append(rewritten_edge)
+
+    return (
+        remaining_nodes + additional_nodes,
+        remaining_edges + additional_edges + rewritten_incoming_edges,
+    )
+
+
+def _collect_downstream_subgraph(
+    root_node_id: int,
+    edge_states: list[dict[str, Any]],
+) -> tuple[set[int], set[int]]:
+    """Collect nodes and edges reachable downstream from one root node."""
+
+    visited_node_ids = {root_node_id}
+    visited_edge_ids: set[int] = set()
+    pending_node_ids = [root_node_id]
+
+    while pending_node_ids:
+        current_node_id = pending_node_ids.pop()
+        for edge_state in edge_states:
+            if int(_read_edge_value(edge_state, "startNode", "from", "nodeId")) != current_node_id:
+                continue
+
+            edge_id = int(edge_state.get("id", 0))
+            if edge_id in visited_edge_ids:
+                continue
+
+            visited_edge_ids.add(edge_id)
+            downstream_node_id = int(
+                _read_edge_value(edge_state, "endNode", "to", "nodeId")
+            )
+            if downstream_node_id not in visited_node_ids:
+                visited_node_ids.add(downstream_node_id)
+                pending_node_ids.append(downstream_node_id)
+
+    return visited_node_ids, visited_edge_ids
+
+
+def _clone_downstream_subgraph(
+    downstream_node_ids: set[int],
+    downstream_edge_ids: set[int],
+    node_states: list[dict[str, Any]],
+    edge_states: list[dict[str, Any]],
+    next_node_id: int,
+    next_edge_id: int,
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[int, int],
+    int,
+    int,
+]:
+    """Clone one downstream directed subgraph and return remapped payloads."""
+
+    node_id_map: dict[int, int] = {}
+    cloned_nodes: list[dict[str, Any]] = []
+
+    for node_state in node_states:
+        original_node_id = int(node_state["id"])
+        if original_node_id not in downstream_node_ids:
+            continue
+
+        cloned_node = deepcopy(node_state)
+        cloned_node["id"] = next_node_id
+        node_id_map[original_node_id] = next_node_id
+        next_node_id += 1
+        cloned_nodes.append(cloned_node)
+
+    cloned_edges: list[dict[str, Any]] = []
+    for edge_state in edge_states:
+        original_edge_id = int(edge_state.get("id", 0))
+        if original_edge_id not in downstream_edge_ids:
+            continue
+
+        original_start_node_id = int(
+            _read_edge_value(edge_state, "startNode", "from", "nodeId")
+        )
+        original_end_node_id = int(
+            _read_edge_value(edge_state, "endNode", "to", "nodeId")
+        )
+        cloned_edge = deepcopy(edge_state)
+        cloned_edge["id"] = next_edge_id
+        _write_edge_endpoint(
+            cloned_edge,
+            "start",
+            node_id_map[original_start_node_id],
+            int(_read_edge_value(edge_state, "startPort", "from", "slotId")),
+        )
+        _write_edge_endpoint(
+            cloned_edge,
+            "end",
+            node_id_map[original_end_node_id],
+            int(_read_edge_value(edge_state, "endPort", "to", "slotId")),
+        )
+        next_edge_id += 1
+        cloned_edges.append(cloned_edge)
+
+    return cloned_nodes, cloned_edges, node_id_map, next_node_id, next_edge_id
+
+
+def _write_edge_endpoint(
+    edge_state: dict[str, Any],
+    side: str,
+    node_id: int,
+    slot_id: int,
+) -> None:
+    """Write one edge endpoint back into both supported payload shapes."""
+
+    if side == "start":
+        edge_state["startNode"] = node_id
+        edge_state["startPort"] = slot_id
+        if isinstance(edge_state.get("from"), dict):
+            edge_state["from"]["nodeId"] = node_id
+            edge_state["from"]["slotId"] = slot_id
+        return
+
+    if side == "end":
+        edge_state["endNode"] = node_id
+        edge_state["endPort"] = slot_id
+        if isinstance(edge_state.get("to"), dict):
+            edge_state["to"]["nodeId"] = node_id
+            edge_state["to"]["slotId"] = slot_id
+        return
+
+    raise ValueError(f"Unsupported edge side: {side}")

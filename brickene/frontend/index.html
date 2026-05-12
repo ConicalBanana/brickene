@@ -37,6 +37,7 @@
       </header>
 
       <main class="canvas-region" aria-label="Canvas workspace">
+        <input id="graph-file-input" type="file" accept=".brickene,application/json" hidden />
         <div id="canvas-viewport" class="canvas-viewport">
           <div id="canvas-layer" class="canvas-layer" aria-label="Canvas layer">
             <div class="canvas-grid" aria-hidden="true"></div>
@@ -91,6 +92,7 @@
     <script src="./scripts/geometry.js"></script>
     <script src="./scripts/nodes.js"></script>
     <script src="./scripts/edges.js"></script>
+    <script src="./scripts/persistence.js"></script>
     <script src="./scripts/render-layer.js"></script>
     <script src="./scripts/canvas.js"></script>
     <script src="./app.js"></script>

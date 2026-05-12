@@ -10,7 +10,7 @@
       view: ["Center canvas", "Grid", "Legend", "Export"],
     },
     stateMap: {
-      file: "Menu commands are scaffolded for future integration.",
+      file: "File actions can open and save .brickene graph configurations.",
       edit: "Edit actions will target node and edge operations.",
       node: "Node controls now map brick definitions into port slots.",
       view: "View controls will tune the integral canvas workspace.",
@@ -47,6 +47,7 @@
     canvasGrid: document.querySelector(".canvas-grid"),
     componentLayer: document.getElementById("component-layer"),
     componentWorld: document.getElementById("component-world"),
+    graphFileInput: document.getElementById("graph-file-input"),
     edgeLayer: document.getElementById("edge-layer"),
     nodeContainer: document.getElementById("node-container"),
     selectionRect: document.getElementById("selection-rect"),

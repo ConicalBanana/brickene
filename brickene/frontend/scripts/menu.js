@@ -2,6 +2,14 @@
   const frontend = window.BrickeneFrontend;
   const { config, dom } = frontend;
 
+  function toActionKey(label) {
+    return String(label || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
   function positionDropdown(button) {
     dom.submenuDropdown.style.left = `${button.offsetLeft}px`;
     dom.submenuDropdown.style.minWidth = `${button.offsetWidth + 80}px`;
@@ -16,6 +24,8 @@
         item.type = "button";
         item.className = "submenu-pill";
         item.textContent = label;
+        item.dataset.menuKey = menuKey;
+        item.dataset.actionKey = toActionKey(label);
         item.setAttribute("role", "menuitem");
         return item;
       }),
@@ -80,6 +90,30 @@
     dom.edgeContextMenu.classList.add("is-open");
   }
 
+  function bindSubmenuEvents() {
+    dom.submenuContent.addEventListener("click", async (event) => {
+      const item = event.target.closest(".submenu-pill");
+      if (!item) {
+        return;
+      }
+
+      const handler = frontend.handleMenuAction;
+      if (typeof handler !== "function") {
+        return;
+      }
+
+      const handled = await handler(
+        item.dataset.menuKey || "",
+        item.dataset.actionKey || "",
+        item.textContent || "",
+      );
+
+      if (handled) {
+        dom.submenuDropdown.classList.remove("is-open");
+      }
+    });
+  }
+
   frontend.positionDropdown = positionDropdown;
   frontend.renderSubmenu = renderSubmenu;
   frontend.setCanvasMessage = setCanvasMessage;
@@ -90,4 +124,6 @@
   frontend.openCanvasContextMenu = openCanvasContextMenu;
   frontend.openNodeContextMenu = openNodeContextMenu;
   frontend.openEdgeContextMenu = openEdgeContextMenu;
+
+  bindSubmenuEvents();
 })();

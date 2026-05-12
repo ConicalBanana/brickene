@@ -21,7 +21,7 @@ brickene – A flow-graph based visual builder for block-assembled organic molec
 Conda package manager is recommended. Create a conda environment.
 
 ```bash
-conda create -n brickene python==3.10
+conda create -n brickene python==3.11
 ```
 
 Activate conda environment and install poetry

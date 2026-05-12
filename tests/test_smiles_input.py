@@ -19,19 +19,20 @@ def canonical_smiles(smiles: str) -> str:
 def test_brick_node_from_smiles_extracts_atoms_ports_and_edges() -> None:
     """A brick node should expose ports and molecular connectivity."""
 
-    node = BrickNode.from_smiles("[*:1]CC([*:2])O")
+    node = BrickNode.from_smiles("[*:1]C=C([*:2])O")
 
     assert sorted(port.index for port in node.ports) == [1, 2]
     assert len(node.atoms) == 3
     assert len(node.nodes) == 5
     assert len(node.edges) == 4
+    assert sum(edge.bond_type == "DOUBLE" for edge in node.edges) == 1
 
 
 def test_brick_node_config_round_trip(tmp_path: Path) -> None:
     """A brick node should survive save/load configuration round-trips."""
 
     node = BrickNode.from_smiles(
-        "[*:1]CC([*:2])O",
+        "[*:1]C=C([*:2])O",
         brick_type=BrickType.SIDE_CHAIN,
     )
     config_path = tmp_path / "brick-node.json"

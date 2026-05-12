@@ -331,6 +331,10 @@ textarea {
   inset: 0;
 }
 
+.component-world {
+  transform-origin: 0 0;
+}
+
 .edge-layer {
   position: absolute;
   overflow: visible;
@@ -371,6 +375,7 @@ textarea {
 }
 
 .selection-rect {
+  position: absolute;
   z-index: 3;
   display: none;
   border: 1px dashed var(--border);
@@ -701,4 +706,9 @@ textarea {
   background: var(--border);
   color: var(--surface);
   outline: none;
+}
+
+.canvas-viewport.is-edge-dragging,
+.canvas-viewport.is-edge-dragging * {
+  user-select: none;
 }

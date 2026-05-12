@@ -76,6 +76,7 @@
       selectedNodeIds: new Set(),
       selectedEdgeIds: new Set(),
       canvasOffset: { x: 0, y: 0 },
+      canvasScale: 1,
       canvasPanState: null,
       componentInteraction: null,
       isSpacePressed: false,

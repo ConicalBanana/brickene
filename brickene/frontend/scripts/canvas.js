@@ -55,6 +55,26 @@
       return;
     }
 
+    if (event.ctrlKey) {
+      if (event.deltaY === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      frontend.closeAllContextMenus();
+      const zoomed = frontend.zoomCanvasByDirection(
+        event.deltaY < 0 ? 1 : -1,
+        event.clientX,
+        event.clientY,
+      );
+      if (zoomed) {
+        frontend.setCanvasMessage(
+          `Canvas scaled to ${Math.round(frontend.getUiState().canvasScale * 100)}%.`,
+        );
+      }
+      return;
+    }
+
     const wheelDeltaX = event.deltaX + (event.shiftKey ? event.deltaY : 0);
     const wheelDeltaY = event.shiftKey ? 0 : event.deltaY;
 
@@ -162,8 +182,13 @@
       originY: node.y,
       moved: false,
     };
+    event.preventDefault();
     dom.canvasViewport.setPointerCapture(event.pointerId);
     frontend.renderNodes();
+  }
+
+  function setEdgeDragSelectionState(isActive) {
+    dom.canvasViewport.classList.toggle("is-edge-dragging", isActive);
   }
 
   function beginMarqueeSelection(event) {
@@ -176,6 +201,7 @@
       endPoint: point,
       moved: false,
     };
+    event.preventDefault();
     frontend.showSelectionBox(frontend.normalizeRect(point, point));
     dom.canvasViewport.setPointerCapture(event.pointerId);
   }
@@ -192,6 +218,7 @@
       }
 
       const interaction = ui.componentInteraction;
+      setEdgeDragSelectionState(false);
       ui.componentInteraction = null;
       frontend.renderNodes();
 
@@ -319,6 +346,7 @@
 
       ui.isSpacePressed = false;
       cancelCanvasPan();
+      setEdgeDragSelectionState(false);
       ui.componentInteraction = null;
       frontend.hideSelectionBox();
       frontend.renderNodes();
@@ -381,6 +409,7 @@
         const nodeId = Number(portElement.dataset.nodeId);
         const slotId = Number(portElement.dataset.slotId);
         frontend.selectOnlyNode(nodeId);
+        event.preventDefault();
         frontend.beginEdgeDrag(event, nodeId, slotId);
         return;
       }
@@ -514,5 +543,6 @@
   frontend.endComponentInteraction = endComponentInteraction;
   frontend.cancelCanvasPan = cancelCanvasPan;
   frontend.handleCanvasWheel = handleCanvasWheel;
+  frontend.setEdgeDragSelectionState = setEdgeDragSelectionState;
   frontend.bootstrap = bootstrap;
 })();

@@ -197,6 +197,8 @@
       pointerWorld: frontend.clientToWorldPoint(event.clientX, event.clientY),
       hoverPort: null,
     };
+    event.preventDefault();
+    frontend.setEdgeDragSelectionState(true);
     dom.canvasViewport.setPointerCapture(event.pointerId);
     frontend.renderNodes();
     frontend.setCanvasMessage(`Lining from ${slotPortLabel}.`);

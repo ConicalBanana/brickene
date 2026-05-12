@@ -1,6 +1,9 @@
 (() => {
   const frontend = window.BrickeneFrontend;
   const { dom } = frontend;
+  const MIN_CANVAS_SCALE = 0.4;
+  const MAX_CANVAS_SCALE = 2.5;
+  const CANVAS_SCALE_STEP = 0.1;
 
   function positionFloatingMenu(menuElement, clientX, clientY) {
     const viewportRect = dom.canvasViewport.getBoundingClientRect();
@@ -14,24 +17,26 @@
   }
 
   function applyViewportOffset() {
-    const { canvasOffset } = frontend.getUiState();
-    const transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px)`;
+    const { canvasOffset, canvasScale } = frontend.getUiState();
+    const transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${canvasScale})`;
 
     dom.componentWorld.style.transform = transform;
     if (dom.canvasGrid) {
       dom.canvasGrid.style.backgroundPosition = `${canvasOffset.x}px ${canvasOffset.y}px`;
+      dom.canvasGrid.style.backgroundSize = `${24 * canvasScale}px ${24 * canvasScale}px`;
     }
     dom.canvasLayer.style.setProperty("--canvas-offset-x", `${canvasOffset.x}px`);
     dom.canvasLayer.style.setProperty("--canvas-offset-y", `${canvasOffset.y}px`);
+    dom.canvasLayer.style.setProperty("--canvas-scale", String(canvasScale));
   }
 
   function clientToWorldPoint(clientX, clientY) {
     const rect = dom.componentLayer.getBoundingClientRect();
-    const { canvasOffset } = frontend.getUiState();
+    const { canvasOffset, canvasScale } = frontend.getUiState();
 
     return {
-      x: clientX - rect.left - canvasOffset.x,
-      y: clientY - rect.top - canvasOffset.y,
+      x: (clientX - rect.left - canvasOffset.x) / canvasScale,
+      y: (clientY - rect.top - canvasOffset.y) / canvasScale,
     };
   }
 
@@ -66,13 +71,13 @@
   }
 
   function updateSelectionFromRect(localRect) {
-    const { canvasOffset } = frontend.getUiState();
+    const { canvasOffset, canvasScale } = frontend.getUiState();
     const { nodes } = frontend.getGraphState();
     const worldRect = {
-      left: localRect.left - canvasOffset.x,
-      top: localRect.top - canvasOffset.y,
-      right: localRect.right - canvasOffset.x,
-      bottom: localRect.bottom - canvasOffset.y,
+      left: (localRect.left - canvasOffset.x) / canvasScale,
+      top: (localRect.top - canvasOffset.y) / canvasScale,
+      right: (localRect.right - canvasOffset.x) / canvasScale,
+      bottom: (localRect.bottom - canvasOffset.y) / canvasScale,
     };
 
     const nextSelection = nodes
@@ -99,6 +104,40 @@
     frontend.setSelectedNodes(nextSelection);
   }
 
+  function clampCanvasScale(scale) {
+    return Math.min(MAX_CANVAS_SCALE, Math.max(MIN_CANVAS_SCALE, scale));
+  }
+
+  function setCanvasScale(nextScale, anchorClientX, anchorClientY) {
+    const ui = frontend.getUiState();
+    const clampedScale = clampCanvasScale(nextScale);
+
+    if (clampedScale === ui.canvasScale) {
+      return false;
+    }
+
+    const rect = dom.componentLayer.getBoundingClientRect();
+    const anchorLayerX = anchorClientX - rect.left;
+    const anchorLayerY = anchorClientY - rect.top;
+    const worldX = (anchorLayerX - ui.canvasOffset.x) / ui.canvasScale;
+    const worldY = (anchorLayerY - ui.canvasOffset.y) / ui.canvasScale;
+
+    ui.canvasScale = clampedScale;
+    ui.canvasOffset = {
+      x: anchorLayerX - worldX * clampedScale,
+      y: anchorLayerY - worldY * clampedScale,
+    };
+
+    applyViewportOffset();
+    return true;
+  }
+
+  function zoomCanvasByDirection(direction, anchorClientX, anchorClientY) {
+    const ui = frontend.getUiState();
+    const factor = direction > 0 ? 1 + CANVAS_SCALE_STEP : 1 / (1 + CANVAS_SCALE_STEP);
+    return setCanvasScale(ui.canvasScale * factor, anchorClientX, anchorClientY);
+  }
+
   frontend.positionFloatingMenu = positionFloatingMenu;
   frontend.applyViewportOffset = applyViewportOffset;
   frontend.clientToWorldPoint = clientToWorldPoint;
@@ -107,4 +146,6 @@
   frontend.showSelectionBox = showSelectionBox;
   frontend.hideSelectionBox = hideSelectionBox;
   frontend.updateSelectionFromRect = updateSelectionFromRect;
+  frontend.setCanvasScale = setCanvasScale;
+  frontend.zoomCanvasByDirection = zoomCanvasByDirection;
 })();

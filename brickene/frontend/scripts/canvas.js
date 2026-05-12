@@ -2,6 +2,32 @@
   const frontend = window.BrickeneFrontend;
   const { dom } = frontend;
 
+  function shouldIgnoreKeyboardShortcut(target) {
+    return target instanceof Element
+      && Boolean(target.closest('input, select, textarea, [contenteditable="true"]'));
+  }
+
+  function deleteSelectedGraphItems() {
+    const ui = frontend.getUiState();
+    const selectedNodeIds = [...ui.selectedNodeIds];
+
+    if (selectedNodeIds.length) {
+      selectedNodeIds.forEach((nodeId) => {
+        frontend.deleteNode(nodeId);
+      });
+      frontend.setCanvasMessage(`${selectedNodeIds.length} node(s) deleted.`);
+      return true;
+    }
+
+    const deletedEdgeCount = frontend.deleteSelectedEdges();
+    if (deletedEdgeCount > 0) {
+      frontend.setCanvasMessage(`${deletedEdgeCount} edge(s) deleted.`);
+      return true;
+    }
+
+    return false;
+  }
+
   function shouldIgnoreWheelPan(eventTarget) {
     return Boolean(
       eventTarget.closest(".canvas-context-menu, .node-context-menu, .submenu-dropdown"),
@@ -253,6 +279,17 @@
 
   function bindKeyboardEvents() {
     document.addEventListener("keydown", (event) => {
+      if (shouldIgnoreKeyboardShortcut(event.target)) {
+        return;
+      }
+
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (deleteSelectedGraphItems()) {
+          event.preventDefault();
+        }
+        return;
+      }
+
       if (event.code !== "Space") {
         return;
       }
@@ -262,6 +299,10 @@
     });
 
     document.addEventListener("keyup", (event) => {
+      if (shouldIgnoreKeyboardShortcut(event.target)) {
+        return;
+      }
+
       if (event.code !== "Space") {
         return;
       }
@@ -287,15 +328,29 @@
 
     dom.canvasViewport.addEventListener("pointerdown", (event) => {
       const ui = frontend.getUiState();
-      if (ui.isSpacePressed || dom.canvasContextMenu.contains(event.target) || dom.nodeContextMenu.contains(event.target)) {
+      if (
+        ui.isSpacePressed
+        || dom.canvasContextMenu.contains(event.target)
+        || dom.nodeContextMenu.contains(event.target)
+        || dom.edgeContextMenu.contains(event.target)
+      ) {
         return;
       }
+
+      const edgeId = frontend.findEdgeAtClientPoint(event.clientX, event.clientY);
 
       if (event.button === 2) {
         event.preventDefault();
         cancelCanvasPan();
         frontend.hideSelectionBox();
         ui.componentInteraction = null;
+
+        if (edgeId !== null) {
+          frontend.selectOnlyEdge(edgeId);
+          frontend.openEdgeContextMenu(event.clientX, event.clientY, edgeId);
+          frontend.setCanvasMessage(`Edge ${edgeId} context menu opened.`);
+          return;
+        }
 
         const nodeElement = event.target.closest(".node-component");
         if (nodeElement) {
@@ -324,6 +379,12 @@
         const slotId = Number(portElement.dataset.slotId);
         frontend.selectOnlyNode(nodeId);
         frontend.beginEdgeDrag(event, nodeId, slotId);
+        return;
+      }
+
+      if (edgeId !== null) {
+        frontend.selectOnlyEdge(edgeId);
+        frontend.setCanvasMessage(`Edge ${edgeId} selected.`);
         return;
       }
 
@@ -412,6 +473,20 @@
         }
 
         frontend.closeNodeContextMenu();
+      });
+    });
+
+    dom.edgeContextItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        const action = item.dataset.action;
+        const { activeEdgeContextId } = frontend.getUiState();
+
+        if (action === "delete" && activeEdgeContextId !== null) {
+          frontend.deleteEdge(activeEdgeContextId);
+          frontend.setCanvasMessage(`Edge ${activeEdgeContextId} deleted.`);
+        }
+
+        frontend.closeEdgeContextMenu();
       });
     });
   }

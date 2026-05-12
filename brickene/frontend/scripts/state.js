@@ -51,8 +51,10 @@
     selectionRect: document.getElementById("selection-rect"),
     canvasContextMenu: document.getElementById("canvas-context-menu"),
     nodeContextMenu: document.getElementById("node-context-menu"),
+    edgeContextMenu: document.getElementById("edge-context-menu"),
     canvasContextItems: document.querySelectorAll("#canvas-context-menu .context-menu-item"),
     nodeContextItems: document.querySelectorAll("#node-context-menu .context-menu-item"),
+    edgeContextItems: document.querySelectorAll("#edge-context-menu .context-menu-item"),
   };
 
   frontend.state = {
@@ -65,6 +67,7 @@
     ui: {
       activeMenuKey: "file",
       selectedNodeIds: new Set(),
+      selectedEdgeIds: new Set(),
       canvasOffset: { x: 0, y: 0 },
       canvasPanState: null,
       componentInteraction: null,
@@ -72,6 +75,7 @@
       panHandlersBound: false,
       canvasContextTarget: { x: 120, y: 120 },
       activeNodeContextId: null,
+      activeEdgeContextId: null,
     },
   };
 

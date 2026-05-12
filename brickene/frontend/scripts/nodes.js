@@ -364,11 +364,12 @@
   function setSelectedNodes(nodeIds) {
     const ui = frontend.getUiState();
 
-    if (!hasSelectionChanged(nodeIds)) {
+    if (!hasSelectionChanged(nodeIds) && ui.selectedEdgeIds.size === 0) {
       return;
     }
 
     ui.selectedNodeIds = new Set(nodeIds);
+    ui.selectedEdgeIds = new Set();
     renderNodes();
   }
 
@@ -414,6 +415,9 @@
       )),
     }));
     ui.selectedNodeIds.delete(nodeId);
+    ui.selectedEdgeIds = new Set(
+      [...ui.selectedEdgeIds].filter((edgeId) => !removedEdgeIds.includes(edgeId)),
+    );
     renderNodes();
   }
 

@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from brickene.core.node import BrickNode, BrickType, Port, Site
+from brickene.core.node import Atom, BrickNode, BrickType, Port, Site
 
 RAW_TYPE_TO_BRICK_TYPE: dict[str, BrickType] = {
     "bridge": BrickType.BRIDGE,
@@ -128,6 +128,70 @@ def build_brick_node(raw_entry: dict[str, Any]) -> BrickNode:
     return apply_preferred_port_type(node, DEFAULT_PORT_BRICK_TYPE)
 
 
+def get_connected_symbol_by_port(node: BrickNode) -> dict[int, str | None]:
+    """Find the atom symbol directly attached to each port in one brick.
+
+    Args:
+        node: Parsed brick node.
+
+    Returns:
+        Mapping from port index to the bonded atom symbol.
+
+    Raises:
+        ValueError: If one port is connected to multiple atoms.
+    """
+
+    connected_symbol_by_port = {port.index: None for port in node.ports}
+
+    for left_site, right_site in node.edges:
+        port_site: Port | None = None
+        atom_site: Atom | None = None
+
+        if isinstance(left_site, Port) and isinstance(right_site, Atom):
+            port_site = left_site
+            atom_site = right_site
+        elif isinstance(left_site, Atom) and isinstance(right_site, Port):
+            port_site = right_site
+            atom_site = left_site
+
+        if port_site is None or atom_site is None:
+            continue
+
+        existing_symbol = connected_symbol_by_port[port_site.index]
+        if existing_symbol is not None and existing_symbol != atom_site.symbol:
+            raise ValueError(
+                "Each port must connect to exactly one atom symbol in the brick."
+            )
+
+        connected_symbol_by_port[port_site.index] = atom_site.symbol
+
+    return connected_symbol_by_port
+
+
+def build_serialized_node_payload(node: BrickNode) -> dict[str, Any]:
+    """Serialize one brick node and annotate port nodes with atom symbols.
+
+    Args:
+        node: Parsed brick node.
+
+    Returns:
+        Serialized brick node payload with connected port symbols added.
+    """
+
+    node_payload = node.to_dict()
+    connected_symbol_by_port = get_connected_symbol_by_port(node)
+
+    for site_payload in node_payload["nodes"]:
+        if site_payload.get("kind") != "port":
+            continue
+
+        site_payload["connected_symbol"] = connected_symbol_by_port.get(
+            site_payload["index"]
+        )
+
+    return node_payload
+
+
 def get_brick_id(brick_name: str, raw_entry: dict[str, Any]) -> str:
     """Extract the canonical brick ID from one raw catalog entry.
 
@@ -163,11 +227,12 @@ def build_catalog_payload(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     for brick_name, raw_entry in payload.items():
         brick_id = get_brick_id(brick_name, raw_entry)
         node = build_brick_node(raw_entry)
+        node_payload = build_serialized_node_payload(node)
         catalog_payload[brick_id] = {
             "id": brick_id,
             "name": brick_name,
             "alias": list(raw_entry.get("alias", [])),
-            **node.to_dict(),
+            **node_payload,
         }
 
     return catalog_payload

@@ -288,15 +288,35 @@ textarea {
   pointer-events: none;
 }
 
+.edge-group {
+  pointer-events: none;
+}
+
+.edge-line-outline,
 .edge-line,
 .edge-line-draft {
   fill: none;
-  stroke: var(--border);
-  stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
 
+.edge-line-outline {
+  stroke: rgba(17, 17, 17, 0);
+  stroke-width: 6;
+  pointer-events: stroke;
+}
+
+.edge-line {
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.edge-line.is-selected {
+  stroke-width: 3;
+}
+
 .edge-line-draft {
+  stroke: var(--border);
+  stroke-width: 2;
   stroke-dasharray: 6 4;
   opacity: 0.72;
 }
@@ -555,7 +575,8 @@ textarea {
 }
 
 .canvas-context-menu,
-.node-context-menu {
+.node-context-menu,
+.edge-context-menu {
   position: absolute;
   z-index: 4;
   display: none;
@@ -571,12 +592,14 @@ textarea {
   min-width: 12rem;
 }
 
-.node-context-menu {
+.node-context-menu,
+.edge-context-menu {
   min-width: 9rem;
 }
 
 .canvas-context-menu.is-open,
-.node-context-menu.is-open {
+.node-context-menu.is-open,
+.edge-context-menu.is-open {
   display: block;
 }
 

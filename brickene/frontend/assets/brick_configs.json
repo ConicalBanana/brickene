@@ -168,6 +168,7 @@
     "name": "IT",
     "nodes": [
       {
+        "connected_symbol": "C",
         "index": 2,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -183,6 +184,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 4,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -233,6 +235,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 10,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -273,6 +276,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 3,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -283,6 +287,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 1,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -298,11 +303,13 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 5,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
       },
       {
+        "connected_symbol": "C",
         "index": 6,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -318,6 +325,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 9,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -328,11 +336,13 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 7,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
       },
       {
+        "connected_symbol": "C",
         "index": 8,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -386,6 +396,7 @@
     "name": "Thiophene",
     "nodes": [
       {
+        "connected_symbol": "C",
         "index": 1,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -401,6 +412,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 3,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -411,6 +423,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 4,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -421,6 +434,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 2,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -495,6 +509,7 @@
     "name": "Thieno[3,2-b]thiophene",
     "nodes": [
       {
+        "connected_symbol": "C",
         "index": 1,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -510,6 +525,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 3,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -535,6 +551,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 4,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -545,6 +562,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 2,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -640,6 +658,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 1,
         "kind": "port",
         "preferred_brick_type": "SKELETON"
@@ -746,6 +765,7 @@
         "symbol": "C"
       },
       {
+        "connected_symbol": "C",
         "index": 1,
         "kind": "port",
         "preferred_brick_type": "SKELETON"

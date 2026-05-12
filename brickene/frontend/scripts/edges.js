@@ -1,6 +1,98 @@
 (() => {
   const frontend = window.BrickeneFrontend;
   const { dom } = frontend;
+  const EDGE_OUTLINE_WIDTH = 6;
+  const EDGE_VISIBLE_WIDTH = 2;
+  const EDGE_HIT_RADIUS = EDGE_OUTLINE_WIDTH / 2;
+
+  function findEdge(edgeId) {
+    return frontend.getGraphState().edges.find((edge) => edge.id === edgeId) || null;
+  }
+
+  function distanceToSegment(point, start, end) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+
+    if (dx === 0 && dy === 0) {
+      return Math.hypot(point.x - start.x, point.y - start.y);
+    }
+
+    const projection = ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy);
+    const clamped = Math.max(0, Math.min(1, projection));
+    const closestPoint = {
+      x: start.x + clamped * dx,
+      y: start.y + clamped * dy,
+    };
+
+    return Math.hypot(point.x - closestPoint.x, point.y - closestPoint.y);
+  }
+
+  function getEdgeWorldSegment(edge) {
+    const from = getPortWorldPoint(edge.from.nodeId, edge.from.slotId);
+    const to = getPortWorldPoint(edge.to.nodeId, edge.to.slotId);
+
+    if (!from || !to) {
+      return null;
+    }
+
+    return { from, to };
+  }
+
+  function findEdgeAtClientPoint(clientX, clientY) {
+    const directTarget = document.elementFromPoint(clientX, clientY)?.closest("[data-edge-id]");
+    if (directTarget) {
+      return Number(directTarget.dataset.edgeId);
+    }
+
+    const point = frontend.clientToWorldPoint(clientX, clientY);
+    let matchedEdgeId = null;
+    let bestDistance = Infinity;
+
+    frontend.getGraphState().edges.forEach((edge) => {
+      const segment = getEdgeWorldSegment(edge);
+      if (!segment) {
+        return;
+      }
+
+      const distance = distanceToSegment(point, segment.from, segment.to);
+      if (distance <= EDGE_HIT_RADIUS && distance < bestDistance) {
+        matchedEdgeId = edge.id;
+        bestDistance = distance;
+      }
+    });
+
+    return matchedEdgeId;
+  }
+
+  function hasEdgeSelectionChanged(nextSelection) {
+    const { selectedEdgeIds } = frontend.getUiState();
+
+    if (selectedEdgeIds.size !== nextSelection.length) {
+      return true;
+    }
+
+    return nextSelection.some((edgeId) => !selectedEdgeIds.has(edgeId));
+  }
+
+  function setSelectedEdges(edgeIds) {
+    const ui = frontend.getUiState();
+
+    if (!hasEdgeSelectionChanged(edgeIds) && ui.selectedNodeIds.size === 0) {
+      return;
+    }
+
+    ui.selectedEdgeIds = new Set(edgeIds);
+    ui.selectedNodeIds = new Set();
+    frontend.renderNodes();
+  }
+
+  function clearEdgeSelection() {
+    setSelectedEdges([]);
+  }
+
+  function selectOnlyEdge(edgeId) {
+    setSelectedEdges([edgeId]);
+  }
 
   function getPortWorldPoint(nodeId, slotId) {
     const portElement = dom.nodeContainer.querySelector(
@@ -35,22 +127,33 @@
     const graph = frontend.getGraphState();
     const ui = frontend.getUiState();
     const edgeMarkup = graph.edges.map((edge) => {
-      const from = getPortWorldPoint(edge.from.nodeId, edge.from.slotId);
-      const to = getPortWorldPoint(edge.to.nodeId, edge.to.slotId);
+      const segment = getEdgeWorldSegment(edge);
 
-      if (!from || !to) {
+      if (!segment) {
         return "";
       }
 
+      const isSelected = ui.selectedEdgeIds.has(edge.id);
+
       return `
-        <line
-          class="edge-line"
-          x1="${from.x}"
-          y1="${from.y}"
-          x2="${to.x}"
-          y2="${to.y}"
-          data-edge-id="${edge.id}"
-        ></line>
+        <g class="edge-group${isSelected ? " is-selected" : ""}" data-edge-id="${edge.id}">
+          <line
+            class="edge-line-outline"
+            x1="${segment.from.x}"
+            y1="${segment.from.y}"
+            x2="${segment.to.x}"
+            y2="${segment.to.y}"
+            data-edge-id="${edge.id}"
+          ></line>
+          <line
+            class="edge-line${isSelected ? " is-selected" : ""}"
+            x1="${segment.from.x}"
+            y1="${segment.from.y}"
+            x2="${segment.to.x}"
+            y2="${segment.to.y}"
+            data-edge-id="${edge.id}"
+          ></line>
+        </g>
       `;
     }).join("");
 
@@ -110,6 +213,10 @@
       return { success: false, message: "Port not found." };
     }
 
+    if (sourceSlot.side !== "right" || targetSlot.side !== "left") {
+      return { success: false, message: "Only right-side to left-side connections are allowed." };
+    }
+
     if (sourceSlot.edgeId !== null || targetSlot.edgeId !== null) {
       return { success: false, message: "Each port can only hold one line." };
     }
@@ -124,13 +231,58 @@
     graph.edges = [...graph.edges, edge];
     frontend.updateNodePortEdge(sourcePort.nodeId, sourcePort.slotId, edge.id);
     frontend.updateNodePortEdge(targetPort.nodeId, targetPort.slotId, edge.id);
+    selectOnlyEdge(edge.id);
     frontend.renderNodes();
     return { success: true, message: "Line created." };
   }
 
+  function deleteEdge(edgeId) {
+    const graph = frontend.getGraphState();
+    const ui = frontend.getUiState();
+    const edge = findEdge(edgeId);
+
+    if (!edge) {
+      return false;
+    }
+
+    graph.edges = graph.edges.filter((graphEdge) => graphEdge.id !== edgeId);
+    graph.nodes = graph.nodes.map((node) => ({
+      ...node,
+      portSlots: node.portSlots.map((slot) => (
+        slot.edgeId === edgeId ? { ...slot, edgeId: null } : slot
+      )),
+    }));
+    ui.selectedEdgeIds.delete(edgeId);
+    if (ui.activeEdgeContextId === edgeId) {
+      ui.activeEdgeContextId = null;
+    }
+    frontend.renderNodes();
+    return true;
+  }
+
+  function deleteSelectedEdges() {
+    const selectedEdgeIds = [...frontend.getUiState().selectedEdgeIds];
+
+    if (!selectedEdgeIds.length) {
+      return 0;
+    }
+
+    selectedEdgeIds.forEach((edgeId) => {
+      deleteEdge(edgeId);
+    });
+    return selectedEdgeIds.length;
+  }
+
   frontend.getPortWorldPoint = getPortWorldPoint;
+  frontend.findEdge = findEdge;
+  frontend.findEdgeAtClientPoint = findEdgeAtClientPoint;
+  frontend.setSelectedEdges = setSelectedEdges;
+  frontend.clearEdgeSelection = clearEdgeSelection;
+  frontend.selectOnlyEdge = selectOnlyEdge;
   frontend.findHoveredPort = findHoveredPort;
   frontend.renderEdges = renderEdges;
   frontend.beginEdgeDrag = beginEdgeDrag;
   frontend.createEdgeBetweenPorts = createEdgeBetweenPorts;
+  frontend.deleteEdge = deleteEdge;
+  frontend.deleteSelectedEdges = deleteSelectedEdges;
 })();

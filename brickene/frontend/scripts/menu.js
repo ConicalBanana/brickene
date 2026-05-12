@@ -40,9 +40,15 @@
     frontend.getUiState().activeNodeContextId = null;
   }
 
+  function closeEdgeContextMenu() {
+    dom.edgeContextMenu.classList.remove("is-open");
+    frontend.getUiState().activeEdgeContextId = null;
+  }
+
   function closeAllContextMenus() {
     closeCanvasContextMenu();
     closeNodeContextMenu();
+    closeEdgeContextMenu();
   }
 
   function openCanvasContextMenu(clientX, clientY) {
@@ -60,7 +66,18 @@
     ui.activeNodeContextId = nodeId;
     frontend.positionFloatingMenu(dom.nodeContextMenu, clientX, clientY);
     closeCanvasContextMenu();
+    closeEdgeContextMenu();
     dom.nodeContextMenu.classList.add("is-open");
+  }
+
+  function openEdgeContextMenu(clientX, clientY, edgeId) {
+    const ui = frontend.getUiState();
+
+    ui.activeEdgeContextId = edgeId;
+    frontend.positionFloatingMenu(dom.edgeContextMenu, clientX, clientY);
+    closeCanvasContextMenu();
+    closeNodeContextMenu();
+    dom.edgeContextMenu.classList.add("is-open");
   }
 
   frontend.positionDropdown = positionDropdown;
@@ -68,7 +85,9 @@
   frontend.setCanvasMessage = setCanvasMessage;
   frontend.closeCanvasContextMenu = closeCanvasContextMenu;
   frontend.closeNodeContextMenu = closeNodeContextMenu;
+  frontend.closeEdgeContextMenu = closeEdgeContextMenu;
   frontend.closeAllContextMenus = closeAllContextMenus;
   frontend.openCanvasContextMenu = openCanvasContextMenu;
   frontend.openNodeContextMenu = openNodeContextMenu;
+  frontend.openEdgeContextMenu = openEdgeContextMenu;
 })();

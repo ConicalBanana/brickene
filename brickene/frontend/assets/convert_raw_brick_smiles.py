@@ -128,6 +128,26 @@ def build_brick_node(raw_entry: dict[str, Any]) -> BrickNode:
     return apply_preferred_port_type(node, DEFAULT_PORT_BRICK_TYPE)
 
 
+def get_brick_id(brick_name: str, raw_entry: dict[str, Any]) -> str:
+    """Extract the canonical brick ID from one raw catalog entry.
+
+    Args:
+        brick_name: Human-readable brick name from the raw catalog key.
+        raw_entry: Raw catalog entry payload.
+
+    Returns:
+        Brick ID normalized as a string.
+
+    Raises:
+        ValueError: If the raw entry does not define a usable ID.
+    """
+
+    brick_id = str(raw_entry.get("id", "")).strip()
+    if not brick_id:
+        raise ValueError(f"Missing brick id for raw catalog entry: {brick_name}")
+    return brick_id
+
+
 def build_catalog_payload(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """Convert the raw brick catalog into one standard config payload.
 
@@ -141,8 +161,11 @@ def build_catalog_payload(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     catalog_payload: dict[str, dict[str, Any]] = {}
 
     for brick_name, raw_entry in payload.items():
+        brick_id = get_brick_id(brick_name, raw_entry)
         node = build_brick_node(raw_entry)
-        catalog_payload[brick_name] = {
+        catalog_payload[brick_id] = {
+            "id": brick_id,
+            "name": brick_name,
             "alias": list(raw_entry.get("alias", [])),
             **node.to_dict(),
         }

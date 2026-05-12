@@ -1,13 +1,22 @@
 (() => {
   const frontend = window.BrickeneFrontend;
   const { config, dom } = frontend;
-  const brickDefinitions = frontend.brickDefinitions || {};
-  const brickTypeOptions = Object.entries(brickDefinitions).map(([name, definition]) => ({
-    name,
+  const rawBrickDefinitions = frontend.brickDefinitions || {};
+  const brickCatalog = Object.entries(rawBrickDefinitions)
+    .map(([configKey, definition]) => normalizeBrickDefinition(configKey, definition))
+    .sort((left, right) => Number(left.id) - Number(right.id));
+  const brickDefinitionsById = Object.fromEntries(
+    brickCatalog.map((definition) => [definition.id, definition]),
+  );
+  const brickIdByName = new Map(
+    brickCatalog.map((definition) => [definition.name, definition.id]),
+  );
+  const brickTypeOptions = brickCatalog.map((definition) => ({
+    id: definition.id,
     definition,
-    label: formatBrickOptionLabel(name, definition.alias || []),
+    label: formatBrickOptionLabel(definition.name, definition.alias || []),
   }));
-  const defaultBrickName = brickTypeOptions[0]?.name || null;
+  const defaultBrickId = brickTypeOptions[0]?.id || null;
 
   function escapeHtml(value) {
     return String(value)
@@ -22,12 +31,34 @@
     return aliases.length ? `${name}(${aliases.join(",")})` : name;
   }
 
-  function getBrickDefinition(brickName) {
-    return brickDefinitions[brickName] || brickDefinitions[defaultBrickName] || null;
+  function normalizeBrickDefinition(configKey, definition) {
+    const id = String(definition.id ?? configKey);
+
+    return {
+      ...definition,
+      id,
+      name: definition.name || configKey,
+      imageSrc: `../assets/brick_images/${encodeURIComponent(id)}.png`,
+    };
   }
 
-  function getBrickPortNodes(brickName) {
-    const definition = getBrickDefinition(brickName);
+  function getBrickDefinition(brickRef) {
+    const reference = String(brickRef ?? "");
+
+    if (brickDefinitionsById[reference]) {
+      return brickDefinitionsById[reference];
+    }
+
+    const resolvedId = brickIdByName.get(reference);
+    if (resolvedId) {
+      return brickDefinitionsById[resolvedId] || null;
+    }
+
+    return brickDefinitionsById[defaultBrickId] || null;
+  }
+
+  function getBrickPortNodes(brickRef) {
+    const definition = getBrickDefinition(brickRef);
     return definition?.nodes.filter((node) => node.kind === "port") || [];
   }
 
@@ -45,8 +76,8 @@
     }));
   }
 
-  function createPortSlotsFromBrick(brickName) {
-    const portNodes = getBrickPortNodes(brickName);
+  function createPortSlotsFromBrick(brickRef) {
+    const portNodes = getBrickPortNodes(brickRef);
 
     if (!portNodes.length) {
       return createPortSlots(config.defaultPortCount);
@@ -64,15 +95,17 @@
   }
 
   function buildNode(nodeConfig) {
-    const brickName = getBrickDefinition(nodeConfig.brickName) ? nodeConfig.brickName : defaultBrickName;
-    const brickDefinition = getBrickDefinition(brickName);
-    const portSlots = nodeConfig.portSlots?.map((slot) => ({ ...slot })) ?? createPortSlotsFromBrick(brickName);
+    const brickDefinition = getBrickDefinition(nodeConfig.brickId || nodeConfig.brickName);
+    const brickId = brickDefinition?.id || defaultBrickId;
+    const portSlots = nodeConfig.portSlots?.map((slot) => ({ ...slot })) ?? createPortSlotsFromBrick(brickId);
 
     return {
       ...nodeConfig,
       type: nodeConfig.type || "rectangular",
       title: nodeConfig.title || `Node ${nodeConfig.id}`,
-      brickName,
+      brickId,
+      brickName: brickDefinition?.name || "Unknown",
+      brickImageSrc: brickDefinition?.imageSrc || "",
       brickType: brickDefinition?.brick_type || "UNCONFIGURED",
       nport: portSlots.length,
       portSlots,
@@ -121,12 +154,26 @@
     });
   }
 
-  function renderNodeTypeOptions(selectedBrickName) {
+  function renderNodeTypeOptions(selectedBrickId) {
     return brickTypeOptions.map((option) => `
-      <option value="${escapeHtml(option.name)}"${option.name === selectedBrickName ? " selected" : ""}>
+      <option value="${escapeHtml(option.id)}"${option.id === selectedBrickId ? " selected" : ""}>
         ${escapeHtml(option.label)}
       </option>
     `).join("");
+  }
+
+  function renderStructurePreview(node) {
+    if (!node.brickImageSrc) {
+      return '<p class="node-structure-empty">No structure image</p>';
+    }
+
+    return `
+      <img
+        class="node-structure-image"
+        src="${escapeHtml(node.brickImageSrc)}"
+        alt="${escapeHtml(node.brickName)} structure"
+      />
+    `;
   }
 
   function renderPortEntry(node, slot, side, ui) {
@@ -164,14 +211,14 @@
     `;
   }
 
-  function setNodeBrickName(nodeId, brickName) {
+  function setNodeBrickName(nodeId, brickRef) {
     const graph = frontend.getGraphState();
     const ui = frontend.getUiState();
     const node = findNode(nodeId);
-    const brickDefinition = getBrickDefinition(brickName);
+    const brickDefinition = getBrickDefinition(brickRef);
 
-    if (!node || !brickDefinition || node.brickName === brickName) {
-      return { updated: false, removedEdgeCount: 0 };
+    if (!node || !brickDefinition || node.brickId === brickDefinition.id) {
+      return { updated: false, removedEdgeCount: 0, brickName: node?.brickName || "" };
     }
 
     const removedEdgeIds = graph.edges
@@ -190,10 +237,12 @@
         return removedEdgeIds.length ? { ...graphNode, portSlots: clearedPortSlots } : graphNode;
       }
 
-      const nextPortSlots = createPortSlotsFromBrick(brickName);
+      const nextPortSlots = createPortSlotsFromBrick(brickDefinition.id);
       return {
         ...graphNode,
-        brickName,
+        brickId: brickDefinition.id,
+        brickName: brickDefinition.name,
+        brickImageSrc: brickDefinition.imageSrc,
         brickType: brickDefinition.brick_type,
         nport: nextPortSlots.length,
         portSlots: nextPortSlots,
@@ -202,7 +251,7 @@
 
     ui.selectedNodeIds = new Set([nodeId]);
     renderNodes();
-    return { updated: true, removedEdgeCount: removedEdgeIds.length };
+    return { updated: true, removedEdgeCount: removedEdgeIds.length, brickName: brickDefinition.name };
   }
 
   function handleNodeTypeChange(event) {
@@ -212,8 +261,8 @@
     }
 
     const nodeId = Number(select.dataset.nodeId);
-    const brickName = select.value;
-    const result = setNodeBrickName(nodeId, brickName);
+    const brickId = select.value;
+    const result = setNodeBrickName(nodeId, brickId);
     if (!result.updated) {
       return;
     }
@@ -221,7 +270,7 @@
     const removedEdgeCopy = result.removedEdgeCount > 0
       ? ` ${result.removedEdgeCount} edge(s) cleared.`
       : "";
-    frontend.setCanvasMessage(`Node ${nodeId} switched to ${brickName}.${removedEdgeCopy}`);
+    frontend.setCanvasMessage(`Node ${nodeId} switched to ${result.brickName}.${removedEdgeCopy}`);
   }
 
   function bindNodeControlEvents() {
@@ -262,11 +311,11 @@
                   data-node-id="${node.id}"
                   aria-label="${escapeHtml(node.title)} type"
                 >
-                  ${renderNodeTypeOptions(node.brickName)}
+                  ${renderNodeTypeOptions(node.brickId)}
                 </select>
               </label>
-              <div class="node-structure-preview" aria-hidden="true">
-                <p class="node-structure-preview-label">Structure preview reserved</p>
+              <div class="node-structure-preview">
+                ${renderStructurePreview(node)}
               </div>
             </div>
           </div>
@@ -337,7 +386,7 @@
       id: graph.nextNodeId,
       type: "rectangular",
       title: `Node ${graph.nextNodeId}`,
-      brickName: defaultBrickName,
+      brickId: defaultBrickId,
       x: worldX,
       y: worldY,
     });

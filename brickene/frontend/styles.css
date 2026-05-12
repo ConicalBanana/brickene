@@ -473,18 +473,26 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 64px;
-  padding: 0.5rem;
+  min-height: 96px;
+  padding: 0.35rem;
   border: 1px dashed var(--accent);
-  background:
-    linear-gradient(135deg, rgba(220, 220, 220, 0.35), rgba(255, 255, 255, 0.9)),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 10px,
-      rgba(17, 17, 17, 0.04) 10px,
-      rgba(17, 17, 17, 0.04) 11px
-    );
+  background: rgba(255, 255, 255, 0.92);
+  overflow: hidden;
+}
+
+.node-structure-image {
+  display: block;
+  width: 100%;
+  max-height: 104px;
+  object-fit: contain;
+}
+
+.node-structure-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .node-port {

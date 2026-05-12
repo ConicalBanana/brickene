@@ -2,26 +2,31 @@
     "IT": {
         "alias": [],
         "smiles": "[*:2]C1=C([*:4])C2=C(S1)C1=C(S2)C2=C(C([*:10])=C3C4=C(C5=C(S4)C([*:3])=C([*:1])S5)C([*:5])([*:6])C3=C2[*:9])C1([*:7])[*:8]",
-        "type": "core"
+        "type": "core",
+        "id": "1"
     },
     "Thiophene" : {
         "alias": ["T"],
         "smiles": "[*:1]C1=C([*:3])C([*:4])=C([*:2])S1",
-        "type": "bridge"
+        "type": "bridge",
+        "id": "2"
     },
     "Thieno[3,2-b]thiophene": {
         "alias": ["TT"],
         "smiles": "[*:1]C1=C([*:3])C2=C(S1)C([*:4])=C([*:2])S2",
-        "type": "bridge"
+        "type": "bridge",
+        "id": "3"
     },
     "2-ethylhexyl": {
         "alias": ["C2C4", "EH"],
         "smiles": "CCCCC(CC)C[*:1]",
-        "type": "sidechain"
+        "type": "sidechain",
+        "id": "4"
     },
     "2-butyloctyl": {
         "alias": ["C4C6", "BO"],
         "smiles": "CCCCCCC(C[*:1])CCCC",
-        "type": "sidechain"
+        "type": "sidechain",
+        "id": "5"
     }
 }

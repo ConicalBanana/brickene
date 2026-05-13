@@ -74,24 +74,41 @@
     return nextSelection.some((edgeId) => !selectedEdgeIds.has(edgeId));
   }
 
-  function setSelectedEdges(edgeIds) {
+  function setSelectedEdges(edgeIds, options = {}) {
     const ui = frontend.getUiState();
+    const preserveNodes = Boolean(options.preserveNodes);
 
-    if (!hasEdgeSelectionChanged(edgeIds) && ui.selectedNodeIds.size === 0) {
+    if (!hasEdgeSelectionChanged(edgeIds) && (preserveNodes || ui.selectedNodeIds.size === 0)) {
       return;
     }
 
     ui.selectedEdgeIds = new Set(edgeIds);
-    ui.selectedNodeIds = new Set();
+    if (!preserveNodes) {
+      ui.selectedNodeIds = new Set();
+    }
     frontend.renderNodes();
   }
 
   function clearEdgeSelection() {
-    setSelectedEdges([]);
+    setSelectedEdges([], { preserveNodes: true });
   }
 
   function selectOnlyEdge(edgeId) {
     setSelectedEdges([edgeId]);
+  }
+
+  function toggleEdgeSelection(edgeId) {
+    const ui = frontend.getUiState();
+    const nextSelection = new Set(ui.selectedEdgeIds);
+
+    if (nextSelection.has(edgeId)) {
+      nextSelection.delete(edgeId);
+    } else {
+      nextSelection.add(edgeId);
+    }
+
+    setSelectedEdges([...nextSelection], { preserveNodes: true });
+    return nextSelection.has(edgeId);
   }
 
   function getPortWorldPoint(nodeId, slotId) {
@@ -389,6 +406,7 @@
   frontend.setSelectedEdges = setSelectedEdges;
   frontend.clearEdgeSelection = clearEdgeSelection;
   frontend.selectOnlyEdge = selectOnlyEdge;
+  frontend.toggleEdgeSelection = toggleEdgeSelection;
   frontend.findHoveredPort = findHoveredPort;
   frontend.renderEdges = renderEdges;
   frontend.beginEdgeDrag = beginEdgeDrag;

@@ -70,9 +70,11 @@
     dom.selectionRect.classList.remove("is-visible");
   }
 
-  function updateSelectionFromRect(localRect) {
+  function updateSelectionFromRect(localRect, options = {}) {
     const { canvasOffset, canvasScale } = frontend.getUiState();
     const { nodes } = frontend.getGraphState();
+    const preserveSelection = Boolean(options.preserveSelection);
+    const baseNodeIds = Array.isArray(options.baseNodeIds) ? options.baseNodeIds : [];
     const worldRect = {
       left: (localRect.left - canvasOffset.x) / canvasScale,
       top: (localRect.top - canvasOffset.y) / canvasScale,
@@ -101,7 +103,10 @@
       })
       .map((node) => node.id);
 
-    frontend.setSelectedNodes(nextSelection);
+    frontend.setSelectedNodes(
+      preserveSelection ? [...new Set([...baseNodeIds, ...nextSelection])] : nextSelection,
+      { preserveEdges: preserveSelection },
+    );
   }
 
   function clampCanvasScale(scale) {

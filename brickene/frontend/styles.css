@@ -205,6 +205,12 @@ textarea {
   cursor: grabbing;
 }
 
+.canvas-viewport.is-interacting,
+.canvas-viewport.is-interacting * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .canvas-layer,
 .component-layer,
 .component-world,
@@ -398,6 +404,12 @@ textarea {
   cursor: move;
   user-select: none;
   overflow: visible;
+}
+
+.node-component,
+.node-component * {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .node-component.is-selected {
@@ -710,5 +722,6 @@ textarea {
 
 .canvas-viewport.is-edge-dragging,
 .canvas-viewport.is-edge-dragging * {
+  -webkit-user-select: none;
   user-select: none;
 }

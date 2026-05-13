@@ -22,6 +22,23 @@ DEFAULT_SOURCE_PATH = \
     Path(__file__).resolve().parent / "raw_brick_smiles.json"
 DEFAULT_OUTPUT_PATH = \
     Path(__file__).resolve().parent / "brick_configs.json"
+TOOL_BRICK_PAYLOADS: dict[str, dict[str, Any]] = {
+    "900": {
+        "id": "900",
+        "name": "Duplicator",
+        "alias": [],
+        "brick_type": "TOOL",
+        "nodes": [
+            {"index": 1, "kind": "port", "side": "left"},
+            {"index": 2, "kind": "port", "side": "left"},
+            {"index": 3, "kind": "port", "side": "left"},
+            {"index": 4, "kind": "port", "side": "left"},
+            {"index": 5, "kind": "port", "side": "left"},
+            {"index": 6, "kind": "port", "side": "right"},
+        ],
+        "edges": [],
+    }
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -246,6 +263,8 @@ def build_catalog_payload(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
             "alias": list(raw_entry.get("alias", [])),
             **node_payload,
         }
+
+    catalog_payload.update(TOOL_BRICK_PAYLOADS)
 
     return catalog_payload
 

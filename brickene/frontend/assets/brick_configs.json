@@ -6424,5 +6424,44 @@
         "SINGLE"
       ]
     ]
+  },
+  "900": {
+    "id": "900",
+    "name": "Duplicator",
+    "alias": [],
+    "brick_type": "TOOL",
+    "nodes": [
+      {
+        "index": 1,
+        "kind": "port",
+        "side": "left"
+      },
+      {
+        "index": 2,
+        "kind": "port",
+        "side": "left"
+      },
+      {
+        "index": 3,
+        "kind": "port",
+        "side": "left"
+      },
+      {
+        "index": 4,
+        "kind": "port",
+        "side": "left"
+      },
+      {
+        "index": 5,
+        "kind": "port",
+        "side": "left"
+      },
+      {
+        "index": 6,
+        "kind": "port",
+        "side": "right"
+      }
+    ],
+    "edges": []
   }
 }

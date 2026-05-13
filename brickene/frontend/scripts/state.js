@@ -1,6 +1,7 @@
 (() => {
   const frontend = window.BrickeneFrontend = window.BrickeneFrontend || {};
   const GRAPH_CHANGE_EVENT = "brickene:graphchange";
+  const isMacOS = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);
 
   frontend.config = {
     submenuMap: {
@@ -89,6 +90,9 @@
 
   frontend.getGraphState = () => frontend.state.graph;
   frontend.getUiState = () => frontend.state.ui;
+  frontend.platform = {
+    isMacOS,
+  };
   frontend.GRAPH_CHANGE_EVENT = GRAPH_CHANGE_EVENT;
   frontend.notifyGraphChanged = (detail = {}) => {
     if (!frontend.dom.canvasViewport) {

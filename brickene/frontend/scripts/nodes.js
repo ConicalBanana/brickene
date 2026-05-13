@@ -633,24 +633,49 @@
     return nextSelection.some((nodeId) => !selectedNodeIds.has(nodeId));
   }
 
-  function setSelectedNodes(nodeIds) {
+  function setSelectedNodes(nodeIds, options = {}) {
     const ui = frontend.getUiState();
+    const preserveEdges = Boolean(options.preserveEdges);
 
-    if (!hasSelectionChanged(nodeIds) && ui.selectedEdgeIds.size === 0) {
+    if (!hasSelectionChanged(nodeIds) && (preserveEdges || ui.selectedEdgeIds.size === 0)) {
       return;
     }
 
     ui.selectedNodeIds = new Set(nodeIds);
-    ui.selectedEdgeIds = new Set();
+    if (!preserveEdges) {
+      ui.selectedEdgeIds = new Set();
+    }
     renderNodes();
   }
 
   function clearSelection() {
-    setSelectedNodes([]);
+    const ui = frontend.getUiState();
+
+    if (ui.selectedNodeIds.size === 0 && ui.selectedEdgeIds.size === 0) {
+      return;
+    }
+
+    ui.selectedNodeIds = new Set();
+    ui.selectedEdgeIds = new Set();
+    renderNodes();
   }
 
   function selectOnlyNode(nodeId) {
     setSelectedNodes([nodeId]);
+  }
+
+  function toggleNodeSelection(nodeId) {
+    const ui = frontend.getUiState();
+    const nextSelection = new Set(ui.selectedNodeIds);
+
+    if (nextSelection.has(nodeId)) {
+      nextSelection.delete(nodeId);
+    } else {
+      nextSelection.add(nodeId);
+    }
+
+    setSelectedNodes([...nextSelection], { preserveEdges: true });
+    return nextSelection.has(nodeId);
   }
 
   function createNodeAt(worldX, worldY) {
@@ -712,6 +737,7 @@
   frontend.setSelectedNodes = setSelectedNodes;
   frontend.clearSelection = clearSelection;
   frontend.selectOnlyNode = selectOnlyNode;
+  frontend.toggleNodeSelection = toggleNodeSelection;
   frontend.createNodeAt = createNodeAt;
   frontend.deleteNode = deleteNode;
 

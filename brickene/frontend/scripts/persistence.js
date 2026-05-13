@@ -2,6 +2,12 @@
   const frontend = window.BrickeneFrontend;
   const { dom } = frontend;
   const FILE_EXTENSION = ".brickene";
+  const history = {
+    snapshots: [],
+    index: -1,
+    isApplying: false,
+    isQueued: false,
+  };
 
   function buildTimestampedFilename() {
     const now = new Date();
@@ -55,6 +61,39 @@
     };
   }
 
+  function serializeGraphState(snapshot = exportGraphState()) {
+    return JSON.stringify(snapshot);
+  }
+
+  function pushHistorySnapshot(snapshot = exportGraphState()) {
+    const serialized = typeof snapshot === "string" ? snapshot : serializeGraphState(snapshot);
+
+    if (history.index >= 0 && history.snapshots[history.index] === serialized) {
+      return false;
+    }
+
+    history.snapshots = history.snapshots.slice(0, history.index + 1);
+    history.snapshots.push(serialized);
+    history.index = history.snapshots.length - 1;
+    return true;
+  }
+
+  function queueHistorySnapshot() {
+    if (history.isApplying || history.isQueued) {
+      return;
+    }
+
+    history.isQueued = true;
+    queueMicrotask(() => {
+      history.isQueued = false;
+      if (history.isApplying) {
+        return;
+      }
+
+      pushHistorySnapshot();
+    });
+  }
+
   function clearGraphSelections() {
     const ui = frontend.getUiState();
 
@@ -63,6 +102,105 @@
     ui.activeNodeContextId = null;
     ui.activeEdgeContextId = null;
     ui.componentInteraction = null;
+  }
+
+  function buildSelectionGraphState() {
+    const ui = frontend.getUiState();
+    const explicitNodeIds = new Set(ui.selectedNodeIds);
+    const explicitEdgeIds = new Set(ui.selectedEdgeIds);
+    const selectedNodeIds = new Set(explicitNodeIds);
+    const edgeStates = getEdgeStates();
+
+    edgeStates.forEach((edge) => {
+      if (explicitEdgeIds.has(edge.id)) {
+        selectedNodeIds.add(edge.startNode);
+        selectedNodeIds.add(edge.endNode);
+      }
+    });
+
+    const nodeStates = getNodeStates().filter((node) => selectedNodeIds.has(node.id));
+    const selectedEdges = edgeStates.filter((edge) => (
+      explicitEdgeIds.has(edge.id)
+      || (
+        selectedNodeIds.has(edge.startNode)
+        && selectedNodeIds.has(edge.endNode)
+        && explicitNodeIds.size > 0
+      )
+    ));
+
+    if (!nodeStates.length && !selectedEdges.length) {
+      return null;
+    }
+
+    return {
+      version: 1,
+      nodes: nodeStates,
+      edges: selectedEdges,
+    };
+  }
+
+  async function writeClipboardText(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    return copied;
+  }
+
+  async function copySelection() {
+    const selectionSnapshot = buildSelectionGraphState();
+    if (!selectionSnapshot) {
+      return { copied: false, nodeCount: 0, edgeCount: 0 };
+    }
+
+    await writeClipboardText(`${JSON.stringify(selectionSnapshot, null, 2)}\n`);
+    return {
+      copied: true,
+      nodeCount: selectionSnapshot.nodes.length,
+      edgeCount: selectionSnapshot.edges.length,
+    };
+  }
+
+  function restoreHistorySnapshot(snapshotIndex) {
+    if (snapshotIndex < 0 || snapshotIndex >= history.snapshots.length) {
+      return false;
+    }
+
+    history.isApplying = true;
+    try {
+      importGraphState(history.snapshots[snapshotIndex]);
+      history.index = snapshotIndex;
+    } finally {
+      history.isApplying = false;
+    }
+
+    return true;
+  }
+
+  function undo() {
+    if (history.index <= 0) {
+      return false;
+    }
+
+    return restoreHistorySnapshot(history.index - 1);
+  }
+
+  function redo() {
+    if (history.index >= history.snapshots.length - 1) {
+      return false;
+    }
+
+    return restoreHistorySnapshot(history.index + 1);
   }
 
   function normalizeImportedNodeState(nodeState) {
@@ -251,6 +389,16 @@
     });
   }
 
+  function bindHistoryEvents() {
+    if (!dom.canvasViewport) {
+      return;
+    }
+
+    dom.canvasViewport.addEventListener(frontend.GRAPH_CHANGE_EVENT, () => {
+      queueHistorySnapshot();
+    });
+  }
+
   frontend.getNodeStates = getNodeStates;
   frontend.getEdgeStates = getEdgeStates;
   frontend.exportGraphState = exportGraphState;
@@ -260,6 +408,10 @@
   frontend.bindPersistenceEvents = bindPersistenceEvents;
   frontend.save = save;
   frontend.open = open;
+  frontend.copySelection = copySelection;
+  frontend.undo = undo;
+  frontend.redo = redo;
 
+  bindHistoryEvents();
   bindPersistenceEvents();
 })();

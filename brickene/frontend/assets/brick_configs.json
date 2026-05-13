@@ -16,12 +16,14 @@
       {
         "kind": "atom",
         "index": 9,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 10,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -32,7 +34,8 @@
       {
         "kind": "atom",
         "index": 11,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -43,22 +46,26 @@
       {
         "kind": "atom",
         "index": 12,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 13,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -69,42 +76,50 @@
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "O"
+        "symbol": "O",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -115,17 +130,20 @@
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -136,7 +154,8 @@
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -147,7 +166,8 @@
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -158,32 +178,38 @@
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 30,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 31,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 32,
-        "symbol": "O"
+        "symbol": "O",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 33,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 34,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       }
     ],
     "edges": [
@@ -404,22 +430,26 @@
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -435,7 +465,9 @@
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "B"
+        "symbol": "B",
+        "formal_charge": -1,
+        "no_implicit": true
       },
       {
         "kind": "port",
@@ -452,12 +484,16 @@
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "N"
+        "symbol": "N",
+        "formal_charge": 1,
+        "is_aromatic": true,
+        "no_implicit": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -468,7 +504,8 @@
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -479,7 +516,8 @@
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -490,7 +528,8 @@
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -501,7 +540,8 @@
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -512,7 +552,8 @@
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -523,12 +564,17 @@
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "N"
+        "symbol": "N",
+        "formal_charge": 1,
+        "is_aromatic": true,
+        "no_implicit": true
       },
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "B"
+        "symbol": "B",
+        "formal_charge": -1,
+        "no_implicit": true
       },
       {
         "kind": "port",
@@ -718,12 +764,14 @@
       {
         "kind": "atom",
         "index": 11,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 12,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -734,32 +782,38 @@
       {
         "kind": "atom",
         "index": 13,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -770,22 +824,26 @@
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -796,7 +854,8 @@
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -807,7 +866,8 @@
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -829,12 +889,14 @@
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1040,12 +1102,14 @@
       {
         "kind": "atom",
         "index": 11,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 12,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1056,47 +1120,56 @@
       {
         "kind": "atom",
         "index": 13,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1107,37 +1180,44 @@
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1148,7 +1228,8 @@
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1159,7 +1240,8 @@
       {
         "kind": "atom",
         "index": 30,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -1181,12 +1263,14 @@
       {
         "kind": "atom",
         "index": 32,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 33,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1432,12 +1516,14 @@
       {
         "kind": "atom",
         "index": 11,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 12,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1448,62 +1534,74 @@
       {
         "kind": "atom",
         "index": 13,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1514,52 +1612,62 @@
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 30,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 31,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 32,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 33,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 34,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1570,7 +1678,8 @@
       {
         "kind": "atom",
         "index": 35,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1581,7 +1690,8 @@
       {
         "kind": "atom",
         "index": 36,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -1603,12 +1713,14 @@
       {
         "kind": "atom",
         "index": 38,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 39,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1894,32 +2006,38 @@
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1930,22 +2048,26 @@
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1956,7 +2078,8 @@
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -1967,7 +2090,8 @@
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -1989,12 +2113,14 @@
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2005,7 +2131,8 @@
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2016,27 +2143,32 @@
       {
         "kind": "atom",
         "index": 30,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 31,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 32,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 33,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 34,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2047,7 +2179,8 @@
       {
         "kind": "atom",
         "index": 35,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2058,7 +2191,8 @@
       {
         "kind": "atom",
         "index": 36,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -2080,7 +2214,8 @@
       {
         "kind": "atom",
         "index": 38,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2329,12 +2464,14 @@
       {
         "kind": "atom",
         "index": 11,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 12,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2345,47 +2482,56 @@
       {
         "kind": "atom",
         "index": 13,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2396,27 +2542,32 @@
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -2438,22 +2589,26 @@
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 30,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 31,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2464,7 +2619,8 @@
       {
         "kind": "atom",
         "index": 32,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2475,7 +2631,8 @@
       {
         "kind": "atom",
         "index": 33,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2721,12 +2878,14 @@
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2737,27 +2896,32 @@
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2768,27 +2932,32 @@
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2799,22 +2968,26 @@
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 30,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2825,7 +2998,8 @@
       {
         "kind": "atom",
         "index": 31,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2836,7 +3010,8 @@
       {
         "kind": "atom",
         "index": 32,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -2858,12 +3033,14 @@
       {
         "kind": "atom",
         "index": 34,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 35,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2891,7 +3068,8 @@
       {
         "kind": "atom",
         "index": 37,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -2902,7 +3080,8 @@
       {
         "kind": "atom",
         "index": 38,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -3167,12 +3346,14 @@
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3183,7 +3364,8 @@
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3194,7 +3376,8 @@
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3205,87 +3388,104 @@
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 30,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 31,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 32,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 33,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 34,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 35,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 36,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 37,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 38,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3296,32 +3496,38 @@
       {
         "kind": "atom",
         "index": 39,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 40,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 41,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 42,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 43,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 44,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3332,7 +3538,8 @@
       {
         "kind": "atom",
         "index": 45,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3343,7 +3550,8 @@
       {
         "kind": "atom",
         "index": 46,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3354,7 +3562,8 @@
       {
         "kind": "atom",
         "index": 47,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3365,17 +3574,20 @@
       {
         "kind": "atom",
         "index": 48,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 49,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 50,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3386,7 +3598,8 @@
       {
         "kind": "atom",
         "index": 51,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3397,7 +3610,8 @@
       {
         "kind": "atom",
         "index": 52,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3408,7 +3622,8 @@
       {
         "kind": "atom",
         "index": 53,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3419,7 +3634,8 @@
       {
         "kind": "atom",
         "index": 54,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3430,7 +3646,8 @@
       {
         "kind": "atom",
         "index": 55,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3441,7 +3658,8 @@
       {
         "kind": "atom",
         "index": 56,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3452,7 +3670,8 @@
       {
         "kind": "atom",
         "index": 57,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3827,22 +4046,26 @@
       {
         "kind": "atom",
         "index": 12,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 13,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3853,7 +4076,8 @@
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3864,42 +4088,50 @@
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 21,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3910,32 +4142,38 @@
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 26,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 27,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 30,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -3946,7 +4184,8 @@
       {
         "kind": "atom",
         "index": 31,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4187,12 +4426,14 @@
       {
         "kind": "atom",
         "index": 14,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 15,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4203,7 +4444,8 @@
       {
         "kind": "atom",
         "index": 16,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4214,7 +4456,8 @@
       {
         "kind": "atom",
         "index": 17,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4225,17 +4468,20 @@
       {
         "kind": "atom",
         "index": 18,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 19,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 20,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -4245,22 +4491,26 @@
       {
         "kind": "atom",
         "index": 22,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 23,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 24,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 25,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -4275,12 +4525,14 @@
       {
         "kind": "atom",
         "index": 28,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 29,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -4290,12 +4542,16 @@
       {
         "kind": "atom",
         "index": 31,
-        "symbol": "N"
+        "symbol": "N",
+        "formal_charge": 1,
+        "no_implicit": true
       },
       {
         "kind": "atom",
         "index": 32,
-        "symbol": "B"
+        "symbol": "B",
+        "formal_charge": -1,
+        "no_implicit": true
       },
       {
         "kind": "port",
@@ -4306,12 +4562,14 @@
       {
         "kind": "atom",
         "index": 33,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 34,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
@@ -4321,12 +4579,14 @@
       {
         "kind": "atom",
         "index": 36,
-        "symbol": "N"
+        "symbol": "N",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 37,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4337,7 +4597,8 @@
       {
         "kind": "atom",
         "index": 38,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4348,7 +4609,8 @@
       {
         "kind": "atom",
         "index": 39,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4359,7 +4621,8 @@
       {
         "kind": "atom",
         "index": 40,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4370,7 +4633,8 @@
       {
         "kind": "atom",
         "index": 41,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4381,7 +4645,8 @@
       {
         "kind": "atom",
         "index": 42,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4392,7 +4657,8 @@
       {
         "kind": "atom",
         "index": 43,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4403,7 +4669,8 @@
       {
         "kind": "atom",
         "index": 44,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4692,12 +4959,14 @@
       {
         "kind": "atom",
         "index": 5,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 6,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4708,7 +4977,8 @@
       {
         "kind": "atom",
         "index": 7,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4719,7 +4989,8 @@
       {
         "kind": "atom",
         "index": 8,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4730,7 +5001,8 @@
       {
         "kind": "atom",
         "index": 9,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       }
     ],
     "edges": [
@@ -4798,12 +5070,14 @@
       {
         "kind": "atom",
         "index": 5,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 6,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4814,22 +5088,26 @@
       {
         "kind": "atom",
         "index": 7,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 8,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 9,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       },
       {
         "kind": "atom",
         "index": 10,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4840,7 +5118,8 @@
       {
         "kind": "atom",
         "index": 11,
-        "symbol": "C"
+        "symbol": "C",
+        "is_aromatic": true
       },
       {
         "kind": "port",
@@ -4851,7 +5130,8 @@
       {
         "kind": "atom",
         "index": 12,
-        "symbol": "S"
+        "symbol": "S",
+        "is_aromatic": true
       }
     ],
     "edges": [
@@ -5017,7 +5297,8 @@
       {
         "kind": "atom",
         "index": 3,
-        "symbol": "Se"
+        "symbol": "Se",
+        "no_implicit": true
       },
       {
         "kind": "port",

@@ -303,6 +303,11 @@ def cap_hanging_ports_with_hydrogen(molecule: Chem.Mol) -> Chem.Mol:
         if len(neighbors) > 1:
             raise ValueError("Dangling ports must connect to at most one neighboring atom.")
 
+        if len(neighbors) == 1:
+            neighbor = neighbors[0]
+            neighbor.SetNumExplicitHs(neighbor.GetNumExplicitHs() + 1)
+            neighbor.SetNoImplicit(True)
+
         dummy_atom_indices.append(atom.GetIdx())
 
     for atom_index in sorted(dummy_atom_indices, reverse=True):

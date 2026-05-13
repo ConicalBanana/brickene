@@ -50,9 +50,17 @@ class Atom(Site):
     Args:
         index: Unique atom index within the brick graph.
         symbol: Atomic symbol.
+        formal_charge: Formal charge required to rebuild charged bricks.
+        is_aromatic: Whether the atom belongs to an aromatic system.
+        no_implicit: Whether RDKit should suppress implicit hydrogens.
+        num_explicit_hs: Explicit hydrogen count carried by the source atom.
     """
 
     symbol: str
+    formal_charge: int = 0
+    is_aromatic: bool = False
+    no_implicit: bool = False
+    num_explicit_hs: int = 0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -141,7 +149,14 @@ class BrickNode:
                     next_port_index += 1
                 site: Site = Port(index=port_index)
             else:
-                site = Atom(index=next_atom_index, symbol=atom.GetSymbol())
+                site = Atom(
+                    index=next_atom_index,
+                    symbol=atom.GetSymbol(),
+                    formal_charge=atom.GetFormalCharge(),
+                    is_aromatic=atom.GetIsAromatic(),
+                    no_implicit=atom.GetNoImplicit(),
+                    num_explicit_hs=atom.GetNumExplicitHs(),
+                )
                 next_atom_index += 1
 
             nodes.append(site)
@@ -232,6 +247,11 @@ class BrickNode:
                 atom.SetAtomMapNum(site.index)
             elif isinstance(site, Atom):
                 atom = Chem.Atom(site.symbol)
+                atom.SetFormalCharge(site.formal_charge)
+                atom.SetIsAromatic(site.is_aromatic)
+                atom.SetNoImplicit(site.no_implicit)
+                if site.num_explicit_hs > 0:
+                    atom.SetNumExplicitHs(site.num_explicit_hs)
             else:
                 raise ValueError(f"Unsupported site type: {type(site)!r}")
 
@@ -253,6 +273,7 @@ class BrickNode:
                     self._bond_type_from_name(edge.bond_type),
                 )
 
+        Chem.SanitizeMol(mol)
         return Chem.MolToSmiles(mol)
 
     def save_config(self, fp: Path) -> None:
@@ -280,7 +301,20 @@ class BrickNode:
             }
 
         if isinstance(site, Atom):
-            return {"kind": "atom", "index": site.index, "symbol": site.symbol}
+            payload = {
+                "kind": "atom",
+                "index": site.index,
+                "symbol": site.symbol,
+            }
+            if site.formal_charge != 0:
+                payload["formal_charge"] = site.formal_charge
+            if site.is_aromatic:
+                payload["is_aromatic"] = True
+            if site.no_implicit:
+                payload["no_implicit"] = True
+            if site.num_explicit_hs > 0:
+                payload["num_explicit_hs"] = site.num_explicit_hs
+            return payload
 
         raise TypeError(f"Unsupported site type: {type(site)!r}")
 
@@ -355,6 +389,13 @@ class BrickNode:
             )
 
         if kind == "atom":
-            return Atom(index=payload["index"], symbol=payload["symbol"])
+            return Atom(
+                index=payload["index"],
+                symbol=payload["symbol"],
+                formal_charge=int(payload.get("formal_charge", 0)),
+                is_aromatic=bool(payload.get("is_aromatic", False)),
+                no_implicit=bool(payload.get("no_implicit", False)),
+                num_explicit_hs=int(payload.get("num_explicit_hs", 0)),
+            )
 
         raise ValueError(f"Unsupported site kind: {kind}")

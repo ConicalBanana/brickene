@@ -1,11 +1,13 @@
 """Focused tests for brick graph parsing and assembly."""
 
+import json
 from pathlib import Path
 
 from rdkit import Chem
 
 from brickene.core.network import BrickGraph
 from brickene.core.node import BrickNode, BrickType
+from brickene.core.rendering import render_state_smiles
 
 
 def canonical_smiles(smiles: str) -> str:
@@ -59,3 +61,40 @@ def test_network_to_smiles_connects_ports() -> None:
     network.add_edge(left_node, right_node, left_port=1, right_port=1)
 
     assert canonical_smiles(network.to_smiles()) == canonical_smiles("CC")
+
+
+def test_brick_node_round_trip_preserves_charged_aromatic_atoms() -> None:
+    """Charged aromatic bricks should survive a BrickNode SMILES round-trip."""
+
+    raw_catalog = json.loads(
+        Path("brickene/frontend/assets/raw_brick_smiles.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    for brick_name in ["BN-Py", "Boron subphthalocyanines"]:
+        source_smiles = raw_catalog[brick_name]["smiles"]
+        node = BrickNode.from_smiles(source_smiles)
+
+        assert canonical_smiles(node.to_smiles()) == canonical_smiles(source_smiles)
+
+
+def test_render_state_smiles_supports_problematic_bricks() -> None:
+    """The backend render path should support the previously failing bricks."""
+
+    for brick_id in ["2", "6", "11"]:
+        payload = {
+            "nodes": [
+                {
+                    "id": 1,
+                    "nodeTypeId": brick_id,
+                    "portConfiguration": [],
+                }
+            ],
+            "edges": [],
+        }
+
+        smiles = render_state_smiles(payload)
+
+        assert smiles
+        assert Chem.MolFromSmiles(smiles) is not None

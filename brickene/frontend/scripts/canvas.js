@@ -294,6 +294,19 @@
   }
 
   function bindMenuEvents() {
+    let resizeFrameId = null;
+
+    function refreshLayoutAfterResize() {
+      if (resizeFrameId !== null) {
+        window.cancelAnimationFrame(resizeFrameId);
+      }
+
+      resizeFrameId = window.requestAnimationFrame(() => {
+        resizeFrameId = null;
+        frontend.renderEdges();
+      });
+    }
+
     dom.menuButtons.forEach((button) => {
       button.addEventListener("click", () => {
         const ui = frontend.getUiState();
@@ -332,7 +345,10 @@
         frontend.positionDropdown(activeButton);
       }
       frontend.closeAllContextMenus();
+      refreshLayoutAfterResize();
     });
+
+    window.visualViewport?.addEventListener("resize", refreshLayoutAfterResize);
   }
 
   function bindKeyboardEvents() {

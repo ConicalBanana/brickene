@@ -4,6 +4,10 @@
   let activeRenderRequestId = 0;
   let activePreviewUrl = null;
 
+  function getSmilesApiUrl() {
+    return frontend.config.renderApiUrl.replace(/\/render\/?$/, "/smiles");
+  }
+
   async function requestRenderPreview(detail = {}) {
     if (!dom.renderPreviewWindow || !dom.renderPreviewMeta || !dom.renderPreviewImage) {
       return;
@@ -13,20 +17,37 @@
     const requestId = ++activeRenderRequestId;
 
     try {
-      const response = await fetch(frontend.config.renderApiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const [imageResponse, smilesResponse] = await Promise.all([
+        fetch(frontend.config.renderApiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }),
+        fetch(getSmilesApiUrl(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }),
+      ]);
 
-      if (!response.ok) {
-        const errorPayload = await readRenderError(response);
+      if (!imageResponse.ok) {
+        const errorPayload = await readRenderError(imageResponse);
         throw new Error(errorPayload);
       }
 
-      const imageBlob = await response.blob();
+      if (!smilesResponse.ok) {
+        const errorPayload = await readRenderError(smilesResponse);
+        throw new Error(errorPayload);
+      }
+
+      const [imageBlob, smilesPayload] = await Promise.all([
+        imageResponse.blob(),
+        smilesResponse.json(),
+      ]);
       if (requestId !== activeRenderRequestId) {
         return;
       }
@@ -39,7 +60,7 @@
       dom.renderPreviewImage.src = activePreviewUrl;
       dom.renderPreviewImage.hidden = false;
       dom.renderPreviewWindow.dataset.previewState = "ready";
-      dom.renderPreviewMeta.textContent = formatPreviewStatus(detail.reason || "graph-updated", payload);
+      dom.renderPreviewMeta.textContent = smilesPayload.smiles || "";
     } catch (error) {
       if (requestId !== activeRenderRequestId) {
         return;
@@ -60,12 +81,8 @@
     dom.renderPreviewWindow.dataset.previewState = "pending";
     dom.renderPreviewWindow.dataset.changeReason = reason;
     dom.renderPreviewImage.hidden = true;
-    dom.renderPreviewMeta.textContent = `Rendering ${reason.replace(/-/g, " ")}...`;
+    dom.renderPreviewMeta.textContent = "Rendering SMILES...";
     requestRenderPreview(detail);
-  }
-
-  function formatPreviewStatus(reason, payload) {
-    return `${reason.replace(/-/g, " ")} | ${payload.nodes.length} node(s) | ${payload.edges.length} edge(s)`;
   }
 
   async function readRenderError(response) {

@@ -1,7 +1,1217 @@
 {
   "1": {
+    "id": "1",
+    "name": "PNO",
+    "alias": [
+      "N2O-C6-C6-N2O"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 9,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 10,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "O"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "O"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 34,
+        "symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        9,
+        "SINGLE"
+      ],
+      [
+        9,
+        10,
+        "AROMATIC"
+      ],
+      [
+        10,
+        3,
+        "SINGLE"
+      ],
+      [
+        10,
+        11,
+        "AROMATIC"
+      ],
+      [
+        11,
+        5,
+        "SINGLE"
+      ],
+      [
+        11,
+        12,
+        "AROMATIC"
+      ],
+      [
+        12,
+        13,
+        "AROMATIC"
+      ],
+      [
+        12,
+        14,
+        "SINGLE"
+      ],
+      [
+        14,
+        15,
+        "AROMATIC"
+      ],
+      [
+        15,
+        7,
+        "SINGLE"
+      ],
+      [
+        15,
+        16,
+        "AROMATIC"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        18,
+        "AROMATIC"
+      ],
+      [
+        18,
+        19,
+        "AROMATIC"
+      ],
+      [
+        19,
+        20,
+        "AROMATIC"
+      ],
+      [
+        20,
+        21,
+        "AROMATIC"
+      ],
+      [
+        21,
+        22,
+        "AROMATIC"
+      ],
+      [
+        17,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        8,
+        "SINGLE"
+      ],
+      [
+        23,
+        24,
+        "AROMATIC"
+      ],
+      [
+        24,
+        25,
+        "SINGLE"
+      ],
+      [
+        25,
+        26,
+        "AROMATIC"
+      ],
+      [
+        26,
+        6,
+        "SINGLE"
+      ],
+      [
+        26,
+        27,
+        "AROMATIC"
+      ],
+      [
+        27,
+        4,
+        "SINGLE"
+      ],
+      [
+        27,
+        28,
+        "AROMATIC"
+      ],
+      [
+        28,
+        2,
+        "SINGLE"
+      ],
+      [
+        28,
+        29,
+        "AROMATIC"
+      ],
+      [
+        24,
+        30,
+        "AROMATIC"
+      ],
+      [
+        30,
+        31,
+        "AROMATIC"
+      ],
+      [
+        31,
+        32,
+        "AROMATIC"
+      ],
+      [
+        32,
+        33,
+        "AROMATIC"
+      ],
+      [
+        33,
+        34,
+        "AROMATIC"
+      ],
+      [
+        13,
+        9,
+        "AROMATIC"
+      ],
+      [
+        22,
+        14,
+        "AROMATIC"
+      ],
+      [
+        29,
+        25,
+        "AROMATIC"
+      ],
+      [
+        34,
+        30,
+        "AROMATIC"
+      ],
+      [
+        34,
+        16,
+        "AROMATIC"
+      ],
+      [
+        22,
+        18,
+        "AROMATIC"
+      ]
+    ]
+  },
+  "2": {
+    "id": "2",
+    "name": "BN-Py",
     "alias": [],
     "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "N"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "B"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "B"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "B"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 12,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 11,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "B"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "B"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "B"
+      }
+    ],
+    "edges": [
+      [
+        3,
+        13,
+        "SINGLE"
+      ],
+      [
+        13,
+        14,
+        "SINGLE"
+      ],
+      [
+        14,
+        15,
+        "AROMATIC"
+      ],
+      [
+        15,
+        16,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        18,
+        "SINGLE"
+      ],
+      [
+        18,
+        4,
+        "SINGLE"
+      ],
+      [
+        18,
+        19,
+        "SINGLE"
+      ],
+      [
+        19,
+        7,
+        "SINGLE"
+      ],
+      [
+        19,
+        8,
+        "SINGLE"
+      ],
+      [
+        19,
+        20,
+        "SINGLE"
+      ],
+      [
+        20,
+        21,
+        "AROMATIC"
+      ],
+      [
+        21,
+        12,
+        "SINGLE"
+      ],
+      [
+        21,
+        22,
+        "AROMATIC"
+      ],
+      [
+        22,
+        1,
+        "SINGLE"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        9,
+        "SINGLE"
+      ],
+      [
+        17,
+        24,
+        "AROMATIC"
+      ],
+      [
+        24,
+        10,
+        "SINGLE"
+      ],
+      [
+        24,
+        25,
+        "AROMATIC"
+      ],
+      [
+        25,
+        2,
+        "SINGLE"
+      ],
+      [
+        25,
+        26,
+        "AROMATIC"
+      ],
+      [
+        26,
+        11,
+        "SINGLE"
+      ],
+      [
+        26,
+        27,
+        "AROMATIC"
+      ],
+      [
+        27,
+        28,
+        "SINGLE"
+      ],
+      [
+        28,
+        5,
+        "SINGLE"
+      ],
+      [
+        28,
+        6,
+        "SINGLE"
+      ],
+      [
+        28,
+        13,
+        "SINGLE"
+      ],
+      [
+        23,
+        14,
+        "AROMATIC"
+      ],
+      [
+        20,
+        15,
+        "AROMATIC"
+      ],
+      [
+        27,
+        16,
+        "AROMATIC"
+      ]
+    ]
+  },
+  "3": {
+    "id": "3",
+    "name": "ID",
+    "alias": [
+      "S-C5-C6-C5-S"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        11,
+        "SINGLE"
+      ],
+      [
+        11,
+        12,
+        "AROMATIC"
+      ],
+      [
+        12,
+        3,
+        "SINGLE"
+      ],
+      [
+        12,
+        13,
+        "AROMATIC"
+      ],
+      [
+        13,
+        14,
+        "AROMATIC"
+      ],
+      [
+        14,
+        15,
+        "AROMATIC"
+      ],
+      [
+        14,
+        16,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        18,
+        "AROMATIC"
+      ],
+      [
+        18,
+        10,
+        "SINGLE"
+      ],
+      [
+        18,
+        19,
+        "AROMATIC"
+      ],
+      [
+        19,
+        20,
+        "SINGLE"
+      ],
+      [
+        20,
+        21,
+        "AROMATIC"
+      ],
+      [
+        21,
+        22,
+        "AROMATIC"
+      ],
+      [
+        22,
+        4,
+        "SINGLE"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        2,
+        "SINGLE"
+      ],
+      [
+        23,
+        24,
+        "AROMATIC"
+      ],
+      [
+        21,
+        25,
+        "SINGLE"
+      ],
+      [
+        25,
+        7,
+        "SINGLE"
+      ],
+      [
+        25,
+        8,
+        "SINGLE"
+      ],
+      [
+        25,
+        26,
+        "SINGLE"
+      ],
+      [
+        26,
+        27,
+        "AROMATIC"
+      ],
+      [
+        27,
+        9,
+        "SINGLE"
+      ],
+      [
+        17,
+        28,
+        "SINGLE"
+      ],
+      [
+        28,
+        5,
+        "SINGLE"
+      ],
+      [
+        28,
+        6,
+        "SINGLE"
+      ],
+      [
+        15,
+        11,
+        "AROMATIC"
+      ],
+      [
+        27,
+        16,
+        "AROMATIC"
+      ],
+      [
+        28,
+        13,
+        "SINGLE"
+      ],
+      [
+        26,
+        19,
+        "AROMATIC"
+      ],
+      [
+        24,
+        20,
+        "AROMATIC"
+      ]
+    ]
+  },
+  "4": {
+    "id": "4",
+    "name": "IT",
+    "alias": [
+      "S-S-C5-C6-C5-S-S"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 34,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
     "edges": [
       [
         2,
@@ -203,197 +1413,3326 @@
         25,
         "AROMATIC"
       ]
-    ],
-    "id": "1",
-    "name": "IT",
-    "nodes": [
-      {
-        "connected_symbol": "C",
-        "index": 2,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 11,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 12,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 4,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 13,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 14,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 15,
-        "kind": "atom",
-        "symbol": "S"
-      },
-      {
-        "index": 16,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 17,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 18,
-        "kind": "atom",
-        "symbol": "S"
-      },
-      {
-        "index": 19,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 20,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 21,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 10,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 22,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 23,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 24,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 25,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 26,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 27,
-        "kind": "atom",
-        "symbol": "S"
-      },
-      {
-        "index": 28,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 3,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 29,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 1,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 30,
-        "kind": "atom",
-        "symbol": "S"
-      },
-      {
-        "index": 31,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 5,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 6,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 32,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 33,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 9,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 34,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 7,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 8,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      }
     ]
   },
-  "2": {
+  "5": {
+    "id": "5",
+    "name": "IN",
+    "alias": [
+      "S-S-S-C5-C6-C5-S-S-S"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 34,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 35,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 36,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 37,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 38,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 39,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 40,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        2,
+        11,
+        "SINGLE"
+      ],
+      [
+        11,
+        12,
+        "AROMATIC"
+      ],
+      [
+        12,
+        4,
+        "SINGLE"
+      ],
+      [
+        12,
+        13,
+        "AROMATIC"
+      ],
+      [
+        13,
+        14,
+        "AROMATIC"
+      ],
+      [
+        14,
+        15,
+        "AROMATIC"
+      ],
+      [
+        14,
+        16,
+        "AROMATIC"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        18,
+        "AROMATIC"
+      ],
+      [
+        17,
+        19,
+        "AROMATIC"
+      ],
+      [
+        19,
+        20,
+        "AROMATIC"
+      ],
+      [
+        20,
+        21,
+        "AROMATIC"
+      ],
+      [
+        20,
+        22,
+        "SINGLE"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        24,
+        "AROMATIC"
+      ],
+      [
+        24,
+        10,
+        "SINGLE"
+      ],
+      [
+        24,
+        25,
+        "AROMATIC"
+      ],
+      [
+        25,
+        26,
+        "SINGLE"
+      ],
+      [
+        26,
+        27,
+        "AROMATIC"
+      ],
+      [
+        27,
+        28,
+        "AROMATIC"
+      ],
+      [
+        28,
+        29,
+        "AROMATIC"
+      ],
+      [
+        29,
+        30,
+        "AROMATIC"
+      ],
+      [
+        29,
+        31,
+        "AROMATIC"
+      ],
+      [
+        31,
+        32,
+        "AROMATIC"
+      ],
+      [
+        32,
+        33,
+        "AROMATIC"
+      ],
+      [
+        32,
+        34,
+        "AROMATIC"
+      ],
+      [
+        34,
+        3,
+        "SINGLE"
+      ],
+      [
+        34,
+        35,
+        "AROMATIC"
+      ],
+      [
+        35,
+        1,
+        "SINGLE"
+      ],
+      [
+        35,
+        36,
+        "AROMATIC"
+      ],
+      [
+        27,
+        37,
+        "SINGLE"
+      ],
+      [
+        37,
+        5,
+        "SINGLE"
+      ],
+      [
+        37,
+        6,
+        "SINGLE"
+      ],
+      [
+        37,
+        38,
+        "SINGLE"
+      ],
+      [
+        38,
+        39,
+        "AROMATIC"
+      ],
+      [
+        39,
+        9,
+        "SINGLE"
+      ],
+      [
+        23,
+        40,
+        "SINGLE"
+      ],
+      [
+        40,
+        7,
+        "SINGLE"
+      ],
+      [
+        40,
+        8,
+        "SINGLE"
+      ],
+      [
+        15,
+        11,
+        "AROMATIC"
+      ],
+      [
+        21,
+        16,
+        "AROMATIC"
+      ],
+      [
+        39,
+        22,
+        "AROMATIC"
+      ],
+      [
+        18,
+        13,
+        "AROMATIC"
+      ],
+      [
+        40,
+        19,
+        "SINGLE"
+      ],
+      [
+        38,
+        25,
+        "AROMATIC"
+      ],
+      [
+        30,
+        26,
+        "AROMATIC"
+      ],
+      [
+        36,
+        31,
+        "AROMATIC"
+      ],
+      [
+        33,
+        28,
+        "AROMATIC"
+      ]
+    ]
+  },
+  "6": {
+    "id": "6",
+    "name": "DTC",
+    "alias": [
+      "S-C5-C6-N-C6-C5-S"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 13,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 12,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 11,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 34,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 35,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 36,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 37,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 38,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        13,
+        14,
+        "SINGLE"
+      ],
+      [
+        14,
+        15,
+        "AROMATIC"
+      ],
+      [
+        15,
+        16,
+        "AROMATIC"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        18,
+        "AROMATIC"
+      ],
+      [
+        18,
+        19,
+        "AROMATIC"
+      ],
+      [
+        19,
+        12,
+        "SINGLE"
+      ],
+      [
+        19,
+        20,
+        "AROMATIC"
+      ],
+      [
+        20,
+        21,
+        "SINGLE"
+      ],
+      [
+        21,
+        22,
+        "AROMATIC"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        4,
+        "SINGLE"
+      ],
+      [
+        23,
+        24,
+        "AROMATIC"
+      ],
+      [
+        24,
+        2,
+        "SINGLE"
+      ],
+      [
+        24,
+        25,
+        "AROMATIC"
+      ],
+      [
+        22,
+        26,
+        "SINGLE"
+      ],
+      [
+        26,
+        7,
+        "SINGLE"
+      ],
+      [
+        26,
+        8,
+        "SINGLE"
+      ],
+      [
+        26,
+        27,
+        "SINGLE"
+      ],
+      [
+        27,
+        28,
+        "AROMATIC"
+      ],
+      [
+        28,
+        11,
+        "SINGLE"
+      ],
+      [
+        16,
+        29,
+        "AROMATIC"
+      ],
+      [
+        29,
+        9,
+        "SINGLE"
+      ],
+      [
+        29,
+        30,
+        "AROMATIC"
+      ],
+      [
+        30,
+        31,
+        "AROMATIC"
+      ],
+      [
+        31,
+        32,
+        "SINGLE"
+      ],
+      [
+        32,
+        33,
+        "AROMATIC"
+      ],
+      [
+        33,
+        34,
+        "AROMATIC"
+      ],
+      [
+        34,
+        3,
+        "SINGLE"
+      ],
+      [
+        34,
+        35,
+        "AROMATIC"
+      ],
+      [
+        35,
+        1,
+        "SINGLE"
+      ],
+      [
+        35,
+        36,
+        "AROMATIC"
+      ],
+      [
+        33,
+        37,
+        "SINGLE"
+      ],
+      [
+        37,
+        5,
+        "SINGLE"
+      ],
+      [
+        37,
+        6,
+        "SINGLE"
+      ],
+      [
+        31,
+        38,
+        "AROMATIC"
+      ],
+      [
+        38,
+        10,
+        "SINGLE"
+      ],
+      [
+        18,
+        14,
+        "AROMATIC"
+      ],
+      [
+        27,
+        20,
+        "AROMATIC"
+      ],
+      [
+        37,
+        30,
+        "SINGLE"
+      ],
+      [
+        38,
+        15,
+        "AROMATIC"
+      ],
+      [
+        28,
+        17,
+        "AROMATIC"
+      ],
+      [
+        36,
+        32,
+        "AROMATIC"
+      ],
+      [
+        25,
+        21,
+        "AROMATIC"
+      ]
+    ]
+  },
+  "7": {
+    "id": "7",
+    "name": "NFBDT",
+    "alias": [
+      "S-C5-S-C6-S-C5-S"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 34,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        11,
+        "SINGLE"
+      ],
+      [
+        11,
+        12,
+        "AROMATIC"
+      ],
+      [
+        12,
+        3,
+        "SINGLE"
+      ],
+      [
+        12,
+        13,
+        "AROMATIC"
+      ],
+      [
+        13,
+        14,
+        "AROMATIC"
+      ],
+      [
+        14,
+        15,
+        "AROMATIC"
+      ],
+      [
+        14,
+        16,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        18,
+        "AROMATIC"
+      ],
+      [
+        18,
+        19,
+        "AROMATIC"
+      ],
+      [
+        19,
+        20,
+        "AROMATIC"
+      ],
+      [
+        19,
+        21,
+        "AROMATIC"
+      ],
+      [
+        21,
+        10,
+        "SINGLE"
+      ],
+      [
+        21,
+        22,
+        "AROMATIC"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        24,
+        "AROMATIC"
+      ],
+      [
+        24,
+        25,
+        "AROMATIC"
+      ],
+      [
+        25,
+        26,
+        "AROMATIC"
+      ],
+      [
+        26,
+        27,
+        "SINGLE"
+      ],
+      [
+        27,
+        7,
+        "SINGLE"
+      ],
+      [
+        27,
+        8,
+        "SINGLE"
+      ],
+      [
+        27,
+        28,
+        "SINGLE"
+      ],
+      [
+        28,
+        29,
+        "AROMATIC"
+      ],
+      [
+        29,
+        30,
+        "AROMATIC"
+      ],
+      [
+        30,
+        31,
+        "AROMATIC"
+      ],
+      [
+        31,
+        2,
+        "SINGLE"
+      ],
+      [
+        31,
+        32,
+        "AROMATIC"
+      ],
+      [
+        32,
+        4,
+        "SINGLE"
+      ],
+      [
+        23,
+        33,
+        "AROMATIC"
+      ],
+      [
+        33,
+        9,
+        "SINGLE"
+      ],
+      [
+        17,
+        34,
+        "SINGLE"
+      ],
+      [
+        34,
+        5,
+        "SINGLE"
+      ],
+      [
+        34,
+        6,
+        "SINGLE"
+      ],
+      [
+        15,
+        11,
+        "AROMATIC"
+      ],
+      [
+        20,
+        16,
+        "AROMATIC"
+      ],
+      [
+        26,
+        22,
+        "AROMATIC"
+      ],
+      [
+        32,
+        28,
+        "AROMATIC"
+      ],
+      [
+        34,
+        13,
+        "SINGLE"
+      ],
+      [
+        33,
+        18,
+        "AROMATIC"
+      ],
+      [
+        29,
+        25,
+        "SINGLE"
+      ]
+    ]
+  },
+  "8": {
+    "id": "8",
+    "name": "TF",
+    "alias": [
+      "S-C5-C6-C5-C6-C5-S"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 12,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 34,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 35,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 11,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 36,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 13,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 14,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 37,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 38,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 39,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        15,
+        "SINGLE"
+      ],
+      [
+        15,
+        16,
+        "AROMATIC"
+      ],
+      [
+        16,
+        3,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        18,
+        "AROMATIC"
+      ],
+      [
+        18,
+        19,
+        "AROMATIC"
+      ],
+      [
+        18,
+        20,
+        "SINGLE"
+      ],
+      [
+        20,
+        21,
+        "AROMATIC"
+      ],
+      [
+        21,
+        10,
+        "SINGLE"
+      ],
+      [
+        21,
+        22,
+        "AROMATIC"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        24,
+        "SINGLE"
+      ],
+      [
+        24,
+        25,
+        "AROMATIC"
+      ],
+      [
+        25,
+        26,
+        "AROMATIC"
+      ],
+      [
+        26,
+        12,
+        "SINGLE"
+      ],
+      [
+        26,
+        27,
+        "AROMATIC"
+      ],
+      [
+        27,
+        28,
+        "SINGLE"
+      ],
+      [
+        28,
+        29,
+        "AROMATIC"
+      ],
+      [
+        29,
+        30,
+        "AROMATIC"
+      ],
+      [
+        30,
+        4,
+        "SINGLE"
+      ],
+      [
+        30,
+        31,
+        "AROMATIC"
+      ],
+      [
+        31,
+        2,
+        "SINGLE"
+      ],
+      [
+        31,
+        32,
+        "AROMATIC"
+      ],
+      [
+        29,
+        33,
+        "SINGLE"
+      ],
+      [
+        33,
+        7,
+        "SINGLE"
+      ],
+      [
+        33,
+        8,
+        "SINGLE"
+      ],
+      [
+        33,
+        34,
+        "SINGLE"
+      ],
+      [
+        34,
+        35,
+        "AROMATIC"
+      ],
+      [
+        35,
+        11,
+        "SINGLE"
+      ],
+      [
+        25,
+        36,
+        "SINGLE"
+      ],
+      [
+        36,
+        13,
+        "SINGLE"
+      ],
+      [
+        36,
+        14,
+        "SINGLE"
+      ],
+      [
+        23,
+        37,
+        "AROMATIC"
+      ],
+      [
+        37,
+        9,
+        "SINGLE"
+      ],
+      [
+        37,
+        38,
+        "AROMATIC"
+      ],
+      [
+        38,
+        39,
+        "SINGLE"
+      ],
+      [
+        39,
+        5,
+        "SINGLE"
+      ],
+      [
+        39,
+        6,
+        "SINGLE"
+      ],
+      [
+        19,
+        15,
+        "AROMATIC"
+      ],
+      [
+        38,
+        20,
+        "AROMATIC"
+      ],
+      [
+        39,
+        17,
+        "SINGLE"
+      ],
+      [
+        36,
+        22,
+        "SINGLE"
+      ],
+      [
+        35,
+        24,
+        "AROMATIC"
+      ],
+      [
+        34,
+        27,
+        "AROMATIC"
+      ],
+      [
+        32,
+        28,
+        "AROMATIC"
+      ]
+    ]
+  },
+  "9": {
+    "id": "9",
+    "name": "Porphyrin",
+    "alias": [
+      "Pc"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 11,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 34,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 35,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 36,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 37,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 38,
+        "symbol": "N"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 39,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 40,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 41,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 42,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 43,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 44,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 45,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 16,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 46,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 17,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 47,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 48,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 49,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 50,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 51,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 14,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 52,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 15,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 53,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 54,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 55,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 13,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 56,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 12,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 57,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        2,
+        18,
+        "SINGLE"
+      ],
+      [
+        18,
+        19,
+        "AROMATIC"
+      ],
+      [
+        19,
+        10,
+        "SINGLE"
+      ],
+      [
+        19,
+        20,
+        "AROMATIC"
+      ],
+      [
+        20,
+        11,
+        "SINGLE"
+      ],
+      [
+        20,
+        21,
+        "AROMATIC"
+      ],
+      [
+        21,
+        3,
+        "SINGLE"
+      ],
+      [
+        21,
+        22,
+        "AROMATIC"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        24,
+        "SINGLE"
+      ],
+      [
+        24,
+        25,
+        "AROMATIC"
+      ],
+      [
+        25,
+        26,
+        "AROMATIC"
+      ],
+      [
+        26,
+        27,
+        "AROMATIC"
+      ],
+      [
+        27,
+        28,
+        "AROMATIC"
+      ],
+      [
+        28,
+        29,
+        "AROMATIC"
+      ],
+      [
+        29,
+        30,
+        "AROMATIC"
+      ],
+      [
+        30,
+        31,
+        "AROMATIC"
+      ],
+      [
+        31,
+        32,
+        "AROMATIC"
+      ],
+      [
+        32,
+        33,
+        "AROMATIC"
+      ],
+      [
+        33,
+        34,
+        "AROMATIC"
+      ],
+      [
+        34,
+        35,
+        "AROMATIC"
+      ],
+      [
+        35,
+        36,
+        "AROMATIC"
+      ],
+      [
+        36,
+        37,
+        "AROMATIC"
+      ],
+      [
+        37,
+        38,
+        "AROMATIC"
+      ],
+      [
+        38,
+        1,
+        "AROMATIC"
+      ],
+      [
+        1,
+        39,
+        "AROMATIC"
+      ],
+      [
+        38,
+        40,
+        "AROMATIC"
+      ],
+      [
+        40,
+        41,
+        "AROMATIC"
+      ],
+      [
+        40,
+        42,
+        "AROMATIC"
+      ],
+      [
+        42,
+        43,
+        "AROMATIC"
+      ],
+      [
+        43,
+        44,
+        "AROMATIC"
+      ],
+      [
+        44,
+        8,
+        "SINGLE"
+      ],
+      [
+        44,
+        45,
+        "AROMATIC"
+      ],
+      [
+        45,
+        16,
+        "SINGLE"
+      ],
+      [
+        45,
+        46,
+        "AROMATIC"
+      ],
+      [
+        46,
+        17,
+        "SINGLE"
+      ],
+      [
+        46,
+        47,
+        "AROMATIC"
+      ],
+      [
+        47,
+        9,
+        "SINGLE"
+      ],
+      [
+        35,
+        48,
+        "SINGLE"
+      ],
+      [
+        48,
+        49,
+        "AROMATIC"
+      ],
+      [
+        49,
+        50,
+        "AROMATIC"
+      ],
+      [
+        50,
+        6,
+        "SINGLE"
+      ],
+      [
+        50,
+        51,
+        "AROMATIC"
+      ],
+      [
+        51,
+        14,
+        "SINGLE"
+      ],
+      [
+        51,
+        52,
+        "AROMATIC"
+      ],
+      [
+        52,
+        15,
+        "SINGLE"
+      ],
+      [
+        52,
+        53,
+        "AROMATIC"
+      ],
+      [
+        53,
+        7,
+        "SINGLE"
+      ],
+      [
+        30,
+        54,
+        "AROMATIC"
+      ],
+      [
+        54,
+        5,
+        "SINGLE"
+      ],
+      [
+        54,
+        55,
+        "AROMATIC"
+      ],
+      [
+        55,
+        13,
+        "SINGLE"
+      ],
+      [
+        55,
+        56,
+        "AROMATIC"
+      ],
+      [
+        56,
+        12,
+        "SINGLE"
+      ],
+      [
+        56,
+        57,
+        "AROMATIC"
+      ],
+      [
+        57,
+        4,
+        "SINGLE"
+      ],
+      [
+        23,
+        18,
+        "AROMATIC"
+      ],
+      [
+        41,
+        24,
+        "AROMATIC"
+      ],
+      [
+        47,
+        42,
+        "AROMATIC"
+      ],
+      [
+        53,
+        48,
+        "AROMATIC"
+      ],
+      [
+        26,
+        22,
+        "SINGLE"
+      ],
+      [
+        39,
+        28,
+        "AROMATIC"
+      ],
+      [
+        57,
+        29,
+        "AROMATIC"
+      ],
+      [
+        39,
+        31,
+        "AROMATIC"
+      ],
+      [
+        49,
+        33,
+        "SINGLE"
+      ],
+      [
+        43,
+        37,
+        "AROMATIC"
+      ]
+    ]
+  },
+  "10": {
+    "id": "10",
+    "name": "Porphin",
+    "alias": [
+      "P"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 10,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "N"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        2,
+        10,
+        "SINGLE"
+      ],
+      [
+        10,
+        11,
+        "DOUBLE"
+      ],
+      [
+        11,
+        3,
+        "SINGLE"
+      ],
+      [
+        11,
+        12,
+        "SINGLE"
+      ],
+      [
+        12,
+        13,
+        "AROMATIC"
+      ],
+      [
+        13,
+        14,
+        "AROMATIC"
+      ],
+      [
+        14,
+        15,
+        "AROMATIC"
+      ],
+      [
+        15,
+        4,
+        "SINGLE"
+      ],
+      [
+        15,
+        16,
+        "AROMATIC"
+      ],
+      [
+        16,
+        5,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        18,
+        "AROMATIC"
+      ],
+      [
+        18,
+        19,
+        "AROMATIC"
+      ],
+      [
+        19,
+        20,
+        "AROMATIC"
+      ],
+      [
+        20,
+        21,
+        "AROMATIC"
+      ],
+      [
+        21,
+        22,
+        "AROMATIC"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        24,
+        "AROMATIC"
+      ],
+      [
+        24,
+        1,
+        "AROMATIC"
+      ],
+      [
+        1,
+        25,
+        "AROMATIC"
+      ],
+      [
+        24,
+        26,
+        "AROMATIC"
+      ],
+      [
+        26,
+        27,
+        "AROMATIC"
+      ],
+      [
+        27,
+        28,
+        "AROMATIC"
+      ],
+      [
+        28,
+        29,
+        "AROMATIC"
+      ],
+      [
+        26,
+        30,
+        "AROMATIC"
+      ],
+      [
+        30,
+        9,
+        "SINGLE"
+      ],
+      [
+        30,
+        31,
+        "AROMATIC"
+      ],
+      [
+        31,
+        8,
+        "SINGLE"
+      ],
+      [
+        21,
+        32,
+        "SINGLE"
+      ],
+      [
+        32,
+        7,
+        "SINGLE"
+      ],
+      [
+        32,
+        33,
+        "DOUBLE"
+      ],
+      [
+        33,
+        6,
+        "SINGLE"
+      ],
+      [
+        28,
+        10,
+        "SINGLE"
+      ],
+      [
+        29,
+        12,
+        "AROMATIC"
+      ],
+      [
+        25,
+        14,
+        "AROMATIC"
+      ],
+      [
+        25,
+        17,
+        "AROMATIC"
+      ],
+      [
+        33,
+        19,
+        "SINGLE"
+      ],
+      [
+        31,
+        23,
+        "AROMATIC"
+      ]
+    ]
+  },
+  "11": {
+    "id": "11",
+    "name": "Boron subphthalocyanines",
+    "alias": [
+      "BSubPc"
+    ],
+    "brick_type": "SKELETON",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 5,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 11,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 10,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 26,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 27,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 28,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 29,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 30,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 31,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 32,
+        "symbol": "B"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "B"
+      },
+      {
+        "kind": "atom",
+        "index": 33,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 34,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 35,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 36,
+        "symbol": "N"
+      },
+      {
+        "kind": "atom",
+        "index": 37,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 38,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 9,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 39,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 8,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 40,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 41,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 7,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 42,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 13,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 43,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 12,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 44,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 6,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        5,
+        14,
+        "SINGLE"
+      ],
+      [
+        14,
+        15,
+        "AROMATIC"
+      ],
+      [
+        15,
+        11,
+        "SINGLE"
+      ],
+      [
+        15,
+        16,
+        "AROMATIC"
+      ],
+      [
+        16,
+        10,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "AROMATIC"
+      ],
+      [
+        17,
+        4,
+        "SINGLE"
+      ],
+      [
+        17,
+        18,
+        "AROMATIC"
+      ],
+      [
+        18,
+        19,
+        "AROMATIC"
+      ],
+      [
+        19,
+        20,
+        "AROMATIC"
+      ],
+      [
+        20,
+        21,
+        "DOUBLE"
+      ],
+      [
+        21,
+        22,
+        "SINGLE"
+      ],
+      [
+        22,
+        23,
+        "AROMATIC"
+      ],
+      [
+        23,
+        24,
+        "AROMATIC"
+      ],
+      [
+        24,
+        25,
+        "AROMATIC"
+      ],
+      [
+        25,
+        26,
+        "SINGLE"
+      ],
+      [
+        26,
+        27,
+        "DOUBLE"
+      ],
+      [
+        27,
+        28,
+        "SINGLE"
+      ],
+      [
+        28,
+        29,
+        "AROMATIC"
+      ],
+      [
+        29,
+        30,
+        "SINGLE"
+      ],
+      [
+        30,
+        31,
+        "DOUBLE"
+      ],
+      [
+        31,
+        32,
+        "SINGLE"
+      ],
+      [
+        32,
+        1,
+        "SINGLE"
+      ],
+      [
+        32,
+        33,
+        "SINGLE"
+      ],
+      [
+        33,
+        34,
+        "AROMATIC"
+      ],
+      [
+        34,
+        35,
+        "DOUBLE"
+      ],
+      [
+        32,
+        36,
+        "SINGLE"
+      ],
+      [
+        29,
+        37,
+        "AROMATIC"
+      ],
+      [
+        37,
+        3,
+        "SINGLE"
+      ],
+      [
+        37,
+        38,
+        "AROMATIC"
+      ],
+      [
+        38,
+        9,
+        "SINGLE"
+      ],
+      [
+        38,
+        39,
+        "AROMATIC"
+      ],
+      [
+        39,
+        8,
+        "SINGLE"
+      ],
+      [
+        39,
+        40,
+        "AROMATIC"
+      ],
+      [
+        40,
+        2,
+        "SINGLE"
+      ],
+      [
+        24,
+        41,
+        "AROMATIC"
+      ],
+      [
+        41,
+        7,
+        "SINGLE"
+      ],
+      [
+        41,
+        42,
+        "AROMATIC"
+      ],
+      [
+        42,
+        13,
+        "SINGLE"
+      ],
+      [
+        42,
+        43,
+        "AROMATIC"
+      ],
+      [
+        43,
+        12,
+        "SINGLE"
+      ],
+      [
+        43,
+        44,
+        "AROMATIC"
+      ],
+      [
+        44,
+        6,
+        "SINGLE"
+      ],
+      [
+        19,
+        14,
+        "AROMATIC"
+      ],
+      [
+        33,
+        20,
+        "AROMATIC"
+      ],
+      [
+        34,
+        18,
+        "AROMATIC"
+      ],
+      [
+        36,
+        22,
+        "AROMATIC"
+      ],
+      [
+        44,
+        23,
+        "AROMATIC"
+      ],
+      [
+        36,
+        25,
+        "AROMATIC"
+      ],
+      [
+        31,
+        27,
+        "SINGLE"
+      ],
+      [
+        40,
+        28,
+        "AROMATIC"
+      ],
+      [
+        35,
+        30,
+        "SINGLE"
+      ]
+    ]
+  },
+  "12": {
+    "id": "12",
+    "name": "Thiophene",
     "alias": [
       "T"
     ],
     "brick_type": "BRIDGE",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 5,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 6,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 7,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 8,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 9,
+        "symbol": "S"
+      }
+    ],
     "edges": [
       [
         1,
@@ -440,66 +4779,81 @@
         5,
         "AROMATIC"
       ]
-    ],
-    "id": "2",
-    "name": "Thiophene",
-    "nodes": [
-      {
-        "connected_symbol": "C",
-        "index": 1,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 5,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 6,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 3,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 7,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 4,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 8,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 2,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 9,
-        "kind": "atom",
-        "symbol": "S"
-      }
     ]
   },
-  "3": {
+  "13": {
+    "id": "13",
+    "name": "Thieno[3,2-b]thiophene",
     "alias": [
       "TT"
     ],
     "brick_type": "BRIDGE",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 5,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 6,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 3,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 7,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 8,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 9,
+        "symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 10,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 4,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "S"
+      }
+    ],
     "edges": [
       [
         1,
@@ -566,82 +4920,279 @@
         7,
         "AROMATIC"
       ]
-    ],
-    "id": "3",
-    "name": "Thieno[3,2-b]thiophene",
-    "nodes": [
-      {
-        "connected_symbol": "C",
-        "index": 1,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 5,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 6,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 3,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 7,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 8,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 9,
-        "kind": "atom",
-        "symbol": "S"
-      },
-      {
-        "index": 10,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 4,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 11,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 2,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 12,
-        "kind": "atom",
-        "symbol": "S"
-      }
     ]
   },
-  "4": {
+  "14": {
+    "id": "14",
+    "name": "Sulphur",
+    "alias": [
+      "S"
+    ],
+    "brick_type": "BRIDGE",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "S"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "S"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "S"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        3,
+        "SINGLE"
+      ],
+      [
+        3,
+        2,
+        "SINGLE"
+      ]
+    ]
+  },
+  "15": {
+    "id": "15",
+    "name": "Oxygen",
+    "alias": [
+      "O"
+    ],
+    "brick_type": "BRIDGE",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "O"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "O"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "O"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        3,
+        "SINGLE"
+      ],
+      [
+        3,
+        2,
+        "SINGLE"
+      ]
+    ]
+  },
+  "16": {
+    "id": "16",
+    "name": "Selenium",
+    "alias": [
+      "Se"
+    ],
+    "brick_type": "BRIDGE",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "Se"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "Se"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "Se"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        3,
+        "SINGLE"
+      ],
+      [
+        3,
+        2,
+        "SINGLE"
+      ]
+    ]
+  },
+  "17": {
+    "id": "17",
+    "name": "Vinylene",
+    "alias": [
+      "V"
+    ],
+    "brick_type": "BRIDGE",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 4,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        3,
+        "SINGLE"
+      ],
+      [
+        3,
+        4,
+        "DOUBLE"
+      ],
+      [
+        4,
+        2,
+        "SINGLE"
+      ]
+    ]
+  },
+  "18": {
+    "id": "18",
+    "name": "Acetylene",
+    "alias": [
+      "A"
+    ],
+    "brick_type": "BRIDGE",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 4,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 2,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        3,
+        "SINGLE"
+      ],
+      [
+        3,
+        4,
+        "TRIPLE"
+      ],
+      [
+        4,
+        2,
+        "SINGLE"
+      ]
+    ]
+  },
+  "19": {
+    "id": "19",
+    "name": "2-ethylhexyl",
     "alias": [
       "C2C4",
       "EH"
     ],
     "brick_type": "SIDE_CHAIN",
+    "nodes": [
+      {
+        "kind": "atom",
+        "index": 2,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 4,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 5,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 6,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 7,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 8,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 9,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      }
+    ],
     "edges": [
       [
         2,
@@ -683,64 +5234,84 @@
         1,
         "SINGLE"
       ]
-    ],
-    "id": "4",
-    "name": "2-ethylhexyl",
-    "nodes": [
-      {
-        "index": 2,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 3,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 4,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 5,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 6,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 7,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 8,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 9,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 1,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      }
     ]
   },
-  "5": {
+  "20": {
+    "id": "20",
+    "name": "2-butyloctyl",
     "alias": [
       "C4C6",
       "BO"
     ],
     "brick_type": "SIDE_CHAIN",
+    "nodes": [
+      {
+        "kind": "atom",
+        "index": 2,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 4,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 5,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 6,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 7,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 8,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 9,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 10,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "C"
+      }
+    ],
     "edges": [
       [
         2,
@@ -802,115 +5373,775 @@
         13,
         "SINGLE"
       ]
-    ],
-    "id": "5",
-    "name": "2-butyloctyl",
-    "nodes": [
-      {
-        "index": 2,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 3,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 4,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 5,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 6,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 7,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 8,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 9,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "connected_symbol": "C",
-        "index": 1,
-        "kind": "port",
-        "preferred_brick_type": "SKELETON"
-      },
-      {
-        "index": 10,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 11,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 12,
-        "kind": "atom",
-        "symbol": "C"
-      },
-      {
-        "index": 13,
-        "kind": "atom",
-        "symbol": "C"
-      }
     ]
   },
-  "900": {
-    "alias": [],
-    "brick_type": "TOOL",
-    "edges": [],
-    "id": "900",
-    "name": "Dulplicator",
+  "21": {
+    "id": "21",
+    "name": "2-hexyldecyl",
+    "alias": [
+      "C6C8",
+      "HD"
+    ],
+    "brick_type": "SIDE_CHAIN",
     "nodes": [
       {
-        "index": 1,
-        "kind": "port",
-        "side": "left"
-      },
-      {
+        "kind": "atom",
         "index": 2,
-        "kind": "port",
-        "side": "left"
+        "symbol": "C"
       },
       {
+        "kind": "atom",
         "index": 3,
-        "kind": "port",
-        "side": "left"
+        "symbol": "C"
       },
       {
+        "kind": "atom",
         "index": 4,
-        "kind": "port",
-        "side": "left"
+        "symbol": "C"
       },
       {
+        "kind": "atom",
         "index": 5,
-        "kind": "port",
-        "side": "left"
+        "symbol": "C"
       },
       {
+        "kind": "atom",
         "index": 6,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 7,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 8,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 9,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 10,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
         "kind": "port",
-        "side": "right"
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
       }
+    ],
+    "edges": [
+      [
+        2,
+        3,
+        "SINGLE"
+      ],
+      [
+        3,
+        4,
+        "SINGLE"
+      ],
+      [
+        4,
+        5,
+        "SINGLE"
+      ],
+      [
+        5,
+        6,
+        "SINGLE"
+      ],
+      [
+        6,
+        7,
+        "SINGLE"
+      ],
+      [
+        7,
+        8,
+        "SINGLE"
+      ],
+      [
+        8,
+        9,
+        "SINGLE"
+      ],
+      [
+        9,
+        10,
+        "SINGLE"
+      ],
+      [
+        10,
+        11,
+        "SINGLE"
+      ],
+      [
+        11,
+        1,
+        "SINGLE"
+      ],
+      [
+        10,
+        12,
+        "SINGLE"
+      ],
+      [
+        12,
+        13,
+        "SINGLE"
+      ],
+      [
+        13,
+        14,
+        "SINGLE"
+      ],
+      [
+        14,
+        15,
+        "SINGLE"
+      ],
+      [
+        15,
+        16,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "SINGLE"
+      ]
+    ]
+  },
+  "22": {
+    "id": "22",
+    "name": "2-octyldodecyl",
+    "alias": [
+      "C8C10",
+      "OD"
+    ],
+    "brick_type": "SIDE_CHAIN",
+    "nodes": [
+      {
+        "kind": "atom",
+        "index": 2,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 4,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 5,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 6,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 7,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 8,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 9,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 10,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        2,
+        3,
+        "SINGLE"
+      ],
+      [
+        3,
+        4,
+        "SINGLE"
+      ],
+      [
+        4,
+        5,
+        "SINGLE"
+      ],
+      [
+        5,
+        6,
+        "SINGLE"
+      ],
+      [
+        6,
+        7,
+        "SINGLE"
+      ],
+      [
+        7,
+        8,
+        "SINGLE"
+      ],
+      [
+        8,
+        9,
+        "SINGLE"
+      ],
+      [
+        9,
+        10,
+        "SINGLE"
+      ],
+      [
+        10,
+        11,
+        "SINGLE"
+      ],
+      [
+        11,
+        12,
+        "SINGLE"
+      ],
+      [
+        12,
+        13,
+        "SINGLE"
+      ],
+      [
+        13,
+        1,
+        "SINGLE"
+      ],
+      [
+        12,
+        14,
+        "SINGLE"
+      ],
+      [
+        14,
+        15,
+        "SINGLE"
+      ],
+      [
+        15,
+        16,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "SINGLE"
+      ],
+      [
+        17,
+        18,
+        "SINGLE"
+      ],
+      [
+        18,
+        19,
+        "SINGLE"
+      ],
+      [
+        19,
+        20,
+        "SINGLE"
+      ],
+      [
+        20,
+        21,
+        "SINGLE"
+      ]
+    ]
+  },
+  "23": {
+    "id": "23",
+    "name": "2-decyltetradecyl",
+    "alias": [
+      "C10C12",
+      "DT"
+    ],
+    "brick_type": "SIDE_CHAIN",
+    "nodes": [
+      {
+        "kind": "atom",
+        "index": 2,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 3,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 4,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 5,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 6,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 7,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 8,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 9,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 10,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 11,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 12,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 13,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 14,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 15,
+        "symbol": "C"
+      },
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 16,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 17,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 18,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 19,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 20,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 21,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 22,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 23,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 24,
+        "symbol": "C"
+      },
+      {
+        "kind": "atom",
+        "index": 25,
+        "symbol": "C"
+      }
+    ],
+    "edges": [
+      [
+        2,
+        3,
+        "SINGLE"
+      ],
+      [
+        3,
+        4,
+        "SINGLE"
+      ],
+      [
+        4,
+        5,
+        "SINGLE"
+      ],
+      [
+        5,
+        6,
+        "SINGLE"
+      ],
+      [
+        6,
+        7,
+        "SINGLE"
+      ],
+      [
+        7,
+        8,
+        "SINGLE"
+      ],
+      [
+        8,
+        9,
+        "SINGLE"
+      ],
+      [
+        9,
+        10,
+        "SINGLE"
+      ],
+      [
+        10,
+        11,
+        "SINGLE"
+      ],
+      [
+        11,
+        12,
+        "SINGLE"
+      ],
+      [
+        12,
+        13,
+        "SINGLE"
+      ],
+      [
+        13,
+        14,
+        "SINGLE"
+      ],
+      [
+        14,
+        15,
+        "SINGLE"
+      ],
+      [
+        15,
+        1,
+        "SINGLE"
+      ],
+      [
+        14,
+        16,
+        "SINGLE"
+      ],
+      [
+        16,
+        17,
+        "SINGLE"
+      ],
+      [
+        17,
+        18,
+        "SINGLE"
+      ],
+      [
+        18,
+        19,
+        "SINGLE"
+      ],
+      [
+        19,
+        20,
+        "SINGLE"
+      ],
+      [
+        20,
+        21,
+        "SINGLE"
+      ],
+      [
+        21,
+        22,
+        "SINGLE"
+      ],
+      [
+        22,
+        23,
+        "SINGLE"
+      ],
+      [
+        23,
+        24,
+        "SINGLE"
+      ],
+      [
+        24,
+        25,
+        "SINGLE"
+      ]
+    ]
+  },
+  "24": {
+    "id": "24",
+    "name": "Fluorine",
+    "alias": [
+      "F"
+    ],
+    "brick_type": "SIDE_CHAIN",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "F"
+      },
+      {
+        "kind": "atom",
+        "index": 2,
+        "symbol": "F"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        2,
+        "SINGLE"
+      ]
+    ]
+  },
+  "25": {
+    "id": "25",
+    "name": "Chlorine",
+    "alias": [
+      "Cl"
+    ],
+    "brick_type": "SIDE_CHAIN",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "Cl"
+      },
+      {
+        "kind": "atom",
+        "index": 2,
+        "symbol": "Cl"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        2,
+        "SINGLE"
+      ]
+    ]
+  },
+  "26": {
+    "id": "26",
+    "name": "Bromine",
+    "alias": [
+      "Br"
+    ],
+    "brick_type": "SIDE_CHAIN",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "Br"
+      },
+      {
+        "kind": "atom",
+        "index": 2,
+        "symbol": "Br"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        2,
+        "SINGLE"
+      ]
+    ]
+  },
+  "27": {
+    "id": "27",
+    "name": "Iodine",
+    "alias": [
+      "I"
+    ],
+    "brick_type": "SIDE_CHAIN",
+    "nodes": [
+      {
+        "kind": "port",
+        "index": 1,
+        "preferred_brick_type": "SKELETON",
+        "connected_symbol": "I"
+      },
+      {
+        "kind": "atom",
+        "index": 2,
+        "symbol": "I"
+      }
+    ],
+    "edges": [
+      [
+        1,
+        2,
+        "SINGLE"
+      ]
     ]
   }
 }

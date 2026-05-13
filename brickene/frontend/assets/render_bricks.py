@@ -17,6 +17,7 @@ from rdkit.Chem.Draw import rdMolDraw2D
 DEFAULT_SOURCE_PATH = Path(__file__).resolve().parent / "raw_brick_smiles.json"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "brick_images"
 DEFAULT_IMAGE_SIZE = 512
+LARGE_BRICK_ATOM_THRESHOLD = 20
 FONT_CANDIDATES = (
     Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
     Path("/System/Library/Fonts/SFNS.ttf"),
@@ -122,6 +123,14 @@ def build_molecule(smiles: str) -> Chem.Mol:
         raise ValueError(f"Invalid SMILES string: {smiles}")
 
     prepared = Chem.Mol(molecule)
+    for atom in prepared.GetAtoms():
+        if atom.GetAtomicNum() != 0:
+            continue
+
+        atom_map_number = atom.GetAtomMapNum()
+        if atom_map_number > 0:
+            atom.SetProp("atomLabel", str(atom_map_number))
+
     AllChem.Compute2DCoords(prepared)
     return prepared
 
@@ -174,6 +183,10 @@ def render_molecule_image(molecule: Chem.Mol, image_size: int) -> Image.Image:
     drawer = rdMolDraw2D.MolDraw2DCairo(image_size, image_size)
     draw_options = drawer.drawOptions()
     draw_options.padding = 0.0
+
+    if molecule.GetNumAtoms() > LARGE_BRICK_ATOM_THRESHOLD:
+        if hasattr(draw_options, "fixedFontSize"):
+            draw_options.fixedFontSize = 30
 
     bold_font_file = get_bold_font_file()
     if bold_font_file is not None:

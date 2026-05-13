@@ -195,24 +195,33 @@ def build_serialized_node_payload(node: BrickNode) -> dict[str, Any]:
     return node_payload
 
 
-def get_brick_id(brick_name: str, raw_entry: dict[str, Any]) -> str:
-    """Extract the canonical brick ID from one raw catalog entry.
+def get_brick_id(sequence_number: int) -> str:
+    """Build the canonical brick ID from raw catalog order.
 
     Args:
-        brick_name: Human-readable brick name from the raw catalog key.
-        raw_entry: Raw catalog entry payload.
+        sequence_number: One-based position of the brick in the raw catalog.
 
     Returns:
         Brick ID normalized as a string.
-
-    Raises:
-        ValueError: If the raw entry does not define a usable ID.
     """
 
-    brick_id = str(raw_entry.get("id", "")).strip()
-    if not brick_id:
-        raise ValueError(f"Missing brick id for raw catalog entry: {brick_name}")
-    return brick_id
+    return str(sequence_number)
+
+
+def assign_brick_ids(payload: dict[str, Any]) -> dict[str, Any]:
+    """Assign sequence-based IDs back onto each raw catalog entry.
+
+    Args:
+        payload: Raw SMILES catalog keyed by brick name.
+
+    Returns:
+        Raw catalog payload with generated IDs persisted on each entry.
+    """
+
+    for sequence_number, raw_entry in enumerate(payload.values(), start=1):
+        raw_entry["id"] = get_brick_id(sequence_number)
+
+    return payload
 
 
 def build_catalog_payload(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -228,7 +237,7 @@ def build_catalog_payload(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     catalog_payload: dict[str, dict[str, Any]] = {}
 
     for brick_name, raw_entry in payload.items():
-        brick_id = get_brick_id(brick_name, raw_entry)
+        brick_id = str(raw_entry["id"])
         node = build_brick_node(raw_entry)
         node_payload = build_serialized_node_payload(node)
         catalog_payload[brick_id] = {
@@ -253,10 +262,15 @@ def convert_catalog(source_path: Path, output_path: Path) -> Path:
     """
 
     payload = json.loads(source_path.read_text(encoding="utf-8"))
+    payload = assign_brick_ids(payload)
+    source_path.write_text(
+        json.dumps(payload, indent=4),
+        encoding="utf-8",
+    )
     catalog_payload = build_catalog_payload(payload)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
-        json.dumps(catalog_payload, indent=2, sort_keys=True),
+        json.dumps(catalog_payload, indent=2),
         encoding="utf-8",
     )
     return output_path

@@ -1,32 +1,221 @@
 {
-    "IT": {
-        "alias": [],
-        "smiles": "[*:2]C1=C([*:4])C2=C(S1)C1=C(S2)C2=C(C([*:10])=C3C4=C(C5=C(S4)C([*:3])=C([*:1])S5)C([*:5])([*:6])C3=C2[*:9])C1([*:7])[*:8]",
+    "PNO": {
+        "alias": [
+            "N2O-C6-C6-N2O"
+        ],
+        "smiles": "[*:1]C1=C([*:3])C([*:5])=C(S1)C1=C([*:7])C2=C(C3=NON=C13)C([*:8])=C(C1=C([*:6])C([*:4])=C([*:2])S1)C1=NON=C21",
         "type": "core",
         "id": "1"
     },
-    "Thiophene" : {
-        "alias": ["T"],
-        "smiles": "[*:1]C1=C([*:3])C([*:4])=C([*:2])S1",
-        "type": "bridge",
+    "BN-Py": {
+        "alias": [],
+        "smiles": "[*:3]N1C2=C3C4=C(N([*:4])[B-]([*:7])([*:8])[N+]3=C([*:12])C([*:1])=C2[*:9])C([*:10])=C([*:2])C([*:11])=[N+]4[B-]1([*:5])[*:6]",
+        "type": "core",
         "id": "2"
     },
-    "Thieno[3,2-b]thiophene": {
-        "alias": ["TT"],
-        "smiles": "[*:1]C1=C([*:3])C2=C(S1)C([*:4])=C([*:2])S2",
-        "type": "bridge",
+    "ID": {
+        "alias": [
+            "S-C5-C6-C5-S"
+        ],
+        "smiles": "[*:1]C1=C([*:3])C2=C(S1)C1=C(C([*:10])=C3C4=C(C([*:4])=C([*:2])S4)C([*:7])([*:8])C3=C1[*:9])C2([*:5])[*:6]",
+        "type": "core",
         "id": "3"
     },
-    "2-ethylhexyl": {
-        "alias": ["C2C4", "EH"],
-        "smiles": "CCCCC(CC)C[*:1]",
-        "type": "sidechain",
+    "IT": {
+        "alias": [
+            "S-S-C5-C6-C5-S-S"
+        ],
+        "smiles": "[*:2]C1=C([*:4])C2=C(S1)C1=C(S2)C2=C(C([*:10])=C3C4=C(C5=C(S4)C([*:3])=C([*:1])S5)C([*:5])([*:6])C3=C2[*:9])C1([*:7])[*:8]",
+        "type": "core",
         "id": "4"
     },
+    "IN": {
+        "alias": [
+            "S-S-S-C5-C6-C5-S-S-S"
+        ],
+        "smiles": "[*:2]C1=C([*:4])C2=C(S1)C1=C(S2)C2=C(S1)C1=C(C([*:10])=C3C4=C(C5=C(S4)C4=C(S5)C([*:3])=C([*:1])S4)C([*:5])([*:6])C3=C1[*:9])C2([*:7])[*:8]",
+        "type": "core",
+        "id": "5"
+    },
+    "DTC": {
+        "alias": [
+            "S-C5-C6-N-C6-C5-S"
+        ],
+        "smiles": "[*:13]N1C2=C(C3=C1C([*:12])=C1C4=C(C([*:4])=C([*:2])S4)C([*:7])([*:8])C1=C3[*:11])C([*:9])=C1C(C3=C(C([*:3])=C([*:1])S3)C1([*:5])[*:6])=C2[*:10]",
+        "type": "core",
+        "id": "6"
+    },
+    "NFBDT": {
+        "alias": [
+            "S-C5-S-C6-S-C5-S"
+        ],
+        "smiles": "[*:1]C1=C([*:3])C2=C(S1)C1=C(C3=C(S1)C([*:10])=C1C(SC4=C1C([*:7])([*:8])C1=C4SC([*:2])=C1[*:4])=C3[*:9])C2([*:5])[*:6]",
+        "type": "core",
+        "id": "7"
+    },
+    "TF": {
+        "alias": [
+            "S-C5-C6-C5-C6-C5-S"
+        ],
+        "smiles": "[*:1]C1=C([*:3])C2=C(S1)C1=C([*:10])C3=C(C4=C(C([*:12])=C5C6=C(C([*:4])=C([*:2])S6)C([*:7])([*:8])C5=C4[*:11])C3([*:13])[*:14])C([*:9])=C1C2([*:5])[*:6]",
+        "type": "core",
+        "id": "8"
+    },
+    "Porphyrin": {
+        "alias": [
+            "Pc"
+        ],
+        "smiles": "[*:2]C1=C([*:10])C([*:11])=C([*:3])C2=C1C1=N\\C\\2=N/C2=C3C(=C4\\N=C5/N=C(/N=C6\\N([*:1]N24)/C(=N\\1)C1=C6C([*:8])=C([*:16])C([*:17])=C1[*:9])C1=C5C([*:6])=C([*:14])C([*:15])=C1[*:7])C([*:5])=C([*:13])C([*:12])=C3[*:4]",
+        "type": "core",
+        "id": "9"
+    },
+    "Porphin": {
+        "alias": [
+            "P"
+        ],
+        "smiles": "[*:2]C1=C([*:3])\\C2=N\\C3=C([*:4])C([*:5])=C4\\N=C5/N=C(/N=C6\\N([*:1]N34)\\C(=N/C1=N2)C([*:9])=C6[*:8])C([*:7])=C5[*:6]",
+        "type": "core",
+        "id": "10"
+    },
+    "Boron subphthalocyanines": {
+        "alias": [
+            "BSubPc"
+        ],
+        "smiles": "[*:5]C1=C([*:11])C([*:10])=C([*:4])C2=C1C1=NC3=C4C(=C5N=C6C7=C(C8=[N+]6[B-]([*:1])(N1C2=N8)N35)C([*:3])=C([*:9])C([*:8])=C7[*:2])C([*:7])=C([*:13])C([*:12])=C4[*:6]",
+        "type": "core",
+        "id": "11"
+    },
+    "Thiophene": {
+        "alias": [
+            "T"
+        ],
+        "smiles": "[*:1]C1=C([*:3])C([*:4])=C([*:2])S1",
+        "type": "bridge",
+        "id": "12"
+    },
+    "Thieno[3,2-b]thiophene": {
+        "alias": [
+            "TT"
+        ],
+        "smiles": "[*:1]C1=C([*:3])C2=C(S1)C([*:4])=C([*:2])S2",
+        "type": "bridge",
+        "id": "13"
+    },
+    "Sulphur": {
+        "alias": [
+            "S"
+        ],
+        "smiles": "[*:1]S[*:2]",
+        "type": "bridge",
+        "id": "14"
+    },
+    "Oxygen": {
+        "alias": [
+            "O"
+        ],
+        "smiles": "[*:1]O[*:2]",
+        "type": "bridge",
+        "id": "15"
+    },
+    "Selenium": {
+        "alias": [
+            "Se"
+        ],
+        "smiles": "[*:1][Se][*:2]",
+        "type": "bridge",
+        "id": "16"
+    },
+    "Vinylene": {
+        "alias": [
+            "V"
+        ],
+        "smiles": "[*:1]C=C[*:2]",
+        "type": "bridge",
+        "id": "17"
+    },
+    "Acetylene": {
+        "alias": [
+            "A"
+        ],
+        "smiles": "[*:1]C#C[*:2]",
+        "type": "bridge",
+        "id": "18"
+    },
+    "2-ethylhexyl": {
+        "alias": [
+            "C2C4",
+            "EH"
+        ],
+        "smiles": "CCCCC(CC)C[*:1]",
+        "type": "sidechain",
+        "id": "19"
+    },
     "2-butyloctyl": {
-        "alias": ["C4C6", "BO"],
+        "alias": [
+            "C4C6",
+            "BO"
+        ],
         "smiles": "CCCCCCC(C[*:1])CCCC",
         "type": "sidechain",
-        "id": "5"
+        "id": "20"
+    },
+    "2-hexyldecyl": {
+        "alias": [
+            "C6C8",
+            "HD"
+        ],
+        "smiles": "CCCCCCCCC(C[*:1])CCCCCC",
+        "type": "sidechain",
+        "id": "21"
+    },
+    "2-octyldodecyl": {
+        "alias": [
+            "C8C10",
+            "OD"
+        ],
+        "smiles": "CCCCCCCCCCC(C[*:1])CCCCCCCC",
+        "type": "sidechain",
+        "id": "22"
+    },
+    "2-decyltetradecyl": {
+        "alias": [
+            "C10C12",
+            "DT"
+        ],
+        "smiles": "CCCCCCCCCCCCC(C[*:1])CCCCCCCCCC",
+        "type": "sidechain",
+        "id": "23"
+    },
+    "Fluorine": {
+        "alias": [
+            "F"
+        ],
+        "smiles": "[*:1]F",
+        "type": "sidechain",
+        "id": "24"
+    },
+    "Chlorine": {
+        "alias": [
+            "Cl"
+        ],
+        "smiles": "[*:1]Cl",
+        "type": "sidechain",
+        "id": "25"
+    },
+    "Bromine": {
+        "alias": [
+            "Br"
+        ],
+        "smiles": "[*:1]Br",
+        "type": "sidechain",
+        "id": "26"
+    },
+    "Iodine": {
+        "alias": [
+            "I"
+        ],
+        "smiles": "[*:1]I",
+        "type": "sidechain",
+        "id": "27"
     }
 }

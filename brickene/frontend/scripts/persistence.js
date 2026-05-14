@@ -347,22 +347,70 @@
   }
 
   async function handleMenuAction(menuKey, actionKey) {
-    if (menuKey !== "file") {
+    if (menuKey === "file") {
+      if (actionKey === "new") {
+        createNewCanvas();
+        return true;
+      }
+
+      if (actionKey === "save") {
+        save();
+        return true;
+      }
+
+      if (actionKey === "open") {
+        return open();
+      }
+
       return false;
     }
 
-    if (actionKey === "new") {
-      createNewCanvas();
-      return true;
-    }
+    if (menuKey === "edit") {
+      if (actionKey === "undo") {
+        frontend.setCanvasMessage(frontend.undo() ? "Undo applied." : "Nothing to undo.");
+        return true;
+      }
 
-    if (actionKey === "save") {
-      save();
-      return true;
-    }
+      if (actionKey === "redo") {
+        frontend.setCanvasMessage(frontend.redo() ? "Redo applied." : "Nothing to redo.");
+        return true;
+      }
 
-    if (actionKey === "open") {
-      return open();
+      if (actionKey === "copy") {
+        const result = await frontend.copySelection();
+        if (!result.copied) {
+          frontend.setCanvasMessage("Select nodes or edges to copy.");
+          return true;
+        }
+
+        frontend.setCanvasMessage(`Copied ${result.nodeCount} node(s) and ${result.edgeCount} edge(s).`);
+        return true;
+      }
+
+      if (actionKey === "delete") {
+        const deleted = frontend.deleteSelectedGraphItems?.();
+        if (!deleted) {
+          frontend.setCanvasMessage("Select nodes or edges to delete.");
+        }
+        return true;
+      }
+
+      if (actionKey === "create-new-node") {
+        const viewportRect = dom.canvasViewport?.getBoundingClientRect();
+        if (!viewportRect) {
+          return false;
+        }
+
+        const centerPoint = frontend.clientToWorldPoint(
+          viewportRect.left + viewportRect.width / 2,
+          viewportRect.top + viewportRect.height / 2,
+        );
+        const node = frontend.createNodeAt(centerPoint.x, centerPoint.y);
+        frontend.setCanvasMessage(
+          `Node ${node.id} created at (${Math.round(node.x)}, ${Math.round(node.y)}).`,
+        );
+        return true;
+      }
     }
 
     return false;

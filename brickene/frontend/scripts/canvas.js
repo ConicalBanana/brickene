@@ -72,6 +72,8 @@
     return false;
   }
 
+  frontend.deleteSelectedGraphItems = deleteSelectedGraphItems;
+
   function shouldIgnoreWheelPan(eventTarget) {
     return Boolean(
       eventTarget.closest(".canvas-context-menu, .node-context-menu, .submenu-dropdown"),

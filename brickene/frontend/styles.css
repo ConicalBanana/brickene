@@ -159,6 +159,16 @@ textarea {
   margin-top: 0.3rem;
 }
 
+.menu-separator {
+  width: 100%;
+  height: 1px;
+  background: rgba(17, 17, 17, 0.16);
+}
+
+.submenu-separator {
+  margin: 0.18rem 0;
+}
+
 .submenu-dropdown.is-open {
   display: block;
 }
@@ -718,6 +728,10 @@ textarea {
   background: var(--border);
   color: var(--surface);
   outline: none;
+}
+
+.context-menu-separator {
+  margin: 0.2rem 0;
 }
 
 .canvas-viewport.is-edge-dragging,

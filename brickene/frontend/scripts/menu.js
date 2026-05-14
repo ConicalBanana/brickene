@@ -20,6 +20,13 @@
 
     dom.submenuContent.replaceChildren(
       ...items.map((label) => {
+        if (label === "|") {
+          const divider = document.createElement("div");
+          divider.className = "menu-separator submenu-separator";
+          divider.setAttribute("role", "separator");
+          return divider;
+        }
+
         const item = document.createElement("button");
         item.type = "button";
         item.className = "submenu-pill";

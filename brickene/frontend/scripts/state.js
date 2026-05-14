@@ -5,10 +5,10 @@
 
   frontend.config = {
     submenuMap: {
-      file: ["New", "Open", "Open recent", "Save"],
-      edit: ["Undo", "Redo", "Copy", "Delete"],
+      file: ["New", "|", "Open", "Open recently", "Save"],
+      edit: ["Undo", "Redo", "|", "Copy", "Delete", "Create new node"],
       node: ["Create node", "Ports", "Edges", "Presets"],
-      view: ["Center canvas", "Grid", "Legend", "Export"],
+      view: ["Center canvas", "Grid", "Legend"],
     },
     stateMap: {
       file: "File actions can open and save .brickene graph configurations.",

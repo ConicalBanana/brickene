@@ -493,5 +493,22 @@
         "smiles": "[*:1]CCCCCCCCCCCCCCCCCCCC",
         "type": "sidechain",
         "id": "64"
+    },
+    "BTP": {
+        "alias": [
+            "TPBT",
+            "S-S-N-C6(NNS)-N-S-S"
+        ],
+        "smiles": "[*:3]N1C2=C(SC3=C2SC([*:1])=C3[*:5])C2=C1C1=C(C3=C(N1[*:4])C1=C(S3)C([*:6])=C([*:2])S1)C1=NSN=C21",
+        "type": "core",
+        "id": "65"
+    },
+    "BZTTP": {
+        "alias": [
+            "S-S-N-C6(NNN)-N-S-S"
+        ],
+        "smiles": "[*:7]N1N=C2C(=N1)C1=C(N([*:4])C3=C1SC1=C3SC([*:2])=C1[*:6])C1=C2C2=C(N1[*:3])C1=C(S2)C([*:5])=C([*:1])S1",
+        "type": "core",
+        "id": "66"
     }
 }

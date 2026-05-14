@@ -17,13 +17,18 @@ from .network import BrickGraph
 from .node import BrickNode
 
 DEFAULT_CATALOG_PATH = (
-    Path(__file__).resolve().parent.parent / "frontend" / "assets" / "brick_configs.json"
+    Path(__file__).resolve().parent.parent
+    / "frontend"
+    / "assets"
+    / "brick_configs.json"
 )
 DEFAULT_IMAGE_SIZE = 1024
 TOOL_BRICK_TYPE = "TOOL"
 
 
-def load_brick_catalog(catalog_path: Path = DEFAULT_CATALOG_PATH) -> dict[str, dict[str, Any]]:
+def load_brick_catalog(
+    catalog_path: Path = DEFAULT_CATALOG_PATH,
+) -> dict[str, dict[str, Any]]:
     """Load the configured brick catalog.
 
     Args:
@@ -36,21 +41,45 @@ def load_brick_catalog(catalog_path: Path = DEFAULT_CATALOG_PATH) -> dict[str, d
     return json.loads(catalog_path.read_text(encoding="utf-8"))
 
 
+def resolve_node_definition(
+    node_state: dict[str, Any],
+    catalog: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Resolve one frontend node payload to the brick definition used for rendering."""
+
+    node_type_id = _read_node_type_id(node_state)
+    definition = catalog.get(node_type_id)
+    if definition is None:
+        return None
+
+    if not definition.get("inline_configuration"):
+        return definition
+
+    custom_config_text = node_state.get("customConfigText")
+    if not isinstance(custom_config_text, str) or not custom_config_text.strip():
+        return definition
+
+    try:
+        inline_definition = json.loads(custom_config_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Inline node configuration must be valid JSON.") from exc
+
+    if not isinstance(inline_definition, dict):
+        raise ValueError("Inline node configuration must decode to a JSON object.")
+
+    resolved_definition = deepcopy(inline_definition)
+    resolved_definition.setdefault("id", node_type_id)
+    resolved_definition.setdefault("name", definition.get("name", "User defined"))
+    resolved_definition.setdefault("inline_configuration", True)
+    return resolved_definition
+
+
 def expand_tool_nodes(
     node_states: list[dict[str, Any]],
     edge_states: list[dict[str, Any]],
     catalog: dict[str, dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Expand TOOL nodes into direct graph branches before molecule assembly.
-
-    Args:
-        node_states: Frontend node state payloads.
-        edge_states: Frontend edge state payloads.
-        catalog: Brick catalog keyed by node type id.
-
-    Returns:
-        Expanded node and edge payloads with TOOL nodes removed.
-    """
+    """Expand TOOL nodes into direct graph branches before molecule assembly."""
 
     expanded_nodes = deepcopy(node_states)
     expanded_edges = deepcopy(edge_states)
@@ -78,18 +107,7 @@ def build_graph_from_state(
     payload: dict[str, Any],
     catalog_path: Path = DEFAULT_CATALOG_PATH,
 ) -> BrickGraph:
-    """Reconstruct a ``BrickGraph`` from a frontend graph payload.
-
-    Args:
-        payload: Frontend graph state payload.
-        catalog_path: Path to the brick catalog JSON.
-
-    Returns:
-        Reconstructed molecular brick graph.
-
-    Raises:
-        ValueError: If the payload references missing nodes, ports, or bricks.
-    """
+    """Reconstruct a ``BrickGraph`` from a frontend graph payload."""
 
     node_states = payload.get("nodes")
     edge_states = payload.get("edges")
@@ -104,11 +122,12 @@ def build_graph_from_state(
 
     for node_state in node_states:
         frontend_node_id = int(node_state["id"])
-        node_type_id = str(node_state.get("nodeTypeId") or node_state.get("brickId") or "")
-        if node_type_id not in catalog:
+        node_type_id = _read_node_type_id(node_state)
+        resolved_definition = resolve_node_definition(node_state, catalog)
+        if resolved_definition is None:
             raise ValueError(f"Unknown brick id: {node_type_id}")
 
-        brick = BrickNode.from_dict(catalog[node_type_id])
+        brick = BrickNode.from_dict(resolved_definition)
         graph.add_node(brick)
         bricks_by_frontend_id[frontend_node_id] = brick
         port_assignments[frontend_node_id] = _resolve_port_assignments(node_state)
@@ -122,13 +141,17 @@ def build_graph_from_state(
         start_brick = bricks_by_frontend_id.get(start_node_id)
         end_brick = bricks_by_frontend_id.get(end_node_id)
         if start_brick is None or end_brick is None:
-            raise ValueError("Edge references a node that is not present in the state payload.")
+            raise ValueError(
+                "Edge references a node that is not present in the state payload."
+            )
 
         try:
             start_port = port_assignments[start_node_id][start_slot_id]
             end_port = port_assignments[end_node_id][end_slot_id]
         except KeyError as exc:
-            raise ValueError("Edge references a slot that is not present in the node state.") from exc
+            raise ValueError(
+                "Edge references a slot that is not present in the node state."
+            ) from exc
 
         graph.add_edge(
             start_brick,
@@ -145,15 +168,7 @@ def build_molecule_from_state(
     payload: dict[str, Any],
     catalog_path: Path = DEFAULT_CATALOG_PATH,
 ) -> Chem.Mol | None:
-    """Build an RDKit molecule from a frontend graph payload.
-
-    Args:
-        payload: Frontend graph state payload.
-        catalog_path: Path to the brick catalog JSON.
-
-    Returns:
-        RDKit molecule with 2D coordinates, or ``None`` if the graph is empty.
-    """
+    """Build an RDKit molecule from a frontend graph payload."""
 
     graph = build_graph_from_state(payload, catalog_path=catalog_path)
     smiles = graph.to_smiles()
@@ -174,15 +189,7 @@ def render_state_smiles(
     payload: dict[str, Any],
     catalog_path: Path = DEFAULT_CATALOG_PATH,
 ) -> str:
-    """Render a frontend graph state payload to a SMILES string.
-
-    Args:
-        payload: Frontend graph state payload.
-        catalog_path: Path to the brick catalog JSON.
-
-    Returns:
-        Canonical SMILES string with dangling ports capped by hydrogen.
-    """
+    """Render a frontend graph state payload to a SMILES string."""
 
     molecule = build_molecule_from_state(payload, catalog_path=catalog_path)
     if molecule is None:
@@ -196,16 +203,7 @@ def render_state_image(
     image_size: int = DEFAULT_IMAGE_SIZE,
     catalog_path: Path = DEFAULT_CATALOG_PATH,
 ) -> Image.Image:
-    """Render a frontend state payload to a cropped PIL image.
-
-    Args:
-        payload: Frontend graph state payload.
-        image_size: Width and height of the base render canvas in pixels.
-        catalog_path: Path to the brick catalog JSON.
-
-    Returns:
-        Rendered PIL image.
-    """
+    """Render a frontend state payload to a cropped PIL image."""
 
     molecule = build_molecule_from_state(payload, catalog_path=catalog_path)
     if molecule is None:
@@ -219,33 +217,20 @@ def render_state_image_bytes(
     image_size: int = DEFAULT_IMAGE_SIZE,
     catalog_path: Path = DEFAULT_CATALOG_PATH,
 ) -> bytes:
-    """Render a frontend state payload into PNG bytes.
+    """Render a frontend state payload into PNG bytes."""
 
-    Args:
-        payload: Frontend graph state payload.
-        image_size: Width and height of the base render canvas in pixels.
-        catalog_path: Path to the brick catalog JSON.
-
-    Returns:
-        PNG-encoded image bytes.
-    """
-
-    image = render_state_image(payload, image_size=image_size, catalog_path=catalog_path)
+    image = render_state_image(
+        payload,
+        image_size=image_size,
+        catalog_path=catalog_path,
+    )
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
 
 
 def render_molecule_image(molecule: Chem.Mol, image_size: int) -> Image.Image:
-    """Render one molecule to a cropped PIL image.
-
-    Args:
-        molecule: RDKit molecule with 2D coordinates.
-        image_size: Width and height of the base render canvas in pixels.
-
-    Returns:
-        Cropped PIL image containing the molecule drawing.
-    """
+    """Render one molecule to a cropped PIL image."""
 
     drawer = rdMolDraw2D.MolDraw2DCairo(image_size, image_size)
     draw_options = drawer.drawOptions()
@@ -259,14 +244,7 @@ def render_molecule_image(molecule: Chem.Mol, image_size: int) -> Image.Image:
 
 
 def trim_white_padding(image: Image.Image) -> Image.Image:
-    """Crop away uniform white padding around a rendered image.
-
-    Args:
-        image: Rendered PIL image.
-
-    Returns:
-        Cropped image with outer white borders removed.
-    """
+    """Crop away uniform white padding around a rendered image."""
 
     rgb_image = image.convert("RGB")
     background = Image.new("RGB", rgb_image.size, (255, 255, 255))
@@ -280,17 +258,7 @@ def trim_white_padding(image: Image.Image) -> Image.Image:
 
 
 def cap_hanging_ports_with_hydrogen(molecule: Chem.Mol) -> Chem.Mol:
-    """Replace dangling dummy port atoms with implicit hydrogens.
-
-    Args:
-        molecule: RDKit molecule that may still contain unconnected dummy atoms.
-
-    Returns:
-        Sanitized molecule with dangling dummy atoms removed.
-
-    Raises:
-        ValueError: If a dangling dummy atom is connected to multiple neighbors.
-    """
+    """Replace dangling dummy port atoms with implicit hydrogens."""
 
     editable_molecule = Chem.RWMol(molecule)
     dummy_atom_indices: list[int] = []
@@ -301,7 +269,9 @@ def cap_hanging_ports_with_hydrogen(molecule: Chem.Mol) -> Chem.Mol:
 
         neighbors = list(atom.GetNeighbors())
         if len(neighbors) > 1:
-            raise ValueError("Dangling ports must connect to at most one neighboring atom.")
+            raise ValueError(
+                "Dangling ports must connect to at most one neighboring atom."
+            )
 
         if len(neighbors) == 1:
             neighbor = neighbors[0]
@@ -319,14 +289,7 @@ def cap_hanging_ports_with_hydrogen(molecule: Chem.Mol) -> Chem.Mol:
 
 
 def _resolve_port_assignments(node_state: dict[str, Any]) -> dict[int, int]:
-    """Map frontend slot ids to actual brick port indices.
-
-    Args:
-        node_state: Frontend node state payload.
-
-    Returns:
-        Mapping from slot id to actual brick port id.
-    """
+    """Map frontend slot ids to actual brick port indices."""
 
     port_configuration = node_state.get("portConfiguration")
     if not isinstance(port_configuration, list):
@@ -350,20 +313,7 @@ def _read_edge_value(
     nested_key: str,
     nested_value_key: str,
 ) -> Any:
-    """Read one edge payload value without treating zero as missing.
-
-    Args:
-        edge_state: Frontend edge state payload.
-        direct_key: Top-level key to check first.
-        nested_key: Nested object key to use as a fallback.
-        nested_value_key: Key inside the nested fallback object.
-
-    Returns:
-        The located payload value.
-
-    Raises:
-        ValueError: If the value is missing in both supported payload shapes.
-    """
+    """Read one edge payload value without treating zero as missing."""
 
     if direct_key in edge_state:
         return edge_state[direct_key]
@@ -391,9 +341,14 @@ def _is_tool_node(
 ) -> bool:
     """Return whether one frontend node payload references a TOOL definition."""
 
-    node_type_id = str(node_state.get("nodeTypeId") or node_state.get("brickId") or "")
-    definition = catalog.get(node_type_id)
+    definition = resolve_node_definition(node_state, catalog)
     return bool(definition and definition.get("brick_type") == TOOL_BRICK_TYPE)
+
+
+def _read_node_type_id(node_state: dict[str, Any]) -> str:
+    """Return the referenced frontend brick id as a normalized string."""
+
+    return str(node_state.get("nodeTypeId") or node_state.get("brickId") or "")
 
 
 def _expand_single_tool_node(
@@ -423,10 +378,12 @@ def _expand_single_tool_node(
         [
             edge_state
             for edge_state in edge_states
-            if int(_read_edge_value(edge_state, "endNode", "to", "nodeId"))
-            == tool_node_id
-            and int(_read_edge_value(edge_state, "endPort", "to", "slotId"))
-            in left_slot_ids
+            if (
+                int(_read_edge_value(edge_state, "endNode", "to", "nodeId"))
+                == tool_node_id
+                and int(_read_edge_value(edge_state, "endPort", "to", "slotId"))
+                in left_slot_ids
+            )
         ],
         key=lambda edge_state: (
             int(_read_edge_value(edge_state, "endPort", "to", "slotId")),
@@ -436,10 +393,12 @@ def _expand_single_tool_node(
     outgoing_edges = [
         edge_state
         for edge_state in edge_states
-        if int(_read_edge_value(edge_state, "startNode", "from", "nodeId"))
-        == tool_node_id
-        and int(_read_edge_value(edge_state, "startPort", "from", "slotId"))
-        in right_slot_ids
+        if (
+            int(_read_edge_value(edge_state, "startNode", "from", "nodeId"))
+            == tool_node_id
+            and int(_read_edge_value(edge_state, "startPort", "from", "slotId"))
+            in right_slot_ids
+        )
     ]
 
     if len(outgoing_edges) > 1:
@@ -453,10 +412,12 @@ def _expand_single_tool_node(
     remaining_edges = [
         edge_state
         for edge_state in edge_states
-        if int(_read_edge_value(edge_state, "startNode", "from", "nodeId"))
-        != tool_node_id
-        and int(_read_edge_value(edge_state, "endNode", "to", "nodeId"))
-        != tool_node_id
+        if (
+            int(_read_edge_value(edge_state, "startNode", "from", "nodeId"))
+            != tool_node_id
+            and int(_read_edge_value(edge_state, "endNode", "to", "nodeId"))
+            != tool_node_id
+        )
     ]
 
     if not incoming_edges or not outgoing_edges:
@@ -470,8 +431,13 @@ def _expand_single_tool_node(
         remaining_edges,
     )
 
-    next_node_id = max((int(node_state["id"]) for node_state in remaining_nodes), default=0) + 1
-    next_edge_id = max((int(edge_state.get("id", 0)) for edge_state in remaining_edges), default=0) + 1
+    next_node_id = (
+        max((int(node_state["id"]) for node_state in remaining_nodes), default=0) + 1
+    )
+    next_edge_id = (
+        max((int(edge_state.get("id", 0)) for edge_state in remaining_edges), default=0)
+        + 1
+    )
     additional_nodes: list[dict[str, Any]] = []
     additional_edges: list[dict[str, Any]] = []
     rewritten_incoming_edges: list[dict[str, Any]] = []
@@ -520,20 +486,20 @@ def _collect_downstream_subgraph(
     while pending_node_ids:
         current_node_id = pending_node_ids.pop()
         for edge_state in edge_states:
-            if int(_read_edge_value(edge_state, "startNode", "from", "nodeId")) != current_node_id:
+            start_node_id = int(
+                _read_edge_value(edge_state, "startNode", "from", "nodeId")
+            )
+            if start_node_id != current_node_id:
                 continue
 
             edge_id = int(edge_state.get("id", 0))
-            if edge_id in visited_edge_ids:
+            end_node_id = int(_read_edge_value(edge_state, "endNode", "to", "nodeId"))
+            visited_edge_ids.add(edge_id)
+            if end_node_id in visited_node_ids:
                 continue
 
-            visited_edge_ids.add(edge_id)
-            downstream_node_id = int(
-                _read_edge_value(edge_state, "endNode", "to", "nodeId")
-            )
-            if downstream_node_id not in visited_node_ids:
-                visited_node_ids.add(downstream_node_id)
-                pending_node_ids.append(downstream_node_id)
+            visited_node_ids.add(end_node_id)
+            pending_node_ids.append(end_node_id)
 
     return visited_node_ids, visited_edge_ids
 
@@ -545,17 +511,12 @@ def _clone_downstream_subgraph(
     edge_states: list[dict[str, Any]],
     next_node_id: int,
     next_edge_id: int,
-) -> tuple[
-    list[dict[str, Any]],
-    list[dict[str, Any]],
-    dict[int, int],
-    int,
-    int,
-]:
-    """Clone one downstream directed subgraph and return remapped payloads."""
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[int, int], int, int]:
+    """Clone one downstream branch and return its remapped nodes and edges."""
 
     node_id_map: dict[int, int] = {}
     cloned_nodes: list[dict[str, Any]] = []
+    cloned_edges: list[dict[str, Any]] = []
 
     for node_state in node_states:
         original_node_id = int(node_state["id"])
@@ -565,63 +526,53 @@ def _clone_downstream_subgraph(
         cloned_node = deepcopy(node_state)
         cloned_node["id"] = next_node_id
         node_id_map[original_node_id] = next_node_id
-        next_node_id += 1
         cloned_nodes.append(cloned_node)
+        next_node_id += 1
 
-    cloned_edges: list[dict[str, Any]] = []
     for edge_state in edge_states:
         original_edge_id = int(edge_state.get("id", 0))
         if original_edge_id not in downstream_edge_ids:
             continue
 
-        original_start_node_id = int(
-            _read_edge_value(edge_state, "startNode", "from", "nodeId")
-        )
-        original_end_node_id = int(
-            _read_edge_value(edge_state, "endNode", "to", "nodeId")
-        )
         cloned_edge = deepcopy(edge_state)
-        cloned_edge["id"] = next_edge_id
+        start_node_id = int(
+            _read_edge_value(cloned_edge, "startNode", "from", "nodeId")
+        )
+        start_slot_id = int(
+            _read_edge_value(cloned_edge, "startPort", "from", "slotId")
+        )
+        end_node_id = int(_read_edge_value(cloned_edge, "endNode", "to", "nodeId"))
+        end_slot_id = int(_read_edge_value(cloned_edge, "endPort", "to", "slotId"))
         _write_edge_endpoint(
             cloned_edge,
             "start",
-            node_id_map[original_start_node_id],
-            int(_read_edge_value(edge_state, "startPort", "from", "slotId")),
+            node_id_map[start_node_id],
+            start_slot_id,
         )
-        _write_edge_endpoint(
-            cloned_edge,
-            "end",
-            node_id_map[original_end_node_id],
-            int(_read_edge_value(edge_state, "endPort", "to", "slotId")),
-        )
-        next_edge_id += 1
+        _write_edge_endpoint(cloned_edge, "end", node_id_map[end_node_id], end_slot_id)
+        cloned_edge["id"] = next_edge_id
         cloned_edges.append(cloned_edge)
+        next_edge_id += 1
 
     return cloned_nodes, cloned_edges, node_id_map, next_node_id, next_edge_id
 
 
 def _write_edge_endpoint(
     edge_state: dict[str, Any],
-    side: str,
+    endpoint_prefix: str,
     node_id: int,
     slot_id: int,
 ) -> None:
-    """Write one edge endpoint back into both supported payload shapes."""
+    """Write one edge endpoint back to either supported payload shape."""
 
-    if side == "start":
-        edge_state["startNode"] = node_id
-        edge_state["startPort"] = slot_id
-        if isinstance(edge_state.get("from"), dict):
-            edge_state["from"]["nodeId"] = node_id
-            edge_state["from"]["slotId"] = slot_id
-        return
+    direct_node_key = "startNode" if endpoint_prefix == "start" else "endNode"
+    direct_port_key = "startPort" if endpoint_prefix == "start" else "endPort"
+    nested_key = "from" if endpoint_prefix == "start" else "to"
 
-    if side == "end":
-        edge_state["endNode"] = node_id
-        edge_state["endPort"] = slot_id
-        if isinstance(edge_state.get("to"), dict):
-            edge_state["to"]["nodeId"] = node_id
-            edge_state["to"]["slotId"] = slot_id
-        return
+    edge_state[direct_node_key] = node_id
+    edge_state[direct_port_key] = slot_id
 
-    raise ValueError(f"Unsupported edge side: {side}")
+    nested_payload = edge_state.get(nested_key)
+    if isinstance(nested_payload, dict):
+        nested_payload["nodeId"] = node_id
+        nested_payload["slotId"] = slot_id

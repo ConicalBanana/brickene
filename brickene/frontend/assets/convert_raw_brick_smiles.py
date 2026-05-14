@@ -37,6 +37,15 @@ TOOL_BRICK_PAYLOADS: dict[str, dict[str, Any]] = {
             {"index": 6, "kind": "port", "side": "right"},
         ],
         "edges": [],
+    },
+    "901": {
+        "id": "901",
+        "name": "User defined",
+        "alias": [],
+        "brick_type": "TOOL",
+        "inline_configuration": True,
+        "nodes": [],
+        "edges": [],
     }
 }
 

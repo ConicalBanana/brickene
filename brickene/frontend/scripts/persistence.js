@@ -31,6 +31,7 @@
       type: node.type,
       nodeTypeId: node.brickId,
       isStartNode: Boolean(node.isStartNode),
+      customConfigText: node.customConfigText || "",
       position: {
         x: node.x,
         y: node.y,
@@ -217,6 +218,7 @@
       type: nodeState.type || "rectangular",
       brickId: nodeState.nodeTypeId || nodeState.brickId,
       isStartNode: Boolean(nodeState.isStartNode),
+      customConfigText: typeof nodeState.customConfigText === "string" ? nodeState.customConfigText : "",
       x: Number(position.x ?? nodeState.x ?? 0),
       y: Number(position.y ?? nodeState.y ?? 0),
       portSlots: portConfiguration.map((slot, index) => ({

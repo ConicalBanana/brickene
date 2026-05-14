@@ -126,6 +126,63 @@ def build_tool_payload() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     )
 
 
+def build_inline_user_defined_payload() -> dict[str, Any]:
+    """Build one payload containing a standalone inline-configured custom brick."""
+
+    return {
+        "nodes": [
+            {
+                "id": 1,
+                "nodeTypeId": "901",
+                "customConfigText": json.dumps(
+                    {
+                        "name": "Inline aldehyde",
+                        "alias": ["IAL"],
+                        "brick_type": "BRIDGE",
+                        "nodes": [
+                            {
+                                "kind": "port",
+                                "index": 1,
+                                "side": "left",
+                                "preferred_brick_type": "SKELETON",
+                                "connected_symbol": "C",
+                            },
+                            {
+                                "kind": "atom",
+                                "index": 2,
+                                "symbol": "C",
+                            },
+                            {
+                                "kind": "atom",
+                                "index": 3,
+                                "symbol": "O",
+                            },
+                            {
+                                "kind": "port",
+                                "index": 4,
+                                "side": "right",
+                                "preferred_brick_type": "SIDE_CHAIN",
+                                "connected_symbol": "C",
+                            },
+                        ],
+                        "edges": [
+                            [1, 2, "SINGLE"],
+                            [2, 3, "DOUBLE"],
+                            [2, 4, "SINGLE"],
+                        ],
+                    },
+                    indent=2,
+                ),
+                "portConfiguration": [
+                    {"slotId": 0, "side": "left", "actualPortId": "1"},
+                    {"slotId": 1, "side": "right", "actualPortId": "4"},
+                ],
+            }
+        ],
+        "edges": [],
+    }
+
+
 def perform_request(
     host: str,
     port: int,
@@ -157,7 +214,7 @@ def catalog_path(tmp_path: Path) -> Path:
     catalog = load_brick_catalog()
     subset = {
         key: catalog[key]
-        for key in ["2", "4", "5", "900"]
+        for key in ["2", "4", "5", "900", "901"]
     }
     output_path = tmp_path / "brick-catalog.json"
     output_path.write_text(json.dumps(subset, indent=2, sort_keys=True), encoding="utf-8")
@@ -236,6 +293,19 @@ def test_build_graph_from_state_rejects_unknown_brick(catalog_path: Path) -> Non
 
     with pytest.raises(ValueError, match="Unknown brick id: 999"):
         build_graph_from_state(payload, catalog_path=catalog_path)
+
+
+def test_render_state_smiles_uses_inline_user_defined_configuration(
+    catalog_path: Path,
+) -> None:
+    """Inline-configured user-defined nodes should render from their pasted definition."""
+
+    smiles = render_state_smiles(
+        build_inline_user_defined_payload(),
+        catalog_path=catalog_path,
+    )
+
+    assert smiles == "C=O"
 
 
 def test_build_molecule_from_state_returns_none_for_empty_graph(

@@ -1,6 +1,7 @@
 (() => {
   const frontend = window.BrickeneFrontend;
   const { config, dom } = frontend;
+  const USER_DEFINED_BRICK_ID = "901";
   const rawBrickDefinitions = frontend.brickDefinitions || {};
   const brickCatalog = Object.entries(rawBrickDefinitions)
     .map(([configKey, definition]) => normalizeBrickDefinition(configKey, definition))
@@ -44,14 +45,109 @@
   function normalizeBrickDefinition(configKey, definition) {
     const id = String(definition.id ?? configKey);
     const isToolNode = definition.brick_type === "TOOL";
+    const supportsInlineConfiguration = Boolean(definition.inline_configuration);
 
     return {
       ...definition,
       id,
       name: definition.name || configKey,
       imageSrc: isToolNode ? "" : `../assets/brick_images/${encodeURIComponent(id)}.png`,
-      hideStructurePreview: isToolNode,
-      lockPortAssignments: isToolNode,
+      hideStructurePreview: isToolNode || supportsInlineConfiguration,
+      lockPortAssignments: isToolNode || supportsInlineConfiguration,
+      supportsInlineConfiguration,
+    };
+  }
+
+  function buildInlineConfigurationTemplate(sourceDefinition) {
+    const templateSource = sourceDefinition || getBrickDefinition(defaultBrickId);
+    return JSON.stringify({
+      name: templateSource?.name || "User defined",
+      alias: Array.isArray(templateSource?.alias) ? templateSource.alias : [],
+      brick_type: templateSource?.brick_type && templateSource.brick_type !== "TOOL"
+        ? templateSource.brick_type
+        : "BRIDGE",
+      nodes: Array.isArray(templateSource?.nodes)
+        ? templateSource.nodes.map((node) => ({ ...node }))
+        : [],
+      edges: Array.isArray(templateSource?.edges)
+        ? templateSource.edges.map((edge) => (Array.isArray(edge) ? [...edge] : edge))
+        : [],
+    }, null, 2);
+  }
+
+  function parseInlineBrickDefinitionText(customConfigText) {
+    if (typeof customConfigText !== "string" || !customConfigText.trim()) {
+      return { brickDefinition: null, error: "" };
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(customConfigText);
+    } catch (error) {
+      return {
+        brickDefinition: null,
+        error: "Node configuration must be valid JSON.",
+      };
+    }
+
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return {
+        brickDefinition: null,
+        error: "Node configuration must decode to a JSON object.",
+      };
+    }
+
+    if (!Array.isArray(payload.nodes) || !Array.isArray(payload.edges)) {
+      return {
+        brickDefinition: null,
+        error: "Node configuration must include node and edge arrays.",
+      };
+    }
+
+    return {
+      brickDefinition: normalizeBrickDefinition(USER_DEFINED_BRICK_ID, {
+        ...payload,
+        id: USER_DEFINED_BRICK_ID,
+        name: String(payload.name || "User defined"),
+        alias: Array.isArray(payload.alias)
+          ? payload.alias
+            .filter((alias) => typeof alias === "string" && alias.trim())
+            .map((alias) => alias.trim())
+          : [],
+        brick_type: String(payload.brick_type || "UNCONFIGURED").toUpperCase(),
+        nodes: payload.nodes.map((node) => ({ ...node })),
+        edges: payload.edges.map((edge) => (Array.isArray(edge) ? [...edge] : edge)),
+        inline_configuration: true,
+      }),
+      error: "",
+    };
+  }
+
+  function resolveBrickDefinition(nodeConfig) {
+    const catalogDefinition = getBrickDefinition(nodeConfig.brickId || nodeConfig.brickName);
+    const customConfigText = typeof nodeConfig.customConfigText === "string" ? nodeConfig.customConfigText : "";
+
+    if (!catalogDefinition?.supportsInlineConfiguration) {
+      return {
+        brickDefinition: catalogDefinition,
+        customConfigText: "",
+        customConfigError: "",
+      };
+    }
+
+    const parsed = parseInlineBrickDefinitionText(customConfigText);
+    if (parsed.error) {
+      return {
+        brickDefinition: catalogDefinition,
+        customConfigText,
+        customConfigError: parsed.error,
+      };
+    }
+
+    return {
+      brickDefinition: parsed.brickDefinition || catalogDefinition,
+      customConfigText,
+      customConfigError: "",
     };
   }
 
@@ -70,9 +166,8 @@
     return brickDefinitionsById[defaultBrickId] || null;
   }
 
-  function getBrickPortNodes(brickRef) {
-    const definition = getBrickDefinition(brickRef);
-    return (definition?.nodes || [])
+  function getDefinitionPortNodes(brickDefinition) {
+    return (brickDefinition?.nodes || [])
       .filter((node) => node.kind === "port")
       .slice()
       .sort((left, right) => Number(left.index) - Number(right.index));
@@ -83,8 +178,8 @@
     return connectedSymbol === "?" ? String(portNode.index) : `${portNode.index},${connectedSymbol}`;
   }
 
-  function createPortPoolFromBrick(brickRef) {
-    return getBrickPortNodes(brickRef).map((portNode) => ({
+  function createPortPoolFromDefinition(brickDefinition) {
+    return getDefinitionPortNodes(brickDefinition).map((portNode) => ({
       id: String(portNode.index),
       index: portNode.index,
       connectedSymbol: portNode.connected_symbol || "?",
@@ -92,6 +187,10 @@
       side: portNode.side || null,
       label: formatPortNotation(portNode),
     }));
+  }
+
+  function createPortPoolFromBrick(brickRef) {
+    return createPortPoolFromDefinition(getBrickDefinition(brickRef));
   }
 
   function getSlotSide(index, total) {
@@ -108,13 +207,15 @@
     }));
   }
 
-  function createPortSlotsFromBrick(brickRef) {
-    const portPool = createPortPoolFromBrick(brickRef);
+  function createPortSlotsFromDefinition(brickDefinition) {
+    const portPool = createPortPoolFromDefinition(brickDefinition);
 
     if (!portPool.length) {
       return {
         portPool: [],
-        portSlots: createPortSlots(config.defaultPortCount),
+        portSlots: brickDefinition?.supportsInlineConfiguration
+          ? []
+          : createPortSlots(config.defaultPortCount),
       };
     }
 
@@ -128,6 +229,10 @@
         edgeId: null,
       })),
     };
+  }
+
+  function createPortSlotsFromBrick(brickRef) {
+    return createPortSlotsFromDefinition(getBrickDefinition(brickRef));
   }
 
   function getPortSortValue(node, slot) {
@@ -157,9 +262,9 @@
   }
 
   function buildNode(nodeConfig) {
-    const brickDefinition = getBrickDefinition(nodeConfig.brickId || nodeConfig.brickName);
+    const { brickDefinition, customConfigText, customConfigError } = resolveBrickDefinition(nodeConfig);
     const brickId = brickDefinition?.id || defaultBrickId;
-    const defaultPortData = createPortSlotsFromBrick(brickId);
+    const defaultPortData = createPortSlotsFromDefinition(brickDefinition);
     const portPool = nodeConfig.portPool?.map((portOption) => ({ ...portOption })) ?? defaultPortData.portPool;
     const portSlots = nodeConfig.portSlots?.map((slot) => ({ ...slot })) ?? defaultPortData.portSlots;
 
@@ -174,6 +279,9 @@
       hideStructurePreview: Boolean(brickDefinition?.hideStructurePreview),
       isStartNode: Boolean(nodeConfig.isStartNode),
       lockPortAssignments: Boolean(brickDefinition?.lockPortAssignments),
+      supportsInlineConfiguration: Boolean(brickDefinition?.supportsInlineConfiguration),
+      customConfigText,
+      customConfigError,
       portPool,
       nport: portSlots.length,
       portSlots,
@@ -260,6 +368,25 @@
         alt="${escapeHtml(node.brickName)} structure"
       />
       <div class="node-structure-mask" aria-hidden="true"></div>
+    `;
+  }
+
+  function renderInlineConfigurationEditor(node) {
+    const helperCopy = node.customConfigError
+      ? node.customConfigError
+      : "Paste a node definition JSON generated by the wizard, then click outside the box to apply it.";
+
+    return `
+      <label class="node-inline-config-field">
+        <span class="node-type-label">Configuration</span>
+        <textarea
+          class="node-inline-config-input node-control"
+          data-node-id="${node.id}"
+          aria-label="Configuration"
+          placeholder="Paste a wizard-generated node definition JSON here."
+        >${escapeHtml(node.customConfigText || "")}</textarea>
+      </label>
+      <p class="node-inline-config-feedback${node.customConfigError ? " is-error" : ""}">${escapeHtml(helperCopy)}</p>
     `;
   }
 
@@ -447,23 +574,126 @@
         return removedEdgeIds.length ? { ...graphNode, portSlots: clearedPortSlots } : graphNode;
       }
 
-      const nextPortData = createPortSlotsFromBrick(brickDefinition.id);
-      return {
+      const currentDefinition = resolveBrickDefinition(graphNode).brickDefinition || getBrickDefinition(graphNode.brickId);
+      const nextCustomConfigText = brickDefinition.supportsInlineConfiguration
+        ? (graphNode.customConfigText?.trim() || buildInlineConfigurationTemplate(currentDefinition))
+        : "";
+      const resolvedDefinition = resolveBrickDefinition({
         ...graphNode,
         brickId: brickDefinition.id,
         brickName: brickDefinition.name,
-        brickImageSrc: brickDefinition.imageSrc,
-        brickType: brickDefinition.brick_type,
+        customConfigText: nextCustomConfigText,
+      });
+      const nextDefinition = resolvedDefinition.brickDefinition || brickDefinition;
+      const nextPortData = createPortSlotsFromDefinition(nextDefinition);
+      return {
+        ...graphNode,
+        brickId: brickDefinition.id,
+        brickName: nextDefinition.name,
+        brickImageSrc: nextDefinition.imageSrc,
+        brickType: nextDefinition.brick_type,
+        hideStructurePreview: Boolean(nextDefinition.hideStructurePreview),
+        lockPortAssignments: Boolean(nextDefinition.lockPortAssignments),
+        supportsInlineConfiguration: Boolean(nextDefinition.supportsInlineConfiguration),
+        customConfigText: nextCustomConfigText,
+        customConfigError: resolvedDefinition.customConfigError,
         portPool: nextPortData.portPool,
         nport: nextPortData.portSlots.length,
         portSlots: nextPortData.portSlots,
       };
     });
 
+    ui.selectedEdgeIds = new Set(
+      [...ui.selectedEdgeIds].filter((edgeId) => !removedEdgeIds.includes(edgeId)),
+    );
     ui.selectedNodeIds = new Set([nodeId]);
     renderNodes();
     frontend.notifyGraphChanged({ reason: "node-brick-type" });
     return { updated: true, removedEdgeCount: removedEdgeIds.length, brickName: brickDefinition.name };
+  }
+
+  function setNodeCustomConfiguration(nodeId, customConfigText) {
+    const graph = frontend.getGraphState();
+    const ui = frontend.getUiState();
+    const node = findNode(nodeId);
+
+    if (!node || !node.supportsInlineConfiguration || node.customConfigText === customConfigText) {
+      return { updated: false, error: "", removedEdgeCount: 0, brickName: node?.brickName || "" };
+    }
+
+    const resolvedDefinition = resolveBrickDefinition({
+      ...node,
+      customConfigText,
+    });
+
+    if (resolvedDefinition.customConfigError) {
+      graph.nodes = graph.nodes.map((graphNode) => (
+        graphNode.id === nodeId
+          ? {
+            ...graphNode,
+            customConfigText,
+            customConfigError: resolvedDefinition.customConfigError,
+          }
+          : graphNode
+      ));
+
+      renderNodes();
+      frontend.notifyGraphChanged({ reason: "node-custom-configuration", nodeId, invalid: true });
+      return {
+        updated: true,
+        error: resolvedDefinition.customConfigError,
+        removedEdgeCount: 0,
+        brickName: node.brickName,
+      };
+    }
+
+    const removedEdgeIds = graph.edges
+      .filter((edge) => edge.from.nodeId === nodeId || edge.to.nodeId === nodeId)
+      .map((edge) => edge.id);
+
+    graph.edges = graph.edges.filter((edge) => !removedEdgeIds.includes(edge.id));
+    graph.nodes = graph.nodes.map((graphNode) => {
+      const clearedPortSlots = removedEdgeIds.length
+        ? graphNode.portSlots.map((slot) => (
+          removedEdgeIds.includes(slot.edgeId) ? { ...slot, edgeId: null } : slot
+        ))
+        : graphNode.portSlots;
+
+      if (graphNode.id !== nodeId) {
+        return removedEdgeIds.length ? { ...graphNode, portSlots: clearedPortSlots } : graphNode;
+      }
+
+      const nextDefinition = resolvedDefinition.brickDefinition;
+      const nextPortData = createPortSlotsFromDefinition(nextDefinition);
+      return {
+        ...graphNode,
+        brickId: USER_DEFINED_BRICK_ID,
+        brickName: nextDefinition.name,
+        brickImageSrc: nextDefinition.imageSrc,
+        brickType: nextDefinition.brick_type,
+        hideStructurePreview: Boolean(nextDefinition.hideStructurePreview),
+        lockPortAssignments: Boolean(nextDefinition.lockPortAssignments),
+        supportsInlineConfiguration: Boolean(nextDefinition.supportsInlineConfiguration),
+        customConfigText,
+        customConfigError: "",
+        portPool: nextPortData.portPool,
+        nport: nextPortData.portSlots.length,
+        portSlots: nextPortData.portSlots,
+      };
+    });
+
+    ui.selectedEdgeIds = new Set(
+      [...ui.selectedEdgeIds].filter((edgeId) => !removedEdgeIds.includes(edgeId)),
+    );
+    ui.selectedNodeIds = new Set([nodeId]);
+    renderNodes();
+    frontend.notifyGraphChanged({ reason: "node-custom-configuration", nodeId });
+    return {
+      updated: true,
+      error: "",
+      removedEdgeCount: removedEdgeIds.length,
+      brickName: resolvedDefinition.brickDefinition.name,
+    };
   }
 
   function handleNodeTypeChange(event) {
@@ -520,6 +750,29 @@
     );
   }
 
+  function handleNodeCustomConfigurationChange(event) {
+    const textarea = event.target.closest(".node-inline-config-input");
+    if (!textarea) {
+      return;
+    }
+
+    const nodeId = Number(textarea.dataset.nodeId);
+    const result = setNodeCustomConfiguration(nodeId, textarea.value);
+    if (!result.updated) {
+      return;
+    }
+
+    if (result.error) {
+      frontend.setCanvasMessage(result.error);
+      return;
+    }
+
+    const removedEdgeCopy = result.removedEdgeCount > 0
+      ? ` ${result.removedEdgeCount} edge(s) cleared.`
+      : "";
+    frontend.setCanvasMessage(`Node ${nodeId} definition applied as ${result.brickName}.${removedEdgeCopy}`);
+  }
+
   function bindNodeControlEvents() {
     dom.nodeContainer.addEventListener("pointerdown", (event) => {
       if (event.target.closest(".node-control")) {
@@ -540,6 +793,11 @@
 
       if (event.target.closest(".node-start-toggle")) {
         handleNodeStartStateChange(event);
+        return;
+      }
+
+      if (event.target.closest(".node-inline-config-input")) {
+        handleNodeCustomConfigurationChange(event);
       }
     });
   }
@@ -574,6 +832,7 @@
                   ${renderNodeTypeOptions(node.brickId)}
                 </select>
               </label>
+              ${node.supportsInlineConfiguration ? renderInlineConfigurationEditor(node) : ""}
               ${node.hideStructurePreview ? "" : `
               <div class="node-structure-preview">
                 ${renderStructurePreview(node)}
@@ -732,6 +991,7 @@
   frontend.getSlotPortLabel = getSlotPortLabel;
   frontend.updateNodePortEdge = updateNodePortEdge;
   frontend.setNodeBrickName = setNodeBrickName;
+  frontend.setNodeCustomConfiguration = setNodeCustomConfiguration;
   frontend.setNodeStartState = setNodeStartState;
   frontend.renderNodes = renderNodes;
   frontend.setSelectedNodes = setSelectedNodes;

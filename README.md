@@ -14,6 +14,8 @@
 
 brickene – A flow-graph based visual builder for block-assembled organic molecules.
 
+![Preview image](./assets/images/preview.png)
+
 </div>
 
 ## Quick start

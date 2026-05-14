@@ -4,12 +4,8 @@
   let activeRenderRequestId = 0;
   let activePreviewUrl = null;
 
-  function getSmilesApiUrl() {
-    return frontend.config.renderApiUrl.replace(/\/render\/?$/, "/smiles");
-  }
-
   async function requestRenderPreview(detail = {}) {
-    if (!dom.renderPreviewWindow || !dom.renderPreviewMeta || !dom.renderPreviewImage) {
+    if (!dom.renderPreviewWindow || !dom.renderPreviewImage) {
       return;
     }
 
@@ -17,37 +13,20 @@
     const requestId = ++activeRenderRequestId;
 
     try {
-      const [imageResponse, smilesResponse] = await Promise.all([
-        fetch(frontend.config.renderApiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }),
-        fetch(getSmilesApiUrl(), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }),
-      ]);
+      const imageResponse = await fetch(frontend.config.renderApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!imageResponse.ok) {
         const errorPayload = await readRenderError(imageResponse);
         throw new Error(errorPayload);
       }
 
-      if (!smilesResponse.ok) {
-        const errorPayload = await readRenderError(smilesResponse);
-        throw new Error(errorPayload);
-      }
-
-      const [imageBlob, smilesPayload] = await Promise.all([
-        imageResponse.blob(),
-        smilesResponse.json(),
-      ]);
+      const imageBlob = await imageResponse.blob();
       if (requestId !== activeRenderRequestId) {
         return;
       }
@@ -60,7 +39,9 @@
       dom.renderPreviewImage.src = activePreviewUrl;
       dom.renderPreviewImage.hidden = false;
       dom.renderPreviewWindow.dataset.previewState = "ready";
-      dom.renderPreviewMeta.textContent = smilesPayload.smiles || "";
+      if (dom.renderPreviewMeta) {
+        dom.renderPreviewMeta.textContent = "";
+      }
     } catch (error) {
       if (requestId !== activeRenderRequestId) {
         return;
@@ -68,12 +49,14 @@
 
       dom.renderPreviewImage.hidden = true;
       dom.renderPreviewWindow.dataset.previewState = "error";
-      dom.renderPreviewMeta.textContent = error instanceof Error ? error.message : "Render request failed.";
+      if (dom.renderPreviewMeta) {
+        dom.renderPreviewMeta.textContent = error instanceof Error ? error.message : "Render request failed.";
+      }
     }
   }
 
   function refreshRenderPreview(detail = {}) {
-    if (!dom.renderPreviewWindow || !dom.renderPreviewMeta || !dom.renderPreviewImage) {
+    if (!dom.renderPreviewWindow || !dom.renderPreviewImage) {
       return;
     }
 
@@ -81,7 +64,9 @@
     dom.renderPreviewWindow.dataset.previewState = "pending";
     dom.renderPreviewWindow.dataset.changeReason = reason;
     dom.renderPreviewImage.hidden = true;
-    dom.renderPreviewMeta.textContent = "Rendering SMILES...";
+    if (dom.renderPreviewMeta) {
+      dom.renderPreviewMeta.textContent = "Rendering preview...";
+    }
     requestRenderPreview(detail);
   }
 

@@ -551,6 +551,11 @@ textarea {
   gap: 0.28rem;
 }
 
+.node-inline-config-field {
+  display: grid;
+  gap: 0.28rem;
+}
+
 .node-type-label,
 .node-structure-preview-label {
   margin: 0;
@@ -573,6 +578,39 @@ textarea {
 .node-type-select:focus-visible {
   outline: 2px solid var(--border);
   outline-offset: 2px;
+}
+
+.node-control,
+.node-control * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.node-inline-config-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 7rem;
+  padding: 0.48rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+}
+
+.node-inline-config-input:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 2px;
+}
+
+.node-inline-config-feedback {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.node-inline-config-feedback.is-error {
+  color: #7a1010;
 }
 
 .node-structure-preview {

@@ -119,13 +119,12 @@
       return null;
     }
 
-    const worldRect = dom.componentWorld.getBoundingClientRect();
     const portRect = portElement.getBoundingClientRect();
 
-    return {
-      x: portRect.left - worldRect.left + portRect.width / 2,
-      y: portRect.top - worldRect.top + portRect.height / 2,
-    };
+    return frontend.clientToWorldPoint(
+      portRect.left + portRect.width / 2,
+      portRect.top + portRect.height / 2,
+    );
   }
 
   function findHoveredPort(clientX, clientY) {

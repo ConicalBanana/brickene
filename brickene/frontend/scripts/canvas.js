@@ -6,6 +6,7 @@
   const PORT_COMMAND_RESULT_LIMIT = 12;
   const PORT_COMMAND_NODE_GAP = 96;
   let activePortCommand = null;
+  let activeCanvasNodeMenu = null;
 
   function isPrimaryShortcutPressed(event) {
     return frontend.platform?.isMacOS ? event.metaKey : event.ctrlKey;
@@ -925,17 +926,62 @@
     });
   }
 
-  function renderCanvasNodeMenuCandidates(query = "") {
+  function getSelectedCanvasNodeCandidate() {
+    if (!activeCanvasNodeMenu?.candidates.length) {
+      return null;
+    }
+
+    return activeCanvasNodeMenu.candidates[activeCanvasNodeMenu.selectedIndex] || null;
+  }
+
+  function createSelectedCanvasNodeCandidate() {
+    const candidate = getSelectedCanvasNodeCandidate();
+
+    if (!candidate) {
+      return false;
+    }
+
+    createNodeAtContextTarget(candidate.id);
+    frontend.closeAllContextMenus();
+    return true;
+  }
+
+  function renderCanvasNodeMenuCandidates(query = "", options = {}) {
     const nodeList = dom.canvasNodeCategoryMenu?.querySelector(".context-portal-menu-list");
 
     if (!nodeList) {
       return;
     }
 
-    const candidates = getPortCommandCandidates(query);
+    if (!activeCanvasNodeMenu) {
+      activeCanvasNodeMenu = {
+        candidates: [],
+        selectedIndex: 0,
+      };
+    }
+
+    const preserveSelection = Boolean(options.preserveSelection);
+    const previousCandidateId = preserveSelection ? getSelectedCanvasNodeCandidate()?.id : null;
+
+    activeCanvasNodeMenu.candidates = getPortCommandCandidates(query);
+    if (!activeCanvasNodeMenu.candidates.length) {
+      activeCanvasNodeMenu.selectedIndex = 0;
+      nodeList.replaceChildren(buildContextMenuEmptyState("No matching nodes."));
+      return;
+    }
+
+    if (previousCandidateId) {
+      const nextIndex = activeCanvasNodeMenu.candidates.findIndex((candidate) => candidate.id === previousCandidateId);
+      activeCanvasNodeMenu.selectedIndex = nextIndex >= 0 ? nextIndex : 0;
+    } else {
+      activeCanvasNodeMenu.selectedIndex = Math.min(
+        activeCanvasNodeMenu.selectedIndex,
+        activeCanvasNodeMenu.candidates.length - 1,
+      );
+    }
+
     nodeList.replaceChildren(
-      ...(candidates.length
-        ? candidates.map((candidate) => {
+      ...activeCanvasNodeMenu.candidates.map((candidate, index) => {
           const button = document.createElement("button");
           const aliasText = Array.isArray(candidate.definition?.alias) && candidate.definition.alias.length
             ? candidate.definition.alias.join(", ")
@@ -944,14 +990,37 @@
 
           button.type = "button";
           button.className = "port-command-option context-portal-entry";
+          button.dataset.candidateIndex = String(index);
           button.dataset.brickId = candidate.id;
-          button.setAttribute("role", "menuitem");
+          button.setAttribute("role", "option");
+          button.setAttribute("aria-selected", index === activeCanvasNodeMenu.selectedIndex ? "true" : "false");
+          if (index === activeCanvasNodeMenu.selectedIndex) {
+            button.classList.add("is-selected");
+          }
           button.innerHTML = meta
             ? `<span class="port-command-option-title">${candidate.definition?.name || candidate.label}</span><span class="port-command-option-meta">${meta}</span>`
             : `<span class="port-command-option-title">${candidate.definition?.name || candidate.label}</span>`;
           return button;
-        })
-        : [buildContextMenuEmptyState("No matching nodes.")]),
+      }),
+    );
+
+    nodeList
+      .querySelector(`[data-candidate-index="${activeCanvasNodeMenu.selectedIndex}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }
+
+  function moveCanvasNodeMenuSelection(direction) {
+    if (!activeCanvasNodeMenu?.candidates.length) {
+      return;
+    }
+
+    const candidateCount = activeCanvasNodeMenu.candidates.length;
+    activeCanvasNodeMenu.selectedIndex = (
+      activeCanvasNodeMenu.selectedIndex + direction + candidateCount
+    ) % candidateCount;
+    renderCanvasNodeMenuCandidates(
+      dom.canvasNodeCategoryMenu?.querySelector(".context-portal-query-input")?.value || "",
+      { preserveSelection: true },
     );
   }
 
@@ -981,6 +1050,10 @@
     queryLabel.appendChild(queryInput);
     queryWrap.appendChild(queryLabel);
     dom.canvasNodeCategoryMenu.replaceChildren(queryWrap, nodeList);
+    activeCanvasNodeMenu = {
+      candidates: [],
+      selectedIndex: 0,
+    };
     renderCanvasNodeMenuCandidates();
   }
 
@@ -1055,7 +1128,36 @@
         return;
       }
 
+      activeCanvasNodeMenu = {
+        candidates: activeCanvasNodeMenu?.candidates || [],
+        selectedIndex: 0,
+      };
       renderCanvasNodeMenuCandidates(queryInput.value);
+    });
+
+    dom.canvasNodeCategoryMenu?.addEventListener("keydown", (event) => {
+      const queryInput = event.target.closest(".context-portal-query-input");
+
+      if (!queryInput) {
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        moveCanvasNodeMenuSelection(1);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        moveCanvasNodeMenuSelection(-1);
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        createSelectedCanvasNodeCandidate();
+      }
     });
 
     dom.canvasNodeCategoryMenu?.addEventListener("mousedown", (event) => {
@@ -1074,8 +1176,10 @@
         return;
       }
 
-      createNodeAtContextTarget(nodeEntry.dataset.brickId || "");
-      frontend.closeAllContextMenus();
+      if (activeCanvasNodeMenu) {
+        activeCanvasNodeMenu.selectedIndex = Number(nodeEntry.dataset.candidateIndex || 0);
+      }
+      createSelectedCanvasNodeCandidate();
     });
   }
 

@@ -34,7 +34,7 @@
     submenuMap: {
       file: ["New", "|", "Open", "Open recently", "Save"],
       edit: ["Undo", "Redo", "|", "Copy", "Paste", "Delete", "Create new node"],
-      node: ["Create node", "Open node wizard", "|", "Ports", "Edges", "Presets"],
+      node: ["Create node", "Open node wizard"],
       view: ["Center canvas", "Grid", "Legend"],
     },
     stateMap: {
@@ -95,6 +95,9 @@
     canvasNodePortal: document.getElementById("canvas-node-portal"),
     canvasNodePortalTrigger: document.getElementById("canvas-node-portal-trigger"),
     canvasNodeCategoryMenu: document.getElementById("canvas-node-category-menu"),
+    portCommandPanel: document.getElementById("port-command-panel"),
+    portCommandInput: document.getElementById("port-command-input"),
+    portCommandList: document.getElementById("port-command-list"),
     nodeContextMenu: document.getElementById("node-context-menu"),
     edgeContextMenu: document.getElementById("edge-context-menu"),
     canvasContextItems: document.querySelectorAll("#canvas-context-menu > .context-menu-item"),
@@ -120,6 +123,7 @@
       isSpacePressed: false,
       panHandlersBound: false,
       canvasContextTarget: { x: 120, y: 120 },
+      hoveredPort: null,
       activeNodeContextId: null,
       activeEdgeContextId: null,
     },

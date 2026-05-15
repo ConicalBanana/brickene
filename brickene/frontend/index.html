@@ -108,6 +108,19 @@
             <div class="menu-separator context-menu-separator" role="separator"></div>
             <button type="button" class="context-menu-item edge-context-item" data-action="close">Close menu</button>
           </div>
+
+          <div id="port-command-panel" class="port-command-panel" hidden>
+            <label class="port-command-label" for="port-command-input">Port command</label>
+            <input
+              id="port-command-input"
+              class="port-command-input"
+              type="text"
+              placeholder="Search nodes by name or alias"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <div id="port-command-list" class="port-command-list" role="listbox" aria-label="Port command matches"></div>
+          </div>
         </div>
       </main>
     </div>

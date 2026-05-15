@@ -553,8 +553,9 @@
 
   function renderPortAssignmentControl(node, slot) {
     const slotPortLabel = getSlotPortLabel(node, slot);
+    const effectiveSide = getEffectiveSlotSide(node, slot);
 
-    if (node.lockPortAssignments) {
+    if (node.lockPortAssignments || effectiveSide !== "left") {
       return `<p class="node-port-name">${escapeHtml(slotPortLabel)}</p>`;
     }
 

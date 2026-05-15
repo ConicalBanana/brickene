@@ -3,6 +3,9 @@
   const { dom } = frontend;
   const AUTO_PAN_BOUNDARY_RATIO = 0.05;
   const AUTO_PAN_MAX_STEP = 28;
+  const PORT_COMMAND_RESULT_LIMIT = 12;
+  const PORT_COMMAND_NODE_GAP = 96;
+  let activePortCommand = null;
 
   function isPrimaryShortcutPressed(event) {
     return frontend.platform?.isMacOS ? event.metaKey : event.ctrlKey;
@@ -537,10 +540,271 @@
     );
   }
 
-  function getCanvasNodeCategoryGroups() {
-    return typeof frontend.getBrickTypeGroups === "function"
+  function getPortElement(nodeId, slotId) {
+    return dom.nodeContainer.querySelector(
+      `.node-port[data-node-id="${nodeId}"][data-slot-id="${slotId}"]`,
+    );
+  }
+
+  function setHoveredPort(portReference) {
+    frontend.getUiState().hoveredPort = portReference
+      ? { nodeId: portReference.nodeId, slotId: portReference.slotId }
+      : null;
+  }
+
+  function updateHoveredPortFromTarget(target) {
+    if (!(target instanceof Element)) {
+      setHoveredPort(null);
+      return;
+    }
+
+    const portElement = target.closest(".node-port");
+    if (!portElement) {
+      setHoveredPort(null);
+      return;
+    }
+
+    setHoveredPort({
+      nodeId: Number(portElement.dataset.nodeId),
+      slotId: Number(portElement.dataset.slotId),
+    });
+  }
+
+  function getPortCommandCatalog() {
+    const groups = typeof frontend.getBrickTypeGroups === "function"
       ? frontend.getBrickTypeGroups()
       : [];
+
+    return groups.flatMap((group) => group.options.map((option) => ({
+      id: option.id,
+      label: option.label,
+      definition: option.definition,
+      groupLabel: group.label,
+    })));
+  }
+
+  function getPortCommandCandidates(query) {
+    const normalizedQuery = normalizeNodeQueryValue(query);
+    const catalog = getPortCommandCatalog();
+
+    return (normalizedQuery
+      ? catalog.filter((option) => matchesNodeQuery(option, normalizedQuery))
+      : catalog)
+      .slice(0, PORT_COMMAND_RESULT_LIMIT);
+  }
+
+  function getSelectedPortCommandCandidate() {
+    if (!activePortCommand?.candidates.length) {
+      return null;
+    }
+
+    return activePortCommand.candidates[activePortCommand.selectedIndex] || null;
+  }
+
+  function renderPortCommandCandidates() {
+    if (!dom.portCommandList) {
+      return;
+    }
+
+    const candidates = activePortCommand?.candidates || [];
+    if (!candidates.length) {
+      dom.portCommandList.replaceChildren(buildContextMenuEmptyState("No matching nodes."));
+      return;
+    }
+
+    dom.portCommandList.replaceChildren(
+      ...candidates.map((candidate, index) => {
+        const button = buildContextMenuButton(candidate.definition?.name || candidate.label, "port-command-option");
+        const aliasText = Array.isArray(candidate.definition?.alias) && candidate.definition.alias.length
+          ? candidate.definition.alias.join(", ")
+          : "";
+        const meta = [candidate.groupLabel, aliasText].filter(Boolean).join(" • ");
+
+        button.dataset.candidateIndex = String(index);
+        button.setAttribute("role", "option");
+        button.setAttribute("aria-selected", index === activePortCommand.selectedIndex ? "true" : "false");
+        if (index === activePortCommand.selectedIndex) {
+          button.classList.add("is-selected");
+        }
+        button.innerHTML = meta
+          ? `<span class="port-command-option-title">${candidate.definition?.name || candidate.label}</span><span class="port-command-option-meta">${meta}</span>`
+          : `<span class="port-command-option-title">${candidate.definition?.name || candidate.label}</span>`;
+        return button;
+      }),
+    );
+  }
+
+  function refreshPortCommandCandidates(options = {}) {
+    if (!activePortCommand) {
+      return;
+    }
+
+    const preserveSelection = Boolean(options.preserveSelection);
+    const previousCandidateId = preserveSelection ? getSelectedPortCommandCandidate()?.id : null;
+    activePortCommand.candidates = getPortCommandCandidates(dom.portCommandInput?.value || "");
+
+    if (!activePortCommand.candidates.length) {
+      activePortCommand.selectedIndex = 0;
+      renderPortCommandCandidates();
+      return;
+    }
+
+    if (previousCandidateId) {
+      const nextIndex = activePortCommand.candidates.findIndex((candidate) => candidate.id === previousCandidateId);
+      activePortCommand.selectedIndex = nextIndex >= 0 ? nextIndex : 0;
+    } else {
+      activePortCommand.selectedIndex = Math.min(
+        activePortCommand.selectedIndex,
+        activePortCommand.candidates.length - 1,
+      );
+    }
+
+    renderPortCommandCandidates();
+  }
+
+  function positionPortCommandPanel(portReference) {
+    if (!dom.portCommandPanel) {
+      return;
+    }
+
+    const portElement = getPortElement(portReference.nodeId, portReference.slotId);
+    const viewportRect = dom.canvasViewport?.getBoundingClientRect();
+    if (!portElement || !viewportRect) {
+      return;
+    }
+
+    const portRect = portElement.getBoundingClientRect();
+    const panelWidth = dom.portCommandPanel.offsetWidth || 320;
+    const panelHeight = dom.portCommandPanel.offsetHeight || 220;
+    const preferredLeft = portRect.right - viewportRect.left + 12;
+    const fallbackLeft = portRect.left - viewportRect.left - panelWidth - 12;
+    const maxLeft = viewportRect.width - panelWidth - 8;
+    const left = preferredLeft <= maxLeft ? preferredLeft : Math.max(8, fallbackLeft);
+    const top = Math.min(
+      Math.max(8, portRect.top - viewportRect.top),
+      viewportRect.height - panelHeight - 8,
+    );
+
+    dom.portCommandPanel.style.left = `${left}px`;
+    dom.portCommandPanel.style.top = `${top}px`;
+  }
+
+  function schedulePortCommandEdgeRefresh(nodeId) {
+    window.requestAnimationFrame(() => {
+      frontend.renderEdges();
+
+      const structureImage = dom.nodeContainer.querySelector(
+        `.node-component[data-node-id="${nodeId}"] .node-structure-image`,
+      );
+
+      if (!structureImage || structureImage.complete) {
+        return;
+      }
+
+      structureImage.addEventListener("load", () => {
+        frontend.renderEdges();
+      }, { once: true });
+    });
+  }
+
+  function closePortCommandPanel(options = {}) {
+    if (!activePortCommand || !dom.portCommandPanel || !dom.portCommandInput || !dom.portCommandList) {
+      activePortCommand = null;
+      return;
+    }
+
+    activePortCommand = null;
+    dom.portCommandPanel.hidden = true;
+    dom.portCommandInput.value = "";
+    dom.portCommandList.replaceChildren();
+    if (options.restoreFocus) {
+      dom.canvasViewport.focus?.();
+    }
+  }
+
+  function createNodeFromPortCommand(candidate) {
+    const sourcePort = activePortCommand?.sourcePort;
+    if (!candidate || !sourcePort) {
+      return false;
+    }
+
+    const sourceNode = frontend.findNode(sourcePort.nodeId);
+    const sourceSlot = frontend.findPortSlot(sourcePort.nodeId, sourcePort.slotId);
+    if (!sourceNode || !sourceSlot) {
+      frontend.setCanvasMessage("Port no longer exists.");
+      closePortCommandPanel();
+      return false;
+    }
+
+    const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
+    const direction = sourceSide === "left" ? -1 : 1;
+    const newNode = frontend.createNodeAt(
+      sourceNode.x + direction * (frontend.config.nodeSize.width + PORT_COMMAND_NODE_GAP),
+      sourceNode.y,
+      { brickId: candidate.id },
+    );
+
+    const desiredSide = sourceSide === "left" ? "right" : "left";
+    const newSlot = newNode.portSlots.find((slot) => frontend.getEffectiveSlotSide(newNode, slot) === desiredSide);
+    let connectMessage = "";
+
+    if (sourceSlot.edgeId !== null) {
+      connectMessage = " Port already occupied; new node left unconnected.";
+    } else if (!newSlot) {
+      connectMessage = " No compatible port found on the new node.";
+    } else {
+      const result = sourceSide === "left"
+        ? frontend.createEdgeBetweenPorts(
+          { nodeId: newNode.id, slotId: newSlot.id },
+          { nodeId: sourceNode.id, slotId: sourceSlot.id },
+        )
+        : frontend.createEdgeBetweenPorts(
+          { nodeId: sourceNode.id, slotId: sourceSlot.id },
+          { nodeId: newNode.id, slotId: newSlot.id },
+        );
+
+      if (!result.success) {
+        connectMessage = ` ${result.message}`;
+      }
+    }
+
+    frontend.setCanvasMessage(
+      `Node ${newNode.id} (${newNode.brickName}) created from port ${sourceNode.id}:${sourceSlot.id}.${connectMessage}`,
+    );
+    schedulePortCommandEdgeRefresh(newNode.id);
+    closePortCommandPanel();
+    return true;
+  }
+
+  function openPortCommandPanel(portReference) {
+    if (!portReference || !dom.portCommandPanel || !dom.portCommandInput) {
+      return false;
+    }
+
+    frontend.closeAllContextMenus();
+    activePortCommand = {
+      sourcePort: { ...portReference },
+      candidates: [],
+      selectedIndex: 0,
+    };
+    dom.portCommandPanel.hidden = false;
+    positionPortCommandPanel(portReference);
+    dom.portCommandInput.value = "";
+    refreshPortCommandCandidates();
+    dom.portCommandInput.focus();
+    dom.portCommandInput.select();
+    frontend.setCanvasMessage(`Port command opened for node ${portReference.nodeId}, slot ${portReference.slotId}.`);
+    return true;
+  }
+
+  function movePortCommandSelection(direction) {
+    if (!activePortCommand?.candidates.length) {
+      return;
+    }
+
+    const candidateCount = activePortCommand.candidates.length;
+    activePortCommand.selectedIndex = (activePortCommand.selectedIndex + direction + candidateCount) % candidateCount;
+    renderPortCommandCandidates();
   }
 
   function buildContextMenuButton(label, className = "context-menu-item") {
@@ -627,75 +891,6 @@
     });
   }
 
-  function renderCategoryNodeEntries(categoryPortal, options, normalizedQuery = "") {
-    const nodeList = categoryPortal.querySelector(".context-portal-menu-list");
-
-    if (!nodeList) {
-      return;
-    }
-
-    const filteredOptions = normalizedQuery
-      ? options.filter((option) => matchesNodeQuery(option, normalizedQuery))
-      : options;
-
-    nodeList.replaceChildren(
-      ...(filteredOptions.length
-        ? filteredOptions.map((option) => {
-          const button = buildContextMenuButton(option.label, "context-menu-item context-portal-entry");
-
-          button.dataset.brickId = option.id;
-          return button;
-        })
-        : [buildContextMenuEmptyState("No nodes match the query.")]),
-    );
-  }
-
-  function buildCategoryPortal(group) {
-    const portal = document.createElement("div");
-    const trigger = buildContextMenuButton(group.label, "context-menu-item context-menu-portal-trigger");
-    const tertiaryMenu = document.createElement("div");
-    const queryWrap = document.createElement("div");
-    const queryLabel = document.createElement("label");
-    const queryInput = document.createElement("input");
-    const nodeList = document.createElement("div");
-
-    portal.className = "context-menu-portal";
-    portal.dataset.portalKey = `category-${group.label.toLowerCase()}`;
-
-    trigger.dataset.category = group.label;
-    trigger.setAttribute("aria-haspopup", "true");
-    trigger.setAttribute("aria-expanded", "false");
-
-    tertiaryMenu.className = "context-portal-menu context-portal-menu-tertiary";
-    tertiaryMenu.setAttribute("role", "menu");
-    tertiaryMenu.setAttribute("aria-label", `${group.label} nodes`);
-
-    queryWrap.className = "context-portal-query";
-    queryLabel.className = "context-portal-query-label";
-    queryLabel.textContent = "Query nodes";
-
-    queryInput.className = "context-portal-query-input";
-    queryInput.type = "search";
-    queryInput.placeholder = "Search nodes";
-    queryInput.autocomplete = "off";
-    queryInput.spellcheck = false;
-    queryInput.setAttribute("aria-label", `${group.label} node query`);
-
-    queryLabel.appendChild(queryInput);
-    queryWrap.appendChild(queryLabel);
-
-    nodeList.className = "context-portal-menu-list";
-
-    queryInput.addEventListener("input", () => {
-      renderCategoryNodeEntries(portal, group.options, normalizeNodeQueryValue(queryInput.value));
-    });
-
-    tertiaryMenu.append(queryWrap, nodeList);
-    portal.append(trigger, tertiaryMenu);
-    renderCategoryNodeEntries(portal, group.options);
-    return portal;
-  }
-
   function registerContextMenuPortal(portal) {
     if (!portal || portal.dataset.portalBound === "true") {
       return;
@@ -730,19 +925,63 @@
     });
   }
 
+  function renderCanvasNodeMenuCandidates(query = "") {
+    const nodeList = dom.canvasNodeCategoryMenu?.querySelector(".context-portal-menu-list");
+
+    if (!nodeList) {
+      return;
+    }
+
+    const candidates = getPortCommandCandidates(query);
+    nodeList.replaceChildren(
+      ...(candidates.length
+        ? candidates.map((candidate) => {
+          const button = document.createElement("button");
+          const aliasText = Array.isArray(candidate.definition?.alias) && candidate.definition.alias.length
+            ? candidate.definition.alias.join(", ")
+            : "";
+          const meta = [candidate.groupLabel, aliasText].filter(Boolean).join(" • ");
+
+          button.type = "button";
+          button.className = "port-command-option context-portal-entry";
+          button.dataset.brickId = candidate.id;
+          button.setAttribute("role", "menuitem");
+          button.innerHTML = meta
+            ? `<span class="port-command-option-title">${candidate.definition?.name || candidate.label}</span><span class="port-command-option-meta">${meta}</span>`
+            : `<span class="port-command-option-title">${candidate.definition?.name || candidate.label}</span>`;
+          return button;
+        })
+        : [buildContextMenuEmptyState("No matching nodes.")]),
+    );
+  }
+
   function renderCanvasNodeCategoryMenu() {
     if (!dom.canvasNodeCategoryMenu) {
       return;
     }
 
-    const groups = getCanvasNodeCategoryGroups();
+    const queryWrap = document.createElement("div");
+    const queryLabel = document.createElement("label");
+    const queryInput = document.createElement("input");
+    const nodeList = document.createElement("div");
 
-    dom.canvasNodeCategoryMenu.replaceChildren(
-      ...(groups.length
-        ? groups.map((group) => buildCategoryPortal(group))
-        : [buildContextMenuEmptyState("No node categories are available.")]),
-    );
-    registerContextMenuPortals(dom.canvasNodeCategoryMenu);
+    queryWrap.className = "context-portal-query";
+    queryLabel.className = "context-portal-query-label";
+    queryLabel.textContent = "Query nodes";
+
+    queryInput.className = "context-portal-query-input";
+    queryInput.type = "search";
+    queryInput.placeholder = "Search nodes by name or alias";
+    queryInput.autocomplete = "off";
+    queryInput.spellcheck = false;
+    queryInput.setAttribute("aria-label", "Canvas node query");
+
+    nodeList.className = "context-portal-menu-list";
+
+    queryLabel.appendChild(queryInput);
+    queryWrap.appendChild(queryLabel);
+    dom.canvasNodeCategoryMenu.replaceChildren(queryWrap, nodeList);
+    renderCanvasNodeMenuCandidates();
   }
 
   function prepareCanvasContextMenu() {
@@ -809,6 +1048,25 @@
   }
 
   function bindCanvasNodeMenuActions() {
+    dom.canvasNodeCategoryMenu?.addEventListener("input", (event) => {
+      const queryInput = event.target.closest(".context-portal-query-input");
+
+      if (!queryInput) {
+        return;
+      }
+
+      renderCanvasNodeMenuCandidates(queryInput.value);
+    });
+
+    dom.canvasNodeCategoryMenu?.addEventListener("mousedown", (event) => {
+      if (!event.target.closest("[data-brick-id]")) {
+        return;
+      }
+
+      // Keep the portal open long enough for the subsequent click handler to fire.
+      event.preventDefault();
+    });
+
     dom.canvasNodeCategoryMenu?.addEventListener("click", (event) => {
       const nodeEntry = event.target.closest("[data-brick-id]");
 
@@ -818,6 +1076,60 @@
 
       createNodeAtContextTarget(nodeEntry.dataset.brickId || "");
       frontend.closeAllContextMenus();
+    });
+  }
+
+  function bindPortCommandEvents() {
+    dom.portCommandInput?.addEventListener("input", () => {
+      refreshPortCommandCandidates({ preserveSelection: true });
+    });
+
+    dom.portCommandInput?.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        movePortCommandSelection(1);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        movePortCommandSelection(-1);
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        createNodeFromPortCommand(getSelectedPortCommandCandidate());
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closePortCommandPanel({ restoreFocus: true });
+      }
+    });
+
+    dom.portCommandList?.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+    });
+
+    dom.portCommandList?.addEventListener("click", (event) => {
+      const option = event.target.closest("[data-candidate-index]");
+      if (!option || !activePortCommand) {
+        return;
+      }
+
+      activePortCommand.selectedIndex = Number(option.dataset.candidateIndex);
+      renderPortCommandCandidates();
+      createNodeFromPortCommand(getSelectedPortCommandCandidate());
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!activePortCommand || dom.portCommandPanel?.contains(event.target)) {
+        return;
+      }
+
+      closePortCommandPanel();
     });
   }
 
@@ -982,6 +1294,17 @@
         return;
       }
 
+      if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "q") {
+        if (frontend.getUiState().componentInteraction || frontend.getUiState().canvasPanState) {
+          return;
+        }
+
+        if (openPortCommandPanel(frontend.getUiState().hoveredPort)) {
+          event.preventDefault();
+        }
+        return;
+      }
+
       if (event.code !== "Space") {
         return;
       }
@@ -1007,6 +1330,7 @@
       const ui = frontend.getUiState();
 
       ui.isSpacePressed = false;
+      closePortCommandPanel();
       cancelCanvasPan();
       cancelActiveInteraction();
       syncPanShortcutState();
@@ -1029,6 +1353,7 @@
       if (
         ui.isSpacePressed
         || dom.canvasContextMenu.contains(event.target)
+        || dom.portCommandPanel?.contains(event.target)
         || dom.nodeContextMenu.contains(event.target)
         || dom.edgeContextMenu.contains(event.target)
       ) {
@@ -1117,6 +1442,8 @@
     });
 
     dom.canvasViewport.addEventListener("pointermove", (event) => {
+      updateHoveredPortFromTarget(event.target);
+
       const ui = frontend.getUiState();
       if (!ui.componentInteraction || event.pointerId !== ui.componentInteraction.pointerId) {
         return;
@@ -1132,6 +1459,9 @@
 
     dom.canvasViewport.addEventListener("pointerup", endComponentInteraction);
     dom.canvasViewport.addEventListener("pointercancel", endComponentInteraction);
+    dom.canvasViewport.addEventListener("pointerleave", () => {
+      setHoveredPort(null);
+    });
     dom.canvasViewport.addEventListener("contextmenu", (event) => {
       event.preventDefault();
     });
@@ -1156,6 +1486,7 @@
     bindContextMenuActionItems(dom.edgeContextItems, "edge");
     registerContextMenuPortals(dom.canvasContextMenu);
     bindCanvasNodeMenuActions();
+    bindPortCommandEvents();
   }
 
   function bootstrap() {

@@ -527,6 +527,7 @@ textarea {
 
 .node-port-column-right {
   align-content: start;
+  gap: 0.28rem;
 }
 
 .node-port-entry {
@@ -838,7 +839,15 @@ textarea {
 }
 
 .context-portal-menu-secondary {
-  min-width: 12rem;
+  min-width: 20rem;
+  max-height: min(24rem, calc(100vh - 5rem));
+  padding: 0;
+  overflow: hidden;
+}
+
+.context-menu-portal.is-open > .context-portal-menu-secondary {
+  display: flex;
+  flex-direction: column;
 }
 
 .context-portal-menu-tertiary {
@@ -905,6 +914,77 @@ textarea {
 
 .context-menu-separator {
   margin: 0.2rem 0;
+}
+
+.port-command-panel {
+  position: absolute;
+  z-index: 6;
+  width: 20rem;
+  max-width: calc(100% - 1rem);
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.port-command-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.port-command-input {
+  width: 100%;
+  padding: 0.48rem 0.56rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  font: inherit;
+}
+
+.port-command-input:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 1px;
+}
+
+.port-command-list {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.port-command-option {
+  display: grid;
+  gap: 0.16rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.port-command-option.is-selected,
+.port-command-option:hover,
+.port-command-option:focus-visible {
+  background: var(--border);
+  color: var(--surface);
+  outline: none;
+}
+
+.port-command-option-title {
+  font-size: 0.84rem;
+}
+
+.port-command-option-meta {
+  font-size: 0.68rem;
+  opacity: 0.78;
 }
 
 .canvas-viewport.is-edge-dragging,

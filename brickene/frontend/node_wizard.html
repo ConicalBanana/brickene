@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brickene Node Wizard</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./node_wizard.css" />
+    <script>
+      (() => {
+        const runtimeUrl = new URL(window.location.href);
+        const marvinPort = runtimeUrl.searchParams.get("marvinPort");
+        const marvinAssetUrl = (
+          runtimeUrl.searchParams.get("marvinUrl")
+          || (marvinPort ? `http://127.0.0.1:${marvinPort}` : "http://127.0.0.1:8080")
+        ).replace(/\/$/, "");
+        const marvinUrl = `${marvinAssetUrl}/`;
+        const brickConfigApiUrl = runtimeUrl.searchParams.get("brickConfigApiUrl")
+          || "http://127.0.0.1:8765/brick-config";
+        const marvinScriptUrls = [
+          `${marvinAssetUrl}/libs/react.production.min.js`,
+          `${marvinAssetUrl}/libs/react-dom.production.min.js`,
+          `${marvinAssetUrl}/marvin.js`,
+          `${marvinAssetUrl}/marvin-extensions/marvinDefaultSettings.js`,
+          `${marvinAssetUrl}/marvin-extensions/marvinLocalStorage.js`,
+        ];
+
+        window.BrickeneNodeWizardConfig = {
+          marvinUrl,
+          brickConfigApiUrl,
+        };
+        window.BrickeneNodeWizardMarvinReady = marvinScriptUrls.reduce(
+          (promise, scriptUrl) => promise.then(
+            () => new Promise((resolve, reject) => {
+              const script = document.createElement("script");
+              script.src = scriptUrl;
+              script.onload = () => resolve(scriptUrl);
+              script.onerror = () => reject(new Error(`Failed to load ${scriptUrl}.`));
+              document.head.append(script);
+            })
+          ),
+          Promise.resolve(),
+        );
+      })();
+    </script>
+    <script src="./node_wizard.js" defer></script>
+  </head>
+  <body class="node-wizard-page">
+    <div class="app-shell node-wizard-shell">
+      <header class="menu-region" aria-label="Node wizard header">
+        <div class="menu-row node-wizard-menu-row">
+          <div class="brand-block">
+            <p class="brand-label">Brickene</p>
+            <h1>Node Wizard</h1>
+          </div>
+
+          <div class="node-wizard-copy-block">
+            <p class="submenu-label">Structure editor</p>
+            <p class="node-wizard-subtitle">
+              Draw the attachment scaffold in Marvin, detect the exposed ports, then send the generated
+              user-defined node back to the main canvas.
+            </p>
+          </div>
+
+          <div class="menu-state node-wizard-status-wrap" aria-live="polite">
+            <span class="state-badge">External editor</span>
+            <p id="wizard-status" class="node-inline-config-feedback">Loading Marvin editor.</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="node-wizard-main" aria-label="Node wizard workspace">
+        <section class="node-wizard-panel node-wizard-editor-panel" aria-label="Chemical editor panel">
+          <div class="node-wizard-panel-header">
+            <p class="brand-label">Marvin</p>
+            <h2>Chemical structure</h2>
+          </div>
+          <div class="node-wizard-panel-body node-wizard-editor-body">
+            <div id="wizard-marvin-host" class="node-wizard-marvin-host" aria-label="Chemical drawing area"></div>
+          </div>
+        </section>
+
+        <aside class="node-wizard-panel node-wizard-config-panel" aria-label="Node configuration panel">
+          <div class="node-wizard-panel-header">
+            <p class="brand-label">Definition</p>
+            <h2>Metadata and ports</h2>
+          </div>
+          <div class="node-wizard-panel-body">
+            <form id="wizard-form" class="node-wizard-form">
+              <label class="node-type-field node-wizard-field">
+                <span class="node-type-label">Node name</span>
+                <input id="wizard-node-name" class="node-wizard-text-input" type="text" value="User defined" />
+              </label>
+
+              <label class="node-type-field node-wizard-field">
+                <span class="node-type-label">Aliases</span>
+                <input
+                  id="wizard-node-alias"
+                  class="node-wizard-text-input"
+                  type="text"
+                  placeholder="Comma-separated aliases"
+                />
+              </label>
+
+              <label class="node-type-field node-wizard-field">
+                <span class="node-type-label">Brick type</span>
+                <select id="wizard-brick-type" class="node-type-select">
+                  <option value="SKELETON">SKELETON</option>
+                  <option value="SIDE_CHAIN">SIDE_CHAIN</option>
+                  <option value="SUBSTITUENT">SUBSTITUENT</option>
+                  <option value="BRIDGE" selected>BRIDGE</option>
+                </select>
+              </label>
+
+              <section class="node-wizard-port-section" aria-label="Port configuration">
+                <div class="node-wizard-port-header">
+                  <div>
+                    <p class="node-type-label">Detected ports</p>
+                    <p class="node-inline-config-feedback">
+                      Attachment points are inferred from the Marvin-exported SMILES.
+                    </p>
+                  </div>
+                  <button type="button" id="wizard-generate" class="node-wizard-action-button node-wizard-action-button-primary">
+                    Detect ports
+                  </button>
+                </div>
+                <div id="wizard-port-config" class="node-wizard-port-config" aria-live="polite"></div>
+              </section>
+
+              <div class="node-wizard-action-row">
+                <button type="button" id="wizard-copy" class="node-wizard-action-button">
+                  Copy JSON
+                </button>
+                <button type="button" id="wizard-send" class="node-wizard-action-button node-wizard-action-button-primary">
+                  Send to canvas
+                </button>
+              </div>
+
+              <label class="node-inline-config-field node-wizard-field">
+                <span class="node-type-label">Generated node definition</span>
+                <textarea
+                  id="wizard-json-output"
+                  class="node-inline-config-input node-wizard-json-output"
+                  readonly
+                ></textarea>
+              </label>
+            </form>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

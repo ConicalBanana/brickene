@@ -409,6 +409,39 @@ def test_render_server_smiles_endpoint_returns_smiles(
     assert Chem.MolFromSmiles(body["smiles"]) is not None
 
 
+def test_render_server_brick_config_endpoint_returns_serialized_definition(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The brick-config endpoint should convert one SMILES string to node JSON."""
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/brick-config",
+        body=json.dumps(
+            {
+                "smiles": "[*:1]C=C([*:2])O",
+                "brick_type": "BRIDGE",
+                "name": "Vinyl alcohol",
+                "alias": ["VA"],
+            }
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    body = json.loads(payload)
+    definition = body["definition"]
+    port_nodes = [node for node in definition["nodes"] if node["kind"] == "port"]
+
+    assert status == 200
+    assert headers["content-type"] == "application/json"
+    assert definition["name"] == "Vinyl alcohol"
+    assert definition["alias"] == ["VA"]
+    assert definition["brick_type"] == "BRIDGE"
+    assert [node["index"] for node in port_nodes] == [1, 2]
+    assert [node["connected_symbol"] for node in port_nodes] == ["C", "C"]
+
+
 def test_render_server_render_endpoint_returns_png(
     render_server_address: tuple[str, int],
 ) -> None:

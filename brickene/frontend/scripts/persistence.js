@@ -348,6 +348,45 @@
     return true;
   }
 
+  function getCanvasViewportCenter() {
+    const viewportRect = dom.canvasViewport?.getBoundingClientRect();
+
+    if (!viewportRect) {
+      return null;
+    }
+
+    return frontend.clientToWorldPoint(
+      viewportRect.left + viewportRect.width / 2,
+      viewportRect.top + viewportRect.height / 2,
+    );
+  }
+
+  function createNodeAtViewportCenter() {
+    const centerPoint = getCanvasViewportCenter();
+
+    if (!centerPoint) {
+      return null;
+    }
+
+    return frontend.createNodeAt(centerPoint.x, centerPoint.y);
+  }
+
+  function openNodeWizard() {
+    const wizardWindow = window.open(
+      frontend.config.nodeWizardUrl,
+      "_blank",
+      "popup=yes,width=1520,height=960",
+    );
+
+    if (!wizardWindow) {
+      frontend.setCanvasMessage("Allow pop-ups to open the node wizard.");
+      return true;
+    }
+
+    frontend.setCanvasMessage("Node wizard opened in a separate window.");
+    return true;
+  }
+
   async function handleMenuAction(menuKey, actionKey) {
     if (menuKey === "file") {
       if (actionKey === "new") {
@@ -398,21 +437,38 @@
       }
 
       if (actionKey === "create-new-node") {
-        const viewportRect = dom.canvasViewport?.getBoundingClientRect();
-        if (!viewportRect) {
+        const node = createNodeAtViewportCenter();
+        if (!node) {
           return false;
         }
 
-        const centerPoint = frontend.clientToWorldPoint(
-          viewportRect.left + viewportRect.width / 2,
-          viewportRect.top + viewportRect.height / 2,
-        );
-        const node = frontend.createNodeAt(centerPoint.x, centerPoint.y);
         frontend.setCanvasMessage(
           `Node ${node.id} created at (${Math.round(node.x)}, ${Math.round(node.y)}).`,
         );
         return true;
       }
+
+      return false;
+    }
+
+    if (menuKey === "node") {
+      if (actionKey === "create-node") {
+        const node = createNodeAtViewportCenter();
+        if (!node) {
+          return false;
+        }
+
+        frontend.setCanvasMessage(
+          `Node ${node.id} created at (${Math.round(node.x)}, ${Math.round(node.y)}).`,
+        );
+        return true;
+      }
+
+      if (actionKey === "open-node-wizard") {
+        return openNodeWizard();
+      }
+
+      return false;
     }
 
     return false;

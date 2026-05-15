@@ -2,21 +2,42 @@
   const frontend = window.BrickeneFrontend = window.BrickeneFrontend || {};
   const GRAPH_CHANGE_EVENT = "brickene:graphchange";
   const isMacOS = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);
+  const runtimeUrl = new URL(window.location.href);
+  const renderApiUrl = runtimeUrl.searchParams.get("renderApiUrl") || "http://127.0.0.1:8765/render";
+  const marvinPort = runtimeUrl.searchParams.get("marvinPort");
+  const marvinWebUrl = (
+    runtimeUrl.searchParams.get("marvinUrl")
+    || (marvinPort ? `http://127.0.0.1:${marvinPort}` : "http://127.0.0.1:8080")
+  ).replace(/\/$/, "");
+  const brickConfigApiUrl = runtimeUrl.searchParams.get("brickConfigApiUrl")
+    || (/\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/render\/?$/, "/brick-config")
+      : "http://127.0.0.1:8765/brick-config");
+  const nodeWizardUrl = (() => {
+    const wizardUrl = new URL("./node_wizard.html", runtimeUrl);
+
+    wizardUrl.searchParams.set("brickConfigApiUrl", brickConfigApiUrl);
+    wizardUrl.searchParams.set("marvinUrl", marvinWebUrl);
+    return wizardUrl.toString();
+  })();
 
   frontend.config = {
     submenuMap: {
       file: ["New", "|", "Open", "Open recently", "Save"],
       edit: ["Undo", "Redo", "|", "Copy", "Delete", "Create new node"],
-      node: ["Create node", "Ports", "Edges", "Presets"],
+      node: ["Create node", "Open node wizard", "|", "Ports", "Edges", "Presets"],
       view: ["Center canvas", "Grid", "Legend"],
     },
     stateMap: {
       file: "File actions can open and save .brickene graph configurations.",
       edit: "Edit actions will target node and edge operations.",
-      node: "Node controls now map brick definitions into port slots.",
+      node: "Node controls can create nodes directly or open the external node wizard.",
       view: "View controls will tune the integral canvas workspace.",
     },
-    renderApiUrl: "http://127.0.0.1:8765/render",
+    renderApiUrl,
+    brickConfigApiUrl,
+    marvinWebUrl,
+    nodeWizardUrl,
     nodeSize: { width: 260, height: 196 },
     defaultPortCount: 3,
     initialNodeConfigs: [

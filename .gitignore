@@ -1,9 +1,6 @@
 # MacOS
 .DS_Store
 
-# Copilot configuration
-.github/
-
 # Test script
 start.sh
 

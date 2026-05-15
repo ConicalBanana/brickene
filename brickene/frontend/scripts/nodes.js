@@ -937,16 +937,17 @@
     return nextSelection.has(nodeId);
   }
 
-  function createNodeAt(worldX, worldY) {
+  function createNode(nodeConfig) {
     const graph = frontend.getGraphState();
     const newNode = buildNode({
       id: graph.nextNodeId,
-      type: "rectangular",
-      title: `Node ${graph.nextNodeId}`,
-      brickId: defaultBrickId,
+      type: nodeConfig.type || "rectangular",
+      title: nodeConfig.title || `Node ${graph.nextNodeId}`,
+      brickId: nodeConfig.brickId || defaultBrickId,
+      customConfigText: nodeConfig.customConfigText || "",
       isStartNode: graph.nodes.length === 0,
-      x: worldX,
-      y: worldY,
+      x: nodeConfig.x,
+      y: nodeConfig.y,
     });
 
     graph.nextNodeId += 1;
@@ -955,6 +956,82 @@
     selectOnlyNode(newNode.id);
     frontend.notifyGraphChanged({ reason: "node-created", nodeId: newNode.id });
     return newNode;
+  }
+
+  function createNodeAt(worldX, worldY) {
+    return createNode({
+      x: worldX,
+      y: worldY,
+    });
+  }
+
+  function createUserDefinedNodeAt(worldX, worldY, definitionPayload) {
+    const customConfigText = JSON.stringify(definitionPayload, null, 2);
+    const parsed = parseInlineBrickDefinitionText(customConfigText);
+
+    if (parsed.error) {
+      throw new Error(parsed.error);
+    }
+
+    return createNode({
+      title: String(definitionPayload?.name || "User defined"),
+      brickId: USER_DEFINED_BRICK_ID,
+      customConfigText,
+      x: worldX,
+      y: worldY,
+    });
+  }
+
+  function createUserDefinedNodeAtViewportCenter(definitionPayload) {
+    const viewportRect = dom.canvasViewport?.getBoundingClientRect();
+
+    if (!viewportRect) {
+      throw new Error("Canvas viewport is unavailable.");
+    }
+
+    const centerPoint = frontend.clientToWorldPoint(
+      viewportRect.left + viewportRect.width / 2,
+      viewportRect.top + viewportRect.height / 2,
+    );
+
+    return createUserDefinedNodeAt(centerPoint.x, centerPoint.y, definitionPayload);
+  }
+
+  function applyWizardDefinition(definitionPayload) {
+    try {
+      return {
+        node: createUserDefinedNodeAtViewportCenter(definitionPayload),
+        error: "",
+      };
+    } catch (error) {
+      return {
+        node: null,
+        error: error instanceof Error ? error.message : "Failed to apply the node definition.",
+      };
+    }
+  }
+
+  function handleWizardMessage(event) {
+    if (event.origin !== window.location.origin) {
+      return;
+    }
+
+    const payload = event.data;
+    if (
+      !payload
+      || payload.source !== "brickene-node-wizard"
+      || payload.type !== "apply-node-definition"
+    ) {
+      return;
+    }
+
+    const result = applyWizardDefinition(payload.definition);
+    if (result.error) {
+      frontend.setCanvasMessage(result.error);
+      return;
+    }
+
+    frontend.setCanvasMessage(`Node ${result.node.id} created from the node wizard.`);
   }
 
   function deleteNode(nodeId) {
@@ -998,8 +1075,11 @@
   frontend.clearSelection = clearSelection;
   frontend.selectOnlyNode = selectOnlyNode;
   frontend.toggleNodeSelection = toggleNodeSelection;
+  frontend.createNode = createNode;
   frontend.createNodeAt = createNodeAt;
+  frontend.createUserDefinedNodeAtViewportCenter = createUserDefinedNodeAtViewportCenter;
   frontend.deleteNode = deleteNode;
 
+  window.addEventListener("message", handleWizardMessage);
   bindNodeControlEvents();
 })();

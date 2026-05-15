@@ -71,7 +71,27 @@
           </section>
 
           <div id="canvas-context-menu" class="canvas-context-menu" role="menu" aria-label="Canvas context menu">
-            <button type="button" class="context-menu-item" data-action="node">Create new node</button>
+            <div
+              id="canvas-node-portal"
+              class="context-menu-portal"
+              data-portal-key="canvas-node-categories"
+            >
+              <button
+                id="canvas-node-portal-trigger"
+                type="button"
+                class="context-menu-item context-menu-portal-trigger"
+                aria-haspopup="true"
+                aria-expanded="false"
+              >
+                Create new node
+              </button>
+              <div
+                id="canvas-node-category-menu"
+                class="context-portal-menu context-portal-menu-secondary"
+                role="menu"
+                aria-label="Node categories"
+              ></div>
+            </div>
             <button type="button" class="context-menu-item" data-action="center">Center canvas</button>
             <div class="menu-separator context-menu-separator" role="separator"></div>
             <button type="button" class="context-menu-item" data-action="close">Close menu</button>

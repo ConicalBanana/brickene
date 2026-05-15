@@ -766,6 +766,7 @@ textarea {
 
 .canvas-context-menu {
   min-width: 12rem;
+  overflow: visible;
 }
 
 .node-context-menu,
@@ -795,6 +796,111 @@ textarea {
   background: var(--border);
   color: var(--surface);
   outline: none;
+}
+
+.context-menu-portal {
+  position: relative;
+}
+
+.context-menu-portal-trigger {
+  position: relative;
+  padding-right: 1.8rem;
+}
+
+.context-menu-portal-trigger::after {
+  content: ">";
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  transform: translateY(-50%);
+}
+
+.context-menu-portal.is-open > .context-menu-portal-trigger {
+  background: var(--border);
+  color: var(--surface);
+}
+
+.context-portal-menu {
+  position: absolute;
+  top: 0;
+  left: calc(100% - 1px);
+  z-index: 1;
+  display: none;
+  min-width: 11rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.context-menu-portal.is-open > .context-portal-menu {
+  display: block;
+}
+
+.context-portal-menu-secondary {
+  min-width: 12rem;
+}
+
+.context-portal-menu-tertiary {
+  min-width: 16rem;
+  max-height: min(24rem, calc(100vh - 5rem));
+  padding: 0;
+  overflow: hidden;
+}
+
+.context-menu-portal.is-open > .context-portal-menu-tertiary {
+  display: flex;
+  flex-direction: column;
+}
+
+.context-portal-query {
+  flex: 0 0 auto;
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--grid);
+  background: var(--surface);
+}
+
+.context-portal-query-label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.context-portal-query-input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  font: inherit;
+}
+
+.context-portal-query-input:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 1px;
+}
+
+.context-portal-menu-list {
+  flex: 1 1 auto;
+  min-height: 3rem;
+  max-height: min(19rem, calc(100vh - 9rem));
+  padding: 0.35rem;
+  overflow-y: auto;
+}
+
+.context-portal-entry {
+  padding-right: 0.65rem;
+}
+
+.context-menu-empty-state {
+  margin: 0;
+  padding: 0.7rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 .context-menu-separator {

@@ -438,6 +438,17 @@
     `).join("");
   }
 
+  function getBrickTypeGroups() {
+    return Object.entries(brickTypeGroups).map(([label, options]) => ({
+      label,
+      options: options.map((option) => ({
+        id: option.id,
+        label: option.label,
+        definition: { ...option.definition },
+      })),
+    }));
+  }
+
   function renderPortAssignmentOptions(node, selectedPortId) {
     return node.portPool.map((portOption) => `
       <option value="${escapeHtml(portOption.id)}"${portOption.id === String(selectedPortId) ? " selected" : ""}>
@@ -1051,8 +1062,9 @@
     return newNode;
   }
 
-  function createNodeAt(worldX, worldY) {
+  function createNodeAt(worldX, worldY, nodeConfig = {}) {
     return createNode({
+      ...nodeConfig,
       x: worldX,
       y: worldY,
     });
@@ -1185,6 +1197,7 @@
   frontend.setNodeCustomConfiguration = setNodeCustomConfiguration;
   frontend.setNodeStartState = setNodeStartState;
   frontend.renderNodes = renderNodes;
+  frontend.getBrickTypeGroups = getBrickTypeGroups;
   frontend.setSelectedNodes = setSelectedNodes;
   frontend.clearSelection = clearSelection;
   frontend.selectOnlyNode = selectOnlyNode;

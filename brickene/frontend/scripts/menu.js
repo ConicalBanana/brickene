@@ -50,6 +50,7 @@
 
   function closeCanvasContextMenu() {
     dom.canvasContextMenu.classList.remove("is-open");
+    frontend.resetContextMenuPortals?.(dom.canvasContextMenu);
   }
 
   function closeNodeContextMenu() {
@@ -74,7 +75,9 @@
     ui.canvasContextTarget = frontend.clientToWorldPoint(clientX, clientY);
     frontend.positionFloatingMenu(dom.canvasContextMenu, clientX, clientY);
     closeNodeContextMenu();
+    closeEdgeContextMenu();
     dom.canvasContextMenu.classList.add("is-open");
+    frontend.prepareCanvasContextMenu?.();
   }
 
   function openNodeContextMenu(clientX, clientY, nodeId) {

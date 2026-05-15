@@ -524,18 +524,236 @@
     frontend.setCanvasMessage("Canvas translation reset to origin.");
   }
 
-  function createNodeAtContextTarget() {
+  function createNodeAtContextTarget(brickId = null) {
     const ui = frontend.getUiState();
-    const node = frontend.createNodeAt(ui.canvasContextTarget.x, ui.canvasContextTarget.y);
+    const node = frontend.createNodeAt(
+      ui.canvasContextTarget.x,
+      ui.canvasContextTarget.y,
+      brickId ? { brickId } : {},
+    );
 
-    frontend.setCanvasMessage(`Node ${node.id} created at (${Math.round(node.x)}, ${Math.round(node.y)}).`);
+    frontend.setCanvasMessage(
+      `Node ${node.id} (${node.brickName}) created at (${Math.round(node.x)}, ${Math.round(node.y)}).`,
+    );
+  }
+
+  function getCanvasNodeCategoryGroups() {
+    return typeof frontend.getBrickTypeGroups === "function"
+      ? frontend.getBrickTypeGroups()
+      : [];
+  }
+
+  function buildContextMenuButton(label, className = "context-menu-item") {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = className;
+    button.textContent = label;
+    button.setAttribute("role", "menuitem");
+    return button;
+  }
+
+  function buildContextMenuEmptyState(message) {
+    const element = document.createElement("p");
+
+    element.className = "context-menu-empty-state";
+    element.textContent = message;
+    return element;
+  }
+
+  function normalizeNodeQueryValue(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function matchesNodeQuery(option, normalizedQuery) {
+    const searchTerms = [
+      option.label,
+      option.id,
+      option.definition?.name,
+      option.definition?.brick_type,
+      ...(Array.isArray(option.definition?.alias) ? option.definition.alias : []),
+    ];
+
+    return searchTerms.some((term) => String(term || "").toLowerCase().includes(normalizedQuery));
+  }
+
+  function closePortalDescendants(portal) {
+    portal.querySelectorAll(".context-menu-portal.is-open").forEach((nestedPortal) => {
+      nestedPortal.classList.remove("is-open");
+      const trigger = nestedPortal.querySelector(":scope > .context-menu-portal-trigger");
+      trigger?.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  function closePortal(portal) {
+    if (!portal?.classList.contains("is-open")) {
+      return;
+    }
+
+    closePortalDescendants(portal);
+    portal.classList.remove("is-open");
+    const trigger = portal.querySelector(":scope > .context-menu-portal-trigger");
+    trigger?.setAttribute("aria-expanded", "false");
+  }
+
+  function closeSiblingPortals(portal) {
+    const parent = portal?.parentElement;
+
+    if (!parent) {
+      return;
+    }
+
+    [...parent.children]
+      .filter((element) => element !== portal && element.classList?.contains("context-menu-portal"))
+      .forEach((siblingPortal) => {
+        closePortal(siblingPortal);
+      });
+  }
+
+  function openPortal(portal) {
+    if (!portal) {
+      return;
+    }
+
+    closeSiblingPortals(portal);
+    portal.classList.add("is-open");
+    const trigger = portal.querySelector(":scope > .context-menu-portal-trigger");
+    trigger?.setAttribute("aria-expanded", "true");
+  }
+
+  function resetContextMenuPortals(menuRoot) {
+    menuRoot?.querySelectorAll(".context-menu-portal.is-open").forEach((portal) => {
+      closePortal(portal);
+    });
+  }
+
+  function renderCategoryNodeEntries(categoryPortal, options, normalizedQuery = "") {
+    const nodeList = categoryPortal.querySelector(".context-portal-menu-list");
+
+    if (!nodeList) {
+      return;
+    }
+
+    const filteredOptions = normalizedQuery
+      ? options.filter((option) => matchesNodeQuery(option, normalizedQuery))
+      : options;
+
+    nodeList.replaceChildren(
+      ...(filteredOptions.length
+        ? filteredOptions.map((option) => {
+          const button = buildContextMenuButton(option.label, "context-menu-item context-portal-entry");
+
+          button.dataset.brickId = option.id;
+          return button;
+        })
+        : [buildContextMenuEmptyState("No nodes match the query.")]),
+    );
+  }
+
+  function buildCategoryPortal(group) {
+    const portal = document.createElement("div");
+    const trigger = buildContextMenuButton(group.label, "context-menu-item context-menu-portal-trigger");
+    const tertiaryMenu = document.createElement("div");
+    const queryWrap = document.createElement("div");
+    const queryLabel = document.createElement("label");
+    const queryInput = document.createElement("input");
+    const nodeList = document.createElement("div");
+
+    portal.className = "context-menu-portal";
+    portal.dataset.portalKey = `category-${group.label.toLowerCase()}`;
+
+    trigger.dataset.category = group.label;
+    trigger.setAttribute("aria-haspopup", "true");
+    trigger.setAttribute("aria-expanded", "false");
+
+    tertiaryMenu.className = "context-portal-menu context-portal-menu-tertiary";
+    tertiaryMenu.setAttribute("role", "menu");
+    tertiaryMenu.setAttribute("aria-label", `${group.label} nodes`);
+
+    queryWrap.className = "context-portal-query";
+    queryLabel.className = "context-portal-query-label";
+    queryLabel.textContent = "Query nodes";
+
+    queryInput.className = "context-portal-query-input";
+    queryInput.type = "search";
+    queryInput.placeholder = "Search nodes";
+    queryInput.autocomplete = "off";
+    queryInput.spellcheck = false;
+    queryInput.setAttribute("aria-label", `${group.label} node query`);
+
+    queryLabel.appendChild(queryInput);
+    queryWrap.appendChild(queryLabel);
+
+    nodeList.className = "context-portal-menu-list";
+
+    queryInput.addEventListener("input", () => {
+      renderCategoryNodeEntries(portal, group.options, normalizeNodeQueryValue(queryInput.value));
+    });
+
+    tertiaryMenu.append(queryWrap, nodeList);
+    portal.append(trigger, tertiaryMenu);
+    renderCategoryNodeEntries(portal, group.options);
+    return portal;
+  }
+
+  function registerContextMenuPortal(portal) {
+    if (!portal || portal.dataset.portalBound === "true") {
+      return;
+    }
+
+    portal.dataset.portalBound = "true";
+
+    portal.addEventListener("pointerenter", () => {
+      openPortal(portal);
+    });
+
+    portal.addEventListener("pointerleave", () => {
+      closePortal(portal);
+    });
+
+    portal.addEventListener("focusin", () => {
+      openPortal(portal);
+    });
+
+    portal.addEventListener("focusout", (event) => {
+      if (portal.contains(event.relatedTarget)) {
+        return;
+      }
+
+      closePortal(portal);
+    });
+  }
+
+  function registerContextMenuPortals(menuRoot) {
+    menuRoot?.querySelectorAll(".context-menu-portal").forEach((portal) => {
+      registerContextMenuPortal(portal);
+    });
+  }
+
+  function renderCanvasNodeCategoryMenu() {
+    if (!dom.canvasNodeCategoryMenu) {
+      return;
+    }
+
+    const groups = getCanvasNodeCategoryGroups();
+
+    dom.canvasNodeCategoryMenu.replaceChildren(
+      ...(groups.length
+        ? groups.map((group) => buildCategoryPortal(group))
+        : [buildContextMenuEmptyState("No node categories are available.")]),
+    );
+    registerContextMenuPortals(dom.canvasNodeCategoryMenu);
+  }
+
+  function prepareCanvasContextMenu() {
+    renderCanvasNodeCategoryMenu();
+    resetContextMenuPortals(dom.canvasContextMenu);
   }
 
   const contextMenuActionRegistry = {
     canvas: {
       center: resetCanvasTranslation,
       reset: resetCanvasTranslation,
-      node: createNodeAtContextTarget,
       close: () => {},
     },
     node: {
@@ -587,6 +805,19 @@
       item.addEventListener("click", () => {
         executeContextMenuAction(menuType, item.dataset.action || "close");
       });
+    });
+  }
+
+  function bindCanvasNodeMenuActions() {
+    dom.canvasNodeCategoryMenu?.addEventListener("click", (event) => {
+      const nodeEntry = event.target.closest("[data-brick-id]");
+
+      if (!nodeEntry) {
+        return;
+      }
+
+      createNodeAtContextTarget(nodeEntry.dataset.brickId || "");
+      frontend.closeAllContextMenus();
     });
   }
 
@@ -923,6 +1154,8 @@
     bindContextMenuActionItems(dom.canvasContextItems, "canvas");
     bindContextMenuActionItems(dom.nodeContextItems, "node");
     bindContextMenuActionItems(dom.edgeContextItems, "edge");
+    registerContextMenuPortals(dom.canvasContextMenu);
+    bindCanvasNodeMenuActions();
   }
 
   function bootstrap() {
@@ -947,5 +1180,7 @@
   frontend.handleCanvasWheel = handleCanvasWheel;
   frontend.setEdgeDragSelectionState = setEdgeDragSelectionState;
   frontend.setInteractionGuard = setInteractionGuard;
+  frontend.prepareCanvasContextMenu = prepareCanvasContextMenu;
+  frontend.resetContextMenuPortals = resetContextMenuPortals;
   frontend.bootstrap = bootstrap;
 })();

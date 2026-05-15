@@ -92,11 +92,14 @@
     renderPreviewImage: document.getElementById("render-preview-image"),
     renderPreviewMeta: document.getElementById("render-preview-meta"),
     canvasContextMenu: document.getElementById("canvas-context-menu"),
+    canvasNodePortal: document.getElementById("canvas-node-portal"),
+    canvasNodePortalTrigger: document.getElementById("canvas-node-portal-trigger"),
+    canvasNodeCategoryMenu: document.getElementById("canvas-node-category-menu"),
     nodeContextMenu: document.getElementById("node-context-menu"),
     edgeContextMenu: document.getElementById("edge-context-menu"),
-    canvasContextItems: document.querySelectorAll("#canvas-context-menu .context-menu-item"),
-    nodeContextItems: document.querySelectorAll("#node-context-menu .context-menu-item"),
-    edgeContextItems: document.querySelectorAll("#edge-context-menu .context-menu-item"),
+    canvasContextItems: document.querySelectorAll("#canvas-context-menu > .context-menu-item"),
+    nodeContextItems: document.querySelectorAll("#node-context-menu > .context-menu-item"),
+    edgeContextItems: document.querySelectorAll("#edge-context-menu > .context-menu-item"),
   };
 
   frontend.state = {

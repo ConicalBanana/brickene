@@ -2,6 +2,7 @@
   const frontend = window.BrickeneFrontend;
   const { dom } = frontend;
   const FILE_EXTENSION = ".brickene";
+  const PASTE_NUDGE_PX = 32;
   const history = {
     snapshots: [],
     index: -1,
@@ -158,6 +159,14 @@
     return copied;
   }
 
+  async function readClipboardText() {
+    if (!navigator.clipboard?.readText) {
+      throw new Error("Clipboard paste is not available in this browser.");
+    }
+
+    return navigator.clipboard.readText();
+  }
+
   async function copySelection() {
     const selectionSnapshot = buildSelectionGraphState();
     if (!selectionSnapshot) {
@@ -170,6 +179,114 @@
       nodeCount: selectionSnapshot.nodes.length,
       edgeCount: selectionSnapshot.edges.length,
     };
+  }
+
+  function buildNodePositionBounds(nodes) {
+    if (!nodes.length) {
+      return null;
+    }
+
+    return nodes.reduce((bounds, node) => ({
+      left: Math.min(bounds.left, node.x),
+      top: Math.min(bounds.top, node.y),
+      right: Math.max(bounds.right, node.x),
+      bottom: Math.max(bounds.bottom, node.y),
+    }), {
+      left: nodes[0].x,
+      top: nodes[0].y,
+      right: nodes[0].x,
+      bottom: nodes[0].y,
+    });
+  }
+
+  function normalizeSnapshotPayload(payload) {
+    const snapshot = typeof payload === "string" ? JSON.parse(payload) : payload;
+
+    if (!snapshot || !Array.isArray(snapshot.nodes) || !Array.isArray(snapshot.edges)) {
+      throw new Error("Clipboard does not contain a valid .brickene selection.");
+    }
+
+    return snapshot;
+  }
+
+  function pasteSelectionSnapshot(snapshot) {
+    const graph = frontend.getGraphState();
+    const ui = frontend.getUiState();
+    const normalizedSnapshot = normalizeSnapshotPayload(snapshot);
+    const importedNodes = normalizedSnapshot.nodes
+      .map((nodeState) => normalizeImportedNodeState(nodeState))
+      .filter((node) => Number.isFinite(node.id));
+
+    if (!importedNodes.length) {
+      throw new Error("Clipboard selection does not contain any nodes to paste.");
+    }
+
+    const viewportCenter = getCanvasViewportCenter();
+    const importedBounds = buildNodePositionBounds(importedNodes);
+    const importedCenter = importedBounds
+      ? {
+        x: (importedBounds.left + importedBounds.right) / 2,
+        y: (importedBounds.top + importedBounds.bottom) / 2,
+      }
+      : { x: 0, y: 0 };
+    const pasteNudge = PASTE_NUDGE_PX / Math.max(ui.canvasScale || 1, 0.01);
+    const offset = viewportCenter
+      ? {
+        x: viewportCenter.x - importedCenter.x + pasteNudge,
+        y: viewportCenter.y - importedCenter.y + pasteNudge,
+      }
+      : { x: pasteNudge, y: pasteNudge };
+    const nodeIdMap = new Map();
+    const pastedNodes = importedNodes.map((node) => {
+      const nextNodeId = graph.nextNodeId;
+
+      graph.nextNodeId += 1;
+      nodeIdMap.set(node.id, nextNodeId);
+      return {
+        ...node,
+        id: nextNodeId,
+        x: node.x + offset.x,
+        y: node.y + offset.y,
+        portSlots: node.portSlots.map((slot) => ({ ...slot, edgeId: null })),
+      };
+    });
+    const pastedNodesById = new Map(pastedNodes.map((node) => [node.id, node]));
+    const remappedEdges = normalizedSnapshot.edges.map((edgeState) => {
+      const nextEdgeId = graph.nextEdgeId;
+
+      graph.nextEdgeId += 1;
+      return {
+        id: nextEdgeId,
+        startNode: nodeIdMap.get(Number(edgeState.startNode ?? edgeState.from?.nodeId)),
+        startPort: Number(edgeState.startPort ?? edgeState.from?.slotId),
+        endNode: nodeIdMap.get(Number(edgeState.endNode ?? edgeState.to?.nodeId)),
+        endPort: Number(edgeState.endPort ?? edgeState.to?.slotId),
+      };
+    });
+    const pastedEdges = normalizeImportedEdges(remappedEdges, pastedNodesById);
+
+    graph.nodes = [...graph.nodes, ...pastedNodes];
+    graph.edges = [...graph.edges, ...pastedEdges];
+    ui.selectedNodeIds = new Set(pastedNodes.map((node) => node.id));
+    ui.selectedEdgeIds = new Set(pastedEdges.map((edge) => edge.id));
+    frontend.closeAllContextMenus();
+    frontend.renderNodes();
+    frontend.notifyGraphChanged({ reason: "graph-pasted" });
+    return {
+      pasted: true,
+      nodeCount: pastedNodes.length,
+      edgeCount: pastedEdges.length,
+    };
+  }
+
+  async function pasteSelection() {
+    const clipboardText = await readClipboardText();
+
+    if (!clipboardText.trim()) {
+      throw new Error("Clipboard is empty.");
+    }
+
+    return pasteSelectionSnapshot(clipboardText);
   }
 
   function restoreHistorySnapshot(snapshotIndex) {
@@ -428,6 +545,16 @@
         return true;
       }
 
+      if (actionKey === "paste") {
+        try {
+          const result = await frontend.pasteSelection();
+          frontend.setCanvasMessage(`Pasted ${result.nodeCount} node(s) and ${result.edgeCount} edge(s).`);
+        } catch (error) {
+          frontend.setCanvasMessage(error instanceof Error ? error.message : "Paste failed.");
+        }
+        return true;
+      }
+
       if (actionKey === "delete") {
         const deleted = frontend.deleteSelectedGraphItems?.();
         if (!deleted) {
@@ -515,6 +642,8 @@
   frontend.save = save;
   frontend.open = open;
   frontend.copySelection = copySelection;
+  frontend.pasteSelection = pasteSelection;
+  frontend.pasteSelectionSnapshot = pasteSelectionSnapshot;
   frontend.undo = undo;
   frontend.redo = redo;
 

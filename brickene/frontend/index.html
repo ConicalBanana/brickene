@@ -39,6 +39,10 @@
       <main class="canvas-region" aria-label="Canvas workspace">
         <input id="graph-file-input" type="file" accept=".brickene,application/json" hidden />
         <div id="canvas-viewport" class="canvas-viewport">
+          <div class="canvas-zoom-controls" aria-label="Canvas zoom controls">
+            <button id="canvas-zoom-in" type="button" class="canvas-zoom-button" aria-label="Zoom in">+</button>
+            <button id="canvas-zoom-out" type="button" class="canvas-zoom-button" aria-label="Zoom out">-</button>
+          </div>
           <div id="canvas-layer" class="canvas-layer" aria-label="Canvas layer">
             <div class="canvas-grid" aria-hidden="true"></div>
             <div class="canvas-plane" aria-hidden="true">

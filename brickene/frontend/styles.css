@@ -207,6 +207,35 @@ textarea {
   cursor: default;
 }
 
+.canvas-zoom-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 6;
+  display: grid;
+  gap: 0.45rem;
+  pointer-events: auto;
+}
+
+.canvas-zoom-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.canvas-zoom-button:hover,
+.canvas-zoom-button:focus-visible {
+  background: var(--border);
+  color: var(--surface);
+  outline: none;
+}
+
 .canvas-viewport.is-pan-ready {
   cursor: grab;
 }

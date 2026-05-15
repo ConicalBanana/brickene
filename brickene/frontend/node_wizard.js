@@ -25,7 +25,6 @@
     addPortButton: document.getElementById("wizard-add-port"),
     generateButton: document.getElementById("wizard-generate"),
     saveButton: document.getElementById("wizard-save"),
-    copyButton: document.getElementById("wizard-copy"),
     sendButton: document.getElementById("wizard-send"),
     portConfig: document.getElementById("wizard-port-config"),
     jsonOutput: document.getElementById("wizard-json-output"),
@@ -42,7 +41,6 @@
     dom.addPortButton.disabled = isBusy;
     dom.generateButton.disabled = isBusy;
     dom.saveButton.disabled = isBusy;
-    dom.copyButton.disabled = isBusy;
     dom.sendButton.disabled = isBusy;
   }
 
@@ -57,23 +55,6 @@
       .split(",")
       .map((alias) => alias.trim())
       .filter(Boolean);
-  }
-
-  function writeClipboardText(text) {
-    if (navigator.clipboard?.writeText) {
-      return navigator.clipboard.writeText(text);
-    }
-
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "true");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.append(textarea);
-    textarea.select();
-    document.execCommand("copy");
-    textarea.remove();
-    return Promise.resolve();
   }
 
   function sortPortNodes(nodes) {
@@ -324,18 +305,6 @@
     }
   }
 
-  async function copyDefinition() {
-    const definition = runtimeState.baseDefinition || await generateDefinition();
-    const output = definition ? JSON.stringify(buildDefinitionOutput(), null, 2) : "";
-
-    if (!output) {
-      return;
-    }
-
-    await writeClipboardText(`${output}\n`);
-    setStatus("Node definition copied to the clipboard.", { success: true });
-  }
-
   async function saveDefinition() {
     const definition = runtimeState.baseDefinition || await generateDefinition();
     const nextDefinition = definition ? buildDefinitionOutput() : null;
@@ -385,7 +354,7 @@
     }
 
     if (!window.opener || window.opener.closed) {
-      setStatus("No Brickene canvas is attached. Use Copy JSON instead.", { error: true });
+      setStatus("No Brickene canvas is attached. Open the wizard from the canvas to send the definition directly.", { error: true });
       return;
     }
 
@@ -488,10 +457,6 @@
 
     dom.saveButton.addEventListener("click", () => {
       saveDefinition().catch(() => {});
-    });
-
-    dom.copyButton.addEventListener("click", () => {
-      copyDefinition().catch(() => {});
     });
 
     dom.sendButton.addEventListener("click", () => {

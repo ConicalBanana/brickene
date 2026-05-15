@@ -33,7 +33,7 @@
   frontend.config = {
     submenuMap: {
       file: ["New", "|", "Open", "Open recently", "Save"],
-      edit: ["Undo", "Redo", "|", "Copy", "Delete", "Create new node"],
+      edit: ["Undo", "Redo", "|", "Copy", "Paste", "Delete", "Create new node"],
       node: ["Create node", "Open node wizard", "|", "Ports", "Edges", "Presets"],
       view: ["Center canvas", "Grid", "Legend"],
     },
@@ -85,6 +85,8 @@
     edgeLayer: document.getElementById("edge-layer"),
     nodeContainer: document.getElementById("node-container"),
     selectionRect: document.getElementById("selection-rect"),
+    canvasZoomInButton: document.getElementById("canvas-zoom-in"),
+    canvasZoomOutButton: document.getElementById("canvas-zoom-out"),
     renderLayer: document.getElementById("render-layer"),
     renderPreviewWindow: document.getElementById("render-preview-window"),
     renderPreviewImage: document.getElementById("render-preview-image"),

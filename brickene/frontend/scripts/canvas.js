@@ -1,6 +1,8 @@
 (() => {
   const frontend = window.BrickeneFrontend;
   const { dom } = frontend;
+  const AUTO_PAN_BOUNDARY_RATIO = 0.05;
+  const AUTO_PAN_MAX_STEP = 28;
 
   function isPrimaryShortcutPressed(event) {
     return frontend.platform?.isMacOS ? event.metaKey : event.ctrlKey;
@@ -89,6 +91,70 @@
     };
     frontend.applyViewportOffset();
     frontend.setCanvasMessage(`Canvas translated to x ${ui.canvasOffset.x}, y ${ui.canvasOffset.y}.`);
+  }
+
+  function computeAutoPanAxisDelta(distanceToStart, distanceToEnd, boundarySize) {
+    if (distanceToStart <= boundarySize) {
+      return Math.ceil(((boundarySize - distanceToStart) / boundarySize) * AUTO_PAN_MAX_STEP);
+    }
+
+    if (distanceToEnd <= boundarySize) {
+      return -Math.ceil(((boundarySize - distanceToEnd) / boundarySize) * AUTO_PAN_MAX_STEP);
+    }
+
+    return 0;
+  }
+
+  function applyAutoPanForPointer(clientX, clientY) {
+    const viewportRect = dom.canvasViewport?.getBoundingClientRect();
+    if (!viewportRect) {
+      return { x: 0, y: 0 };
+    }
+
+    const boundaryWidth = Math.max(24, viewportRect.width * AUTO_PAN_BOUNDARY_RATIO);
+    const boundaryHeight = Math.max(24, viewportRect.height * AUTO_PAN_BOUNDARY_RATIO);
+    const localX = clientX - viewportRect.left;
+    const localY = clientY - viewportRect.top;
+    const deltaX = computeAutoPanAxisDelta(localX, viewportRect.width - localX, boundaryWidth);
+    const deltaY = computeAutoPanAxisDelta(localY, viewportRect.height - localY, boundaryHeight);
+
+    if (!deltaX && !deltaY) {
+      return { x: 0, y: 0 };
+    }
+
+    const ui = frontend.getUiState();
+    ui.canvasOffset = {
+      x: ui.canvasOffset.x + deltaX,
+      y: ui.canvasOffset.y + deltaY,
+    };
+    frontend.applyViewportOffset();
+    return { x: deltaX, y: deltaY };
+  }
+
+  function getViewportCenterClientPoint() {
+    const viewportRect = dom.canvasViewport?.getBoundingClientRect();
+    if (!viewportRect) {
+      return null;
+    }
+
+    return {
+      x: viewportRect.left + viewportRect.width / 2,
+      y: viewportRect.top + viewportRect.height / 2,
+    };
+  }
+
+  function handleZoomButtonClick(direction) {
+    const centerPoint = getViewportCenterClientPoint();
+    if (!centerPoint) {
+      return;
+    }
+
+    const zoomed = frontend.zoomCanvasByDirection(direction, centerPoint.x, centerPoint.y);
+    if (zoomed) {
+      frontend.setCanvasMessage(
+        `Canvas scaled to ${Math.round(frontend.getUiState().canvasScale * 100)}%.`,
+      );
+    }
   }
 
   function handleCanvasWheel(event) {
@@ -228,8 +294,8 @@
       nodeId,
       startX: event.clientX,
       startY: event.clientY,
-      originX: node.x,
-      originY: node.y,
+      pointerOffsetX: frontend.clientToWorldPoint(event.clientX, event.clientY).x - node.x,
+      pointerOffsetY: frontend.clientToWorldPoint(event.clientX, event.clientY).y - node.y,
       moved: false,
     };
     event.preventDefault();
@@ -445,6 +511,18 @@
           return;
         }
 
+        if (lowerKey === "v") {
+          event.preventDefault();
+          void frontend.pasteSelection()
+            .then((result) => {
+              frontend.setCanvasMessage(`Pasted ${result.nodeCount} node(s) and ${result.edgeCount} edge(s).`);
+            })
+            .catch((error) => {
+              frontend.setCanvasMessage(error instanceof Error ? error.message : "Paste failed.");
+            });
+          return;
+        }
+
         if (lowerKey === "z" && !event.shiftKey) {
           event.preventDefault();
           frontend.setCanvasMessage(frontend.undo() ? "Undo applied." : "Nothing to undo.");
@@ -501,6 +579,14 @@
   }
 
   function bindViewportEvents() {
+    dom.canvasZoomInButton?.addEventListener("click", () => {
+      handleZoomButtonClick(1);
+    });
+
+    dom.canvasZoomOutButton?.addEventListener("click", () => {
+      handleZoomButtonClick(-1);
+    });
+
     dom.canvasViewport.addEventListener("wheel", handleCanvasWheel, { passive: false });
 
     dom.canvasViewport.addEventListener("pointerdown", (event) => {
@@ -601,6 +687,8 @@
         return;
       }
 
+      const autoPanDelta = applyAutoPanForPointer(event.clientX, event.clientY);
+
       if (ui.componentInteraction.type === "edge-drag") {
         ui.componentInteraction.pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
         ui.componentInteraction.hoverPort = frontend.findHoveredPort(event.clientX, event.clientY);
@@ -614,6 +702,8 @@
         ui.componentInteraction.moved = (
           Math.abs(event.clientX - ui.componentInteraction.startX) > 2
           || Math.abs(event.clientY - ui.componentInteraction.startY) > 2
+          || autoPanDelta.x !== 0
+          || autoPanDelta.y !== 0
         );
         frontend.renderNodes();
         return;
@@ -621,9 +711,15 @@
 
       if (ui.componentInteraction.type === "node-drag") {
         const graph = frontend.getGraphState();
-        const nextX = ui.componentInteraction.originX + event.clientX - ui.componentInteraction.startX;
-        const nextY = ui.componentInteraction.originY + event.clientY - ui.componentInteraction.startY;
-        const moved = Math.abs(event.clientX - ui.componentInteraction.startX) > 2 || Math.abs(event.clientY - ui.componentInteraction.startY) > 2;
+        const pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
+        const nextX = pointerWorld.x - ui.componentInteraction.pointerOffsetX;
+        const nextY = pointerWorld.y - ui.componentInteraction.pointerOffsetY;
+        const moved = (
+          Math.abs(event.clientX - ui.componentInteraction.startX) > 2
+          || Math.abs(event.clientY - ui.componentInteraction.startY) > 2
+          || autoPanDelta.x !== 0
+          || autoPanDelta.y !== 0
+        );
 
         graph.nodes = graph.nodes.map((node) => (
           node.id === ui.componentInteraction.nodeId

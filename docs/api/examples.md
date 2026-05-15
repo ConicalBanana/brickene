@@ -1,263 +1,129 @@
-# API Examples
+# Backend API Examples
 
-This page provides practical examples of how to use the brickene API in various scenarios.
+These examples assume the local render server is running on `http://127.0.0.1:8765`.
 
-## Authentication Examples
+## Health check
 
-### API Key Authentication
-
-```python
-import requests
-
-API_KEY = "your_api_key_here"
-BASE_URL = "https://api.example.com/v1"
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-
-response = requests.get(f"{BASE_URL}/user/profile", headers=headers)
-print(response.json())
+```bash
+curl http://127.0.0.1:8765/health
 ```
 
-### OAuth Authentication
+## Generate a brick definition from SMILES
 
-```python
-import requests
-from requests_oauthlib import OAuth2Session
-
-client_id = "your_client_id"
-client_secret = "your_client_secret"
-token_url = "https://api.example.com/oauth/token"
-
-oauth = OAuth2Session(client_id)
-token = oauth.fetch_token(
-    token_url=token_url,
-    client_id=client_id,
-    client_secret=client_secret
-)
-
-response = oauth.get("https://api.example.com/v1/protected-resource")
-print(response.json())
+```bash
+curl -X POST http://127.0.0.1:8765/brick-config \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "smiles": "[*:1]C=C([*:2])O",
+        "brick_type": "BRIDGE",
+        "name": "Vinyl alcohol",
+        "alias": ["VA"]
+    }'
 ```
 
-## Data Retrieval Examples
+## Render a full graph to PNG
 
-### Fetching a List of Resources
-
-```python
-import requests
-
-API_KEY = "your_api_key_here"
-BASE_URL = "https://api.example.com/v1"
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-
-# Get a list of resources with pagination
-params = {
-    "page": 1,
-    "limit": 10,
-    "sort": "created_at",
-    "order": "desc"
-}
-
-response = requests.get(
-    f"{BASE_URL}/resources", 
-    headers=headers,
-    params=params
-)
-
-data = response.json()
-for item in data["items"]:
-    print(f"ID: {item['id']}, Name: {item['name']}")
-
-# Print pagination info
-print(f"Page {data['page']} of {data['total_pages']}")
-print(f"Showing {len(data['items'])} of {data['total_items']} items")
+```bash
+curl -X POST http://127.0.0.1:8765/render \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "nodes": [
+            {
+                "id": 1,
+                "nodeTypeId": "4",
+                "portConfiguration": [
+                    {"slotId": 0, "side": "right", "actualPortId": "1"}
+                ]
+            },
+            {
+                "id": 2,
+                "nodeTypeId": "5",
+                "portConfiguration": [
+                    {"slotId": 0, "side": "left", "actualPortId": "1"}
+                ]
+            }
+        ],
+        "edges": [
+            {
+                "id": 1,
+                "startNode": 1,
+                "startPort": 0,
+                "endNode": 2,
+                "endPort": 0
+            }
+        ]
+    }' \
+    --output graph.png
 ```
 
-### Filtering Resources
+## Store a user-defined brick
 
-```python
-import requests
-
-API_KEY = "your_api_key_here"
-BASE_URL = "https://api.example.com/v1"
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-
-# Filter resources by specific criteria
-params = {
-    "status": "active",
-    "category": "technology",
-    "created_after": "2023-01-01"
-}
-
-response = requests.get(
-    f"{BASE_URL}/resources", 
-    headers=headers,
-    params=params
-)
-
-data = response.json()
-print(f"Found {len(data['items'])} matching resources")
+```bash
+curl -X POST http://127.0.0.1:8765/bricks \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "definition": {
+            "name": "Inline aldehyde",
+            "alias": ["IAL"],
+            "brick_type": "BRIDGE",
+            "nodes": [
+                {"kind": "port", "index": 1, "side": "left", "preferred_brick_type": "SKELETON", "connected_symbol": "C"},
+                {"kind": "atom", "index": 2, "symbol": "C"},
+                {"kind": "atom", "index": 3, "symbol": "O"},
+                {"kind": "port", "index": 4, "side": "right", "preferred_brick_type": "SIDE_CHAIN", "connected_symbol": "C"}
+            ],
+            "edges": [
+                [1, 2, "SINGLE"],
+                [2, 3, "DOUBLE"],
+                [2, 4, "SINGLE"]
+            ]
+        }
+    }'
 ```
 
-## Data Modification Examples
+## List stored bricks
 
-### Creating a New Resource
-
-```python
-import requests
-import json
-
-API_KEY = "your_api_key_here"
-BASE_URL = "https://api.example.com/v1"
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-
-# Data for the new resource
-new_resource = {
-    "name": "My New Resource",
-    "description": "This is a description of my new resource",
-    "category": "technology",
-    "tags": ["api", "example", "tutorial"]
-}
-
-response = requests.post(
-    f"{BASE_URL}/resources",
-    headers=headers,
-    data=json.dumps(new_resource)
-)
-
-if response.status_code == 201:
-    created_resource = response.json()
-    print(f"Resource created with ID: {created_resource['id']}")
-else:
-    print(f"Error: {response.status_code}")
-    print(response.text)
+```bash
+curl http://127.0.0.1:8765/bricks
 ```
 
-### Updating an Existing Resource
+## Fetch one stored brick
 
-```python
-import requests
-import json
-
-API_KEY = "your_api_key_here"
-BASE_URL = "https://api.example.com/v1"
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-
-resource_id = "resource_id_to_update"
-
-# Updated data
-updated_data = {
-    "name": "Updated Resource Name",
-    "description": "This is the updated description",
-    "tags": ["updated", "api", "example"]
-}
-
-response = requests.put(
-    f"{BASE_URL}/resources/{resource_id}",
-    headers=headers,
-    data=json.dumps(updated_data)
-)
-
-if response.status_code == 200:
-    updated_resource = response.json()
-    print(f"Resource updated: {updated_resource['name']}")
-else:
-    print(f"Error: {response.status_code}")
-    print(response.text)
+```bash
+curl http://127.0.0.1:8765/bricks/user-1
 ```
 
-## Error Handling Examples
+## Render one brick definition directly to PNG
 
-```python
-import requests
-
-API_KEY = "your_api_key_here"
-BASE_URL = "https://api.example.com/v1"
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-
-try:
-    response = requests.get(f"{BASE_URL}/resources/non_existent_id", headers=headers)
-    
-    # Check for successful response
-    response.raise_for_status()
-    
-    # Process successful response
-    data = response.json()
-    print(data)
-    
-except requests.exceptions.HTTPError as http_err:
-    if response.status_code == 404:
-        print("Resource not found")
-    elif response.status_code == 401:
-        print("Authentication failed")
-    elif response.status_code == 403:
-        print("Permission denied")
-    elif response.status_code == 429:
-        print("Rate limit exceeded")
-    else:
-        print(f"HTTP error occurred: {http_err}")
-    
-    # Try to get more details from the response
-    try:
-        error_details = response.json()
-        print(f"Error details: {error_details}")
-    except:
-        print(f"Error response: {response.text}")
-        
-except requests.exceptions.ConnectionError:
-    print("Connection error - please check your internet connection")
-except requests.exceptions.Timeout:
-    print("Request timed out - please try again later")
-except requests.exceptions.RequestException as err:
-    print(f"An error occurred: {err}")
+```bash
+curl -X POST http://127.0.0.1:8765/brick-render \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "name": "Inline aldehyde",
+        "alias": ["IAL"],
+        "brick_type": "BRIDGE",
+        "nodes": [
+            {"kind": "port", "index": 1, "side": "left", "preferred_brick_type": "SKELETON", "connected_symbol": "C"},
+            {"kind": "atom", "index": 2, "symbol": "C"},
+            {"kind": "atom", "index": 3, "symbol": "O"},
+            {"kind": "port", "index": 4, "side": "right", "preferred_brick_type": "SIDE_CHAIN", "connected_symbol": "C"}
+        ],
+        "edges": [
+            [1, 2, "SINGLE"],
+            [2, 3, "DOUBLE"],
+            [2, 4, "SINGLE"]
+        ]
+    }' \
+    --output brick.png
 ```
 
-## Advanced Examples
+## Render a full graph to SMILES
 
-### Batch Operations
-
-```python
-import requests
-import json
-
-API_KEY = "your_api_key_here"
-BASE_URL = "https://api.example.com/v1"
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
+```bash
+{
+    "error": "definition must be a JSON object."
 }
-
-# Batch update multiple resources
-batch_data = {
-    "operations": [
-        {
-            "id": "resource_id_1",
-            "operation": "update",
-            "data": {
+```
                 "status": "active",
                 "priority": "high"
             }

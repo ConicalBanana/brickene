@@ -2,32 +2,12 @@
   const frontend = window.BrickeneFrontend;
   const { config, dom } = frontend;
   const USER_DEFINED_BRICK_ID = "901";
-  const rawBrickDefinitions = frontend.brickDefinitions || {};
-  const brickCatalog = Object.entries(rawBrickDefinitions)
-    .map(([configKey, definition]) => normalizeBrickDefinition(configKey, definition))
-    .sort((left, right) => Number(left.id) - Number(right.id));
-  const brickDefinitionsById = Object.fromEntries(
-    brickCatalog.map((definition) => [definition.id, definition]),
-  );
-  const brickIdByName = new Map(
-    brickCatalog.map((definition) => [definition.name, definition.id]),
-  );
-  const brickTypeOptions = brickCatalog.map((definition) => ({
-    id: definition.id,
-    definition,
-    label: formatBrickOptionLabel(definition.name, definition.alias || []),
-  }));
-  const brickTypeGroups = brickTypeOptions.reduce((groups, option) => {
-    const groupLabel = option.definition.brick_type || "UNCONFIGURED";
-
-    if (!groups[groupLabel]) {
-      groups[groupLabel] = [];
-    }
-
-    groups[groupLabel].push(option);
-    return groups;
-  }, {});
-  const defaultBrickId = brickTypeOptions[0]?.id || null;
+  let brickCatalog = [];
+  let brickDefinitionsById = {};
+  let brickIdByName = new Map();
+  let brickTypeOptions = [];
+  let brickTypeGroups = {};
+  let defaultBrickId = null;
 
   function escapeHtml(value) {
     return String(value)
@@ -42,17 +22,91 @@
     return aliases.length ? `${name}(${aliases.join(",")})` : name;
   }
 
+  function getBrickSortKey(brickId) {
+    const normalizedId = String(brickId ?? "");
+    const numericMatch = normalizedId.match(/^\d+$/);
+    if (numericMatch) {
+      return { bucket: 0, value: Number(normalizedId) };
+    }
+
+    const storedMatch = normalizedId.match(/^user-(\d+)$/i);
+    if (storedMatch) {
+      return { bucket: 1, value: Number(storedMatch[1]) };
+    }
+
+    return { bucket: 2, value: Number.POSITIVE_INFINITY };
+  }
+
+  function compareBrickDefinitions(left, right) {
+    const leftKey = getBrickSortKey(left.id);
+    const rightKey = getBrickSortKey(right.id);
+
+    if (leftKey.bucket !== rightKey.bucket) {
+      return leftKey.bucket - rightKey.bucket;
+    }
+
+    if (leftKey.value !== rightKey.value) {
+      return leftKey.value - rightKey.value;
+    }
+
+    return String(left.name || left.id).localeCompare(String(right.name || right.id));
+  }
+
+  function rebuildBrickCatalog(rawDefinitions = frontend.brickDefinitions || {}) {
+    brickCatalog = Object.entries(rawDefinitions)
+      .map(([configKey, definition]) => normalizeBrickDefinition(configKey, definition))
+      .sort(compareBrickDefinitions);
+    brickDefinitionsById = Object.fromEntries(
+      brickCatalog.map((definition) => [definition.id, definition]),
+    );
+    brickIdByName = new Map(
+      brickCatalog.map((definition) => [definition.name, definition.id]),
+    );
+    brickTypeOptions = brickCatalog.map((definition) => ({
+      id: definition.id,
+      definition,
+      label: formatBrickOptionLabel(definition.name, definition.alias || []),
+    }));
+    brickTypeGroups = brickTypeOptions.reduce((groups, option) => {
+      const groupLabel = option.definition.brick_type || "UNCONFIGURED";
+
+      if (!groups[groupLabel]) {
+        groups[groupLabel] = [];
+      }
+
+      groups[groupLabel].push(option);
+      return groups;
+    }, {});
+    defaultBrickId = brickTypeOptions[0]?.id || null;
+  }
+
+  function registerBrickDefinition(definition) {
+    const nextDefinitions = {
+      ...(frontend.brickDefinitions || {}),
+      [String(definition.id)]: definition,
+    };
+
+    frontend.brickDefinitions = nextDefinitions;
+    rebuildBrickCatalog(nextDefinitions);
+    return getBrickDefinition(definition.id, { allowDefault: false });
+  }
+
+  rebuildBrickCatalog();
+
   function normalizeBrickDefinition(configKey, definition) {
     const id = String(definition.id ?? configKey);
     const isToolNode = definition.brick_type === "TOOL";
     const supportsInlineConfiguration = Boolean(definition.inline_configuration);
+    const hasStaticImage = /^\d+$/.test(id) && !isToolNode && !supportsInlineConfiguration;
 
     return {
       ...definition,
       id,
       name: definition.name || configKey,
-      imageSrc: isToolNode ? "" : `../assets/brick_images/${encodeURIComponent(id)}.png`,
-      hideStructurePreview: isToolNode || supportsInlineConfiguration,
+      imageSrc: hasStaticImage
+        ? `../assets/brick_images/${encodeURIComponent(id)}.png`
+        : "",
+      hideStructurePreview: isToolNode || supportsInlineConfiguration || !hasStaticImage,
       lockPortAssignments: isToolNode || supportsInlineConfiguration,
       supportsInlineConfiguration,
     };
@@ -75,7 +129,7 @@
     }, null, 2);
   }
 
-  function parseInlineBrickDefinitionText(customConfigText) {
+  function parseInlineBrickDefinitionText(customConfigText, fallbackId = USER_DEFINED_BRICK_ID) {
     if (typeof customConfigText !== "string" || !customConfigText.trim()) {
       return { brickDefinition: null, error: "" };
     }
@@ -105,9 +159,9 @@
     }
 
     return {
-      brickDefinition: normalizeBrickDefinition(USER_DEFINED_BRICK_ID, {
+      brickDefinition: normalizeBrickDefinition(fallbackId, {
         ...payload,
-        id: USER_DEFINED_BRICK_ID,
+        id: fallbackId,
         name: String(payload.name || "User defined"),
         alias: Array.isArray(payload.alias)
           ? payload.alias
@@ -124,10 +178,42 @@
   }
 
   function resolveBrickDefinition(nodeConfig) {
-    const catalogDefinition = getBrickDefinition(nodeConfig.brickId || nodeConfig.brickName);
+    const brickReference = String(nodeConfig.brickId || nodeConfig.brickName || "");
+    const catalogDefinition = getBrickDefinition(brickReference, { allowDefault: false });
     const customConfigText = typeof nodeConfig.customConfigText === "string" ? nodeConfig.customConfigText : "";
 
-    if (!catalogDefinition?.supportsInlineConfiguration) {
+    if (!catalogDefinition) {
+      const parsed = parseInlineBrickDefinitionText(
+        customConfigText,
+        brickReference || USER_DEFINED_BRICK_ID,
+      );
+
+      if (parsed.error) {
+        return {
+          brickDefinition: getBrickDefinition(defaultBrickId, { allowDefault: false }),
+          customConfigText,
+          customConfigError: parsed.error,
+        };
+      }
+
+      if (parsed.brickDefinition) {
+        const fallbackDefinition = registerBrickDefinition(parsed.brickDefinition);
+
+        return {
+          brickDefinition: fallbackDefinition || parsed.brickDefinition,
+          customConfigText,
+          customConfigError: "",
+        };
+      }
+
+      return {
+        brickDefinition: getBrickDefinition(defaultBrickId, { allowDefault: false }),
+        customConfigText,
+        customConfigError: brickReference ? `Unknown brick id: ${brickReference}.` : "",
+      };
+    }
+
+    if (!catalogDefinition.supportsInlineConfiguration) {
       return {
         brickDefinition: catalogDefinition,
         customConfigText: "",
@@ -151,7 +237,7 @@
     };
   }
 
-  function getBrickDefinition(brickRef) {
+  function getBrickDefinition(brickRef, options = {}) {
     const reference = String(brickRef ?? "");
 
     if (brickDefinitionsById[reference]) {
@@ -161,6 +247,10 @@
     const resolvedId = brickIdByName.get(reference);
     if (resolvedId) {
       return brickDefinitionsById[resolvedId] || null;
+    }
+
+    if (options.allowDefault === false) {
+      return null;
     }
 
     return brickDefinitionsById[defaultBrickId] || null;
@@ -575,8 +665,11 @@
       }
 
       const currentDefinition = resolveBrickDefinition(graphNode).brickDefinition || getBrickDefinition(graphNode.brickId);
+      const templateSource = brickDefinition.supportsInlineConfiguration
+        ? brickDefinition
+        : currentDefinition;
       const nextCustomConfigText = brickDefinition.supportsInlineConfiguration
-        ? (graphNode.customConfigText?.trim() || buildInlineConfigurationTemplate(currentDefinition))
+        ? (graphNode.customConfigText?.trim() || buildInlineConfigurationTemplate(templateSource))
         : "";
       const resolvedDefinition = resolveBrickDefinition({
         ...graphNode,
@@ -965,24 +1058,31 @@
     });
   }
 
-  function createUserDefinedNodeAt(worldX, worldY, definitionPayload) {
-    const customConfigText = JSON.stringify(definitionPayload, null, 2);
-    const parsed = parseInlineBrickDefinitionText(customConfigText);
+  function buildDefinitionFallbackText(definitionPayload) {
+    return JSON.stringify({
+      name: String(definitionPayload?.name || "User defined"),
+      alias: Array.isArray(definitionPayload?.alias) ? definitionPayload.alias : [],
+      brick_type: String(definitionPayload?.brick_type || "BRIDGE").toUpperCase(),
+      nodes: Array.isArray(definitionPayload?.nodes)
+        ? definitionPayload.nodes.map((node) => ({ ...node }))
+        : [],
+      edges: Array.isArray(definitionPayload?.edges)
+        ? definitionPayload.edges.map((edge) => (Array.isArray(edge) ? [...edge] : { ...edge }))
+        : [],
+    }, null, 2);
+  }
 
-    if (parsed.error) {
-      throw new Error(parsed.error);
-    }
-
+  async function createUserDefinedNodeAt(worldX, worldY, definitionPayload) {
     return createNode({
       title: String(definitionPayload?.name || "User defined"),
       brickId: USER_DEFINED_BRICK_ID,
-      customConfigText,
+      customConfigText: buildDefinitionFallbackText(definitionPayload),
       x: worldX,
       y: worldY,
     });
   }
 
-  function createUserDefinedNodeAtViewportCenter(definitionPayload) {
+  async function createUserDefinedNodeAtViewportCenter(definitionPayload) {
     const viewportRect = dom.canvasViewport?.getBoundingClientRect();
 
     if (!viewportRect) {
@@ -997,10 +1097,10 @@
     return createUserDefinedNodeAt(centerPoint.x, centerPoint.y, definitionPayload);
   }
 
-  function applyWizardDefinition(definitionPayload) {
+  async function applyWizardDefinition(definitionPayload) {
     try {
       return {
-        node: createUserDefinedNodeAtViewportCenter(definitionPayload),
+        node: await createUserDefinedNodeAtViewportCenter(definitionPayload),
         error: "",
       };
     } catch (error) {
@@ -1020,18 +1120,32 @@
     if (
       !payload
       || payload.source !== "brickene-node-wizard"
-      || payload.type !== "apply-node-definition"
     ) {
       return;
     }
 
-    const result = applyWizardDefinition(payload.definition);
-    if (result.error) {
-      frontend.setCanvasMessage(result.error);
+    if (payload.type === "brick-definition-saved") {
+      if (payload.definition) {
+        registerBrickDefinition(payload.definition);
+        renderNodes();
+        frontend.setCanvasMessage(`Stored brick ${payload.definition.id} is ready to use.`);
+      }
       return;
     }
 
-    frontend.setCanvasMessage(`Node ${result.node.id} created from the node wizard.`);
+    if (payload.type !== "apply-node-definition") {
+      return;
+    }
+
+    void (async () => {
+      const result = await applyWizardDefinition(payload.definition);
+      if (result.error) {
+        frontend.setCanvasMessage(result.error);
+        return;
+      }
+
+      frontend.setCanvasMessage(`Node ${result.node.id} created from the node wizard.`);
+    })();
   }
 
   function deleteNode(nodeId) {
@@ -1077,6 +1191,7 @@
   frontend.toggleNodeSelection = toggleNodeSelection;
   frontend.createNode = createNode;
   frontend.createNodeAt = createNodeAt;
+  frontend.registerBrickDefinition = registerBrickDefinition;
   frontend.createUserDefinedNodeAtViewportCenter = createUserDefinedNodeAtViewportCenter;
   frontend.deleteNode = deleteNode;
 

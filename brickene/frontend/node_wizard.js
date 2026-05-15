@@ -24,6 +24,7 @@
     brickTypeSelect: document.getElementById("wizard-brick-type"),
     addPortButton: document.getElementById("wizard-add-port"),
     generateButton: document.getElementById("wizard-generate"),
+    saveButton: document.getElementById("wizard-save"),
     copyButton: document.getElementById("wizard-copy"),
     sendButton: document.getElementById("wizard-send"),
     portConfig: document.getElementById("wizard-port-config"),
@@ -40,6 +41,7 @@
     runtimeState.isBusy = isBusy;
     dom.addPortButton.disabled = isBusy;
     dom.generateButton.disabled = isBusy;
+    dom.saveButton.disabled = isBusy;
     dom.copyButton.disabled = isBusy;
     dom.sendButton.disabled = isBusy;
   }
@@ -250,6 +252,23 @@
     return body.definition;
   }
 
+  async function saveDefinitionToDatabase(definition) {
+    const response = await fetch(config.brickApiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ definition }),
+    });
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(body.error || "Failed to save the node definition.");
+    }
+
+    return body.definition;
+  }
+
   async function addDetachedPort() {
     if (!runtimeState.marvinRef) {
       throw new Error("Marvin editor is still loading.");
@@ -315,6 +334,46 @@
 
     await writeClipboardText(`${output}\n`);
     setStatus("Node definition copied to the clipboard.", { success: true });
+  }
+
+  async function saveDefinition() {
+    const definition = runtimeState.baseDefinition || await generateDefinition();
+    const nextDefinition = definition ? buildDefinitionOutput() : null;
+
+    if (!nextDefinition) {
+      return null;
+    }
+
+    setBusy(true);
+
+    try {
+      const storedDefinition = await saveDefinitionToDatabase(nextDefinition);
+
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(
+          {
+            source: "brickene-node-wizard",
+            type: "brick-definition-saved",
+            definition: storedDefinition,
+          },
+          window.location.origin,
+        );
+      }
+
+      setStatus(
+        `Saved node definition to the database as ${storedDefinition.id}.`,
+        { success: true },
+      );
+      return storedDefinition;
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : "Failed to save the node definition.",
+        { error: true },
+      );
+      throw error;
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function sendDefinitionToCanvas() {
@@ -425,6 +484,10 @@
 
     dom.generateButton.addEventListener("click", () => {
       generateDefinition().catch(() => {});
+    });
+
+    dom.saveButton.addEventListener("click", () => {
+      saveDefinition().catch(() => {});
     });
 
     dom.copyButton.addEventListener("click", () => {

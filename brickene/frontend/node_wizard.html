@@ -17,6 +17,10 @@
         const marvinUrl = `${marvinAssetUrl}/`;
         const brickConfigApiUrl = runtimeUrl.searchParams.get("brickConfigApiUrl")
           || "http://127.0.0.1:8765/brick-config";
+        const brickApiUrl = runtimeUrl.searchParams.get("brickApiUrl")
+          || (/\/brick-config\/?$/.test(brickConfigApiUrl)
+            ? brickConfigApiUrl.replace(/\/brick-config\/?$/, "/bricks")
+            : "http://127.0.0.1:8765/bricks");
         const marvinScriptUrls = [
           `${marvinAssetUrl}/libs/react.production.min.js`,
           `${marvinAssetUrl}/libs/react-dom.production.min.js`,
@@ -27,6 +31,7 @@
 
         window.BrickeneNodeWizardConfig = {
           marvinUrl,
+          brickApiUrl,
           brickConfigApiUrl,
         };
         window.BrickeneNodeWizardMarvinReady = marvinScriptUrls.reduce(
@@ -126,6 +131,9 @@
               </section>
 
               <div class="node-wizard-action-row">
+                <button type="button" id="wizard-save" class="node-wizard-action-button">
+                  Save to database
+                </button>
                 <button type="button" id="wizard-copy" class="node-wizard-action-button">
                   Copy JSON
                 </button>

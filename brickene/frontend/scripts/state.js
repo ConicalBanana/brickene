@@ -4,6 +4,14 @@
   const isMacOS = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);
   const runtimeUrl = new URL(window.location.href);
   const renderApiUrl = runtimeUrl.searchParams.get("renderApiUrl") || "http://127.0.0.1:8765/render";
+  const brickApiUrl = runtimeUrl.searchParams.get("brickApiUrl")
+    || (/\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/render\/?$/, "/bricks")
+      : "http://127.0.0.1:8765/bricks");
+  const brickRenderApiUrl = runtimeUrl.searchParams.get("brickRenderApiUrl")
+    || (/\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/render\/?$/, "/brick-render")
+      : "http://127.0.0.1:8765/brick-render");
   const marvinPort = runtimeUrl.searchParams.get("marvinPort");
   const marvinWebUrl = (
     runtimeUrl.searchParams.get("marvinUrl")
@@ -17,6 +25,7 @@
     const wizardUrl = new URL("./node_wizard.html", runtimeUrl);
 
     wizardUrl.searchParams.set("brickConfigApiUrl", brickConfigApiUrl);
+    wizardUrl.searchParams.set("brickApiUrl", brickApiUrl);
     wizardUrl.searchParams.set("marvinUrl", marvinWebUrl);
     return wizardUrl.toString();
   })();
@@ -35,7 +44,9 @@
       view: "View controls will tune the integral canvas workspace.",
     },
     renderApiUrl,
+    brickApiUrl,
     brickConfigApiUrl,
+    brickRenderApiUrl,
     marvinWebUrl,
     nodeWizardUrl,
     nodeSize: { width: 260, height: 196 },

@@ -14,10 +14,10 @@ from PIL import Image
 from rdkit import Chem
 
 from brickene.core.rendering import (
-    load_brick_catalog,
     build_graph_from_state,
     build_molecule_from_state,
     expand_tool_nodes,
+    load_brick_catalog,
     render_state_image,
     render_state_image_bytes,
     render_state_smiles,
@@ -129,50 +129,14 @@ def build_tool_payload() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
 def build_inline_user_defined_payload() -> dict[str, Any]:
     """Build one payload containing a standalone inline-configured custom brick."""
 
+    definition = build_user_defined_definition()
+
     return {
         "nodes": [
             {
                 "id": 1,
                 "nodeTypeId": "901",
-                "customConfigText": json.dumps(
-                    {
-                        "name": "Inline aldehyde",
-                        "alias": ["IAL"],
-                        "brick_type": "BRIDGE",
-                        "nodes": [
-                            {
-                                "kind": "port",
-                                "index": 1,
-                                "side": "left",
-                                "preferred_brick_type": "SKELETON",
-                                "connected_symbol": "C",
-                            },
-                            {
-                                "kind": "atom",
-                                "index": 2,
-                                "symbol": "C",
-                            },
-                            {
-                                "kind": "atom",
-                                "index": 3,
-                                "symbol": "O",
-                            },
-                            {
-                                "kind": "port",
-                                "index": 4,
-                                "side": "right",
-                                "preferred_brick_type": "SIDE_CHAIN",
-                                "connected_symbol": "C",
-                            },
-                        ],
-                        "edges": [
-                            [1, 2, "SINGLE"],
-                            [2, 3, "DOUBLE"],
-                            [2, 4, "SINGLE"],
-                        ],
-                    },
-                    indent=2,
-                ),
+                "customConfigText": json.dumps(definition, indent=2),
                 "portConfiguration": [
                     {"slotId": 0, "side": "left", "actualPortId": "1"},
                     {"slotId": 1, "side": "right", "actualPortId": "4"},
@@ -180,6 +144,47 @@ def build_inline_user_defined_payload() -> dict[str, Any]:
             }
         ],
         "edges": [],
+    }
+
+
+def build_user_defined_definition() -> dict[str, Any]:
+    """Build one standalone user-defined brick definition payload."""
+
+    return {
+        "name": "Inline aldehyde",
+        "alias": ["IAL"],
+        "brick_type": "BRIDGE",
+        "nodes": [
+            {
+                "kind": "port",
+                "index": 1,
+                "side": "left",
+                "preferred_brick_type": "SKELETON",
+                "connected_symbol": "C",
+            },
+            {
+                "kind": "atom",
+                "index": 2,
+                "symbol": "C",
+            },
+            {
+                "kind": "atom",
+                "index": 3,
+                "symbol": "O",
+            },
+            {
+                "kind": "port",
+                "index": 4,
+                "side": "right",
+                "preferred_brick_type": "SIDE_CHAIN",
+                "connected_symbol": "C",
+            },
+        ],
+        "edges": [
+            [1, 2, "SINGLE"],
+            [2, 3, "DOUBLE"],
+            [2, 4, "SINGLE"],
+        ],
     }
 
 
@@ -217,7 +222,10 @@ def catalog_path(tmp_path: Path) -> Path:
         for key in ["2", "4", "5", "900", "901"]
     }
     output_path = tmp_path / "brick-catalog.json"
-    output_path.write_text(json.dumps(subset, indent=2, sort_keys=True), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(subset, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
     return output_path
 
 
@@ -225,9 +233,15 @@ def catalog_path(tmp_path: Path) -> Path:
 def render_server_address(catalog_path: Path) -> tuple[str, int]:
     """Start one temporary render server and yield its listening address."""
 
+    brick_db_path = catalog_path.parent / "brick-store.sqlite3"
+
     server = ThreadingHTTPServer(
         ("127.0.0.1", 0),
-        create_handler(catalog_path=catalog_path, image_size=256),
+        create_handler(
+            catalog_path=catalog_path,
+            image_size=256,
+            brick_db_path=brick_db_path,
+        ),
     )
     worker = threading.Thread(target=server.serve_forever, daemon=True)
     worker.start()
@@ -246,7 +260,7 @@ def test_load_brick_catalog_reads_tool_definition(catalog_path: Path) -> None:
     catalog = load_brick_catalog(catalog_path)
 
     assert catalog["900"]["brick_type"] == "TOOL"
-    assert catalog["900"]["name"] == "Dulplicator"
+    assert catalog["900"]["name"] == "Duplicator"
 
 
 def test_expand_tool_nodes_removes_tool_nodes_and_duplicates_branch(
@@ -298,7 +312,8 @@ def test_build_graph_from_state_rejects_unknown_brick(catalog_path: Path) -> Non
 def test_render_state_smiles_uses_inline_user_defined_configuration(
     catalog_path: Path,
 ) -> None:
-    """Inline-configured user-defined nodes should render from their pasted definition."""
+    """Inline-configured user-defined nodes should render from their pasted definition.
+    """
 
     smiles = render_state_smiles(
         build_inline_user_defined_payload(),
@@ -369,6 +384,8 @@ def test_render_server_health_endpoint_reports_configuration(
     assert headers["access-control-allow-origin"] == "*"
     assert body["status"] == "ok"
     assert body["catalog_path"] == str(catalog_path)
+    assert body["stored_brick_count"] == 0
+    assert body["brick_db_path"].endswith("brick-store.sqlite3")
 
 
 def test_render_server_options_returns_cors_headers(
@@ -459,6 +476,159 @@ def test_render_server_render_endpoint_returns_png(
     assert status == 200
     assert headers["content-type"] == "image/png"
     assert payload.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_render_server_bricks_endpoint_stores_and_lists_definitions(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The bricks endpoints should persist and return stored definitions."""
+
+    definition = build_user_defined_definition()
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/bricks",
+        body=json.dumps({"definition": definition}),
+        headers={"Content-Type": "application/json"},
+    )
+    body = json.loads(payload)
+    stored_definition = body["definition"]
+
+    assert status == 201
+    assert headers["content-type"] == "application/json"
+    assert stored_definition["id"].startswith("user-")
+    assert stored_definition["name"] == definition["name"]
+    assert stored_definition["alias"] == definition["alias"]
+
+    list_status, list_headers, list_payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "GET",
+        "/bricks",
+    )
+    list_body = json.loads(list_payload)
+
+    assert list_status == 200
+    assert list_headers["content-type"] == "application/json"
+    assert [brick["id"] for brick in list_body["bricks"]] == [stored_definition["id"]]
+
+    get_status, _get_headers, get_payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "GET",
+        f"/bricks/{stored_definition['id']}",
+    )
+    get_body = json.loads(get_payload)
+
+    assert get_status == 200
+    assert get_body["definition"]["id"] == stored_definition["id"]
+    assert get_body["definition"]["name"] == definition["name"]
+
+
+def test_render_server_smiles_endpoint_supports_stored_user_defined_bricks(
+    render_server_address: tuple[str, int],
+) -> None:
+    """Stored user-defined bricks should be usable by id in render payloads."""
+
+    definition = build_user_defined_definition()
+    create_status, _create_headers, create_payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/bricks",
+        body=json.dumps(definition),
+        headers={"Content-Type": "application/json"},
+    )
+    create_body = json.loads(create_payload)
+    stored_definition = create_body["definition"]
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/smiles",
+        body=json.dumps(
+            {
+                "nodes": [
+                    {
+                        "id": 1,
+                        "nodeTypeId": stored_definition["id"],
+                        "portConfiguration": [
+                            {"slotId": 0, "side": "left", "actualPortId": "1"},
+                            {"slotId": 1, "side": "right", "actualPortId": "4"},
+                        ],
+                    }
+                ],
+                "edges": [],
+            }
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    body = json.loads(payload)
+
+    assert create_status == 201
+    assert status == 200
+    assert headers["content-type"] == "application/json"
+    assert body["smiles"] == "C=O"
+
+
+def test_render_server_brick_render_endpoint_returns_png(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The brick-render endpoint should render one posted brick definition."""
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/brick-render",
+        body=json.dumps(build_user_defined_definition()),
+        headers={"Content-Type": "application/json"},
+    )
+
+    assert status == 200
+    assert headers["content-type"] == "image/png"
+    assert payload.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_render_server_bricks_endpoint_rejects_invalid_definition_payload(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The bricks endpoint should reject malformed definition payloads."""
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/bricks",
+        body=json.dumps({"definition": []}),
+        headers={"Content-Type": "application/json"},
+    )
+    body = json.loads(payload)
+
+    assert status == 400
+    assert headers["content-type"] == "application/json"
+    assert body["error"] == "definition must be a JSON object."
+
+
+def test_render_server_get_brick_endpoint_returns_not_found_for_unknown_id(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The stored brick query endpoint should report unknown brick ids."""
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "GET",
+        "/bricks/user-999",
+    )
+    body = json.loads(payload)
+
+    assert status == 404
+    assert headers["content-type"] == "application/json"
+    assert body["error"] == "Unknown stored brick id: user-999."
 
 
 def test_render_server_rejects_invalid_json(

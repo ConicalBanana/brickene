@@ -234,6 +234,7 @@ body.node-wizard-page {
   .node-wizard-menu-row {
     grid-template-columns: 1fr;
     align-items: start;
+  }
 
   .node-wizard-port-header {
     flex-direction: column;
@@ -241,7 +242,6 @@ body.node-wizard-page {
 
   .node-wizard-port-actions {
     justify-content: flex-start;
-  }
   }
 
   .menu-state.node-wizard-status-wrap {
@@ -277,6 +277,10 @@ body.node-wizard-page {
   .node-wizard-action-row {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .node-wizard-port-actions {
+    width: 100%;
   }
 
   .node-wizard-marvin-host {

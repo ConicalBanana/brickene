@@ -11,10 +11,13 @@ from urllib.parse import urlparse
 
 import typer
 
+from brickene.brick_store import DEFAULT_BRICK_DB_PATH, BrickStore
 from brickene.core.node import Atom, BrickNode, BrickType, Port
 from brickene.core.rendering import (
     DEFAULT_CATALOG_PATH,
     DEFAULT_IMAGE_SIZE,
+    load_brick_catalog,
+    render_brick_definition_image_bytes,
     render_state_image_bytes,
     render_state_smiles,
 )
@@ -105,16 +108,70 @@ def normalize_aliases(value: Any) -> list[str]:
     return aliases
 
 
-def create_handler(catalog_path: Path, image_size: int) -> type[BaseHTTPRequestHandler]:
+def normalize_brick_definition(payload: dict[str, Any]) -> dict[str, Any]:
+    """Normalize one posted brick definition payload.
+
+    The request may either be the definition object itself or a wrapper with a
+    top-level ``definition`` key.
+    """
+
+    definition_payload = payload.get("definition", payload)
+    if not isinstance(definition_payload, dict):
+        raise ValueError("definition must be a JSON object.")
+
+    normalized_definition = dict(definition_payload)
+    normalized_definition["brick_type"] = parse_brick_type(
+        definition_payload.get("brick_type")
+    ).name
+
+    try:
+        node = BrickNode.from_dict(normalized_definition)
+    except KeyError as exc:
+        raise ValueError(
+            f"Invalid brick definition: missing {exc.args[0]}."
+        ) from exc
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid brick definition: {exc}") from exc
+
+    if not node.nodes:
+        raise ValueError("definition must include at least one node.")
+
+    return {
+        "name": str(definition_payload.get("name") or "User defined").strip()
+        or "User defined",
+        "alias": normalize_aliases(definition_payload.get("alias")),
+        **serialize_brick_definition(node),
+    }
+
+
+def build_runtime_catalog(
+    catalog_path: Path,
+    brick_store: BrickStore,
+) -> dict[str, dict[str, Any]]:
+    """Load the built-in catalog and merge stored user-defined bricks."""
+
+    catalog = load_brick_catalog(catalog_path)
+    catalog.update(brick_store.catalog_entries())
+    return catalog
+
+
+def create_handler(
+    catalog_path: Path,
+    image_size: int,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+) -> type[BaseHTTPRequestHandler]:
     """Create a request handler bound to one render configuration.
 
     Args:
         catalog_path: Path to the brick catalog JSON.
         image_size: Width and height of returned PNG renders.
+        brick_db_path: Path to the SQLite database for user-defined bricks.
 
     Returns:
         Request handler class for the configured render service.
     """
+
+    brick_store = BrickStore(brick_db_path)
 
     class RenderRequestHandler(BaseHTTPRequestHandler):
         """Handle HTTP requests for graph image rendering."""
@@ -131,21 +188,49 @@ def create_handler(catalog_path: Path, image_size: int) -> type[BaseHTTPRequestH
         def do_GET(self) -> None:
             """Serve a basic health endpoint."""
 
-            if urlparse(self.path).path != "/health":
+            request_path = urlparse(self.path).path.rstrip("/") or "/"
+
+            if request_path == "/health":
                 self._send_json(
-                    HTTPStatus.NOT_FOUND,
-                    {"error": "Not found."},
+                    HTTPStatus.OK,
+                    {
+                        "status": "ok",
+                        "catalog_path": str(catalog_path),
+                        "image_size": image_size,
+                        "brick_db_path": str(brick_db_path),
+                        "stored_brick_count": brick_store.count_bricks(),
+                    },
+                )
+                return
+
+            if request_path == "/bricks":
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"bricks": brick_store.list_bricks()},
+                )
+                return
+
+            if request_path.startswith("/bricks/"):
+                brick_id = request_path.removeprefix("/bricks/")
+                definition = brick_store.get_brick(brick_id)
+                if definition is None:
+                    self._send_json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": f"Unknown stored brick id: {brick_id}."},
+                    )
+                    return
+
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"definition": definition},
                 )
                 return
 
             self._send_json(
-                HTTPStatus.OK,
-                {
-                    "status": "ok",
-                    "catalog_path": str(catalog_path),
-                    "image_size": image_size,
-                },
+                HTTPStatus.NOT_FOUND,
+                {"error": "Not found."},
             )
+            return
 
         def do_POST(self) -> None:
             """Render a posted graph payload into backend representations.
@@ -154,8 +239,14 @@ def create_handler(catalog_path: Path, image_size: int) -> type[BaseHTTPRequestH
             ``bondType`` or ``bond_type`` on individual edges.
             """
 
-            request_path = urlparse(self.path).path
-            if request_path not in {"/render", "/smiles", "/brick-config"}:
+            request_path = urlparse(self.path).path.rstrip("/") or "/"
+            if request_path not in {
+                "/render",
+                "/smiles",
+                "/brick-config",
+                "/bricks",
+                "/brick-render",
+            }:
                 self._send_json(
                     HTTPStatus.NOT_FOUND,
                     {"error": "Not found."},
@@ -209,17 +300,66 @@ def create_handler(catalog_path: Path, image_size: int) -> type[BaseHTTPRequestH
                 )
                 return
 
+            if request_path == "/bricks":
+                try:
+                    definition = normalize_brick_definition(payload)
+                    stored_definition = brick_store.save_brick(definition)
+                except (TypeError, ValueError) as exc:
+                    self._send_json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": str(exc)},
+                    )
+                    return
+
+                self._send_json(
+                    HTTPStatus.CREATED,
+                    {"definition": stored_definition},
+                )
+                return
+
+            if request_path == "/brick-render":
+                try:
+                    definition = normalize_brick_definition(payload)
+                    image_bytes = render_brick_definition_image_bytes(
+                        definition,
+                        image_size=image_size,
+                    )
+                except (TypeError, ValueError) as exc:
+                    self._send_json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": str(exc)},
+                    )
+                    return
+                except Exception as exc:  # pragma: no cover
+                    self._send_json(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        {"error": f"Render failed: {exc}"},
+                    )
+                    return
+
+                self.send_response(HTTPStatus.OK)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "image/png")
+                self.send_header("Content-Length", str(len(image_bytes)))
+                self.end_headers()
+                self.wfile.write(image_bytes)
+                return
+
+            runtime_catalog = build_runtime_catalog(catalog_path, brick_store)
+
             try:
                 if request_path == "/render":
                     image_bytes = render_state_image_bytes(
                         payload,
                         image_size=image_size,
                         catalog_path=catalog_path,
+                        catalog=runtime_catalog,
                     )
                 else:
                     smiles = render_state_smiles(
                         payload,
                         catalog_path=catalog_path,
+                        catalog=runtime_catalog,
                     )
             except (TypeError, ValueError) as exc:
                 self._send_json(
@@ -286,6 +426,7 @@ def serve(
     port: int = 8765,
     catalog_path: Path = DEFAULT_CATALOG_PATH,
     image_size: int = DEFAULT_IMAGE_SIZE,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> None:
     """Run the render server.
 
@@ -294,11 +435,16 @@ def serve(
         port: TCP port to bind.
         catalog_path: Path to the brick catalog JSON.
         image_size: Width and height of returned PNG renders.
+        brick_db_path: Path to the SQLite database for user-defined bricks.
     """
 
-    server = ThreadingHTTPServer((host, port), create_handler(catalog_path, image_size))
+    server = ThreadingHTTPServer(
+        (host, port),
+        create_handler(catalog_path, image_size, brick_db_path),
+    )
     typer.echo(f"Brickene render server listening on http://{host}:{port}")
     typer.echo(f"Using catalog {catalog_path.resolve()}")
+    typer.echo(f"Using brick database {brick_db_path.resolve()}")
     server.serve_forever()
 
 
@@ -314,10 +460,20 @@ def main(
         DEFAULT_IMAGE_SIZE,
         help="Width and height of the rendered PNG.",
     ),
+    brick_db_path: Path = typer.Option(
+        DEFAULT_BRICK_DB_PATH,
+        help="Path to the SQLite database for user-defined bricks.",
+    ),
 ) -> None:
     """Start the HTTP render interface for frontend preview requests."""
 
-    serve(host=host, port=port, catalog_path=catalog_path, image_size=image_size)
+    serve(
+        host=host,
+        port=port,
+        catalog_path=catalog_path,
+        image_size=image_size,
+        brick_db_path=brick_db_path,
+    )
 
 
 if __name__ == "__main__":

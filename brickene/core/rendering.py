@@ -41,6 +41,18 @@ def load_brick_catalog(
     return json.loads(catalog_path.read_text(encoding="utf-8"))
 
 
+def _resolve_catalog(
+    catalog_path: Path,
+    catalog: dict[str, dict[str, Any]] | None,
+) -> dict[str, dict[str, Any]]:
+    """Return one catalog payload from either memory or disk."""
+
+    if catalog is not None:
+        return catalog
+
+    return load_brick_catalog(catalog_path)
+
+
 def resolve_node_definition(
     node_state: dict[str, Any],
     catalog: dict[str, dict[str, Any]],
@@ -106,6 +118,7 @@ def expand_tool_nodes(
 def build_graph_from_state(
     payload: dict[str, Any],
     catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog: dict[str, dict[str, Any]] | None = None,
 ) -> BrickGraph:
     """Reconstruct a ``BrickGraph`` from a frontend graph payload."""
 
@@ -114,7 +127,7 @@ def build_graph_from_state(
     if not isinstance(node_states, list) or not isinstance(edge_states, list):
         raise ValueError("State payload must include node and edge lists.")
 
-    catalog = load_brick_catalog(catalog_path)
+    catalog = _resolve_catalog(catalog_path, catalog)
     node_states, edge_states = expand_tool_nodes(node_states, edge_states, catalog)
     graph = BrickGraph()
     bricks_by_frontend_id: dict[int, BrickNode] = {}
@@ -167,10 +180,15 @@ def build_graph_from_state(
 def build_molecule_from_state(
     payload: dict[str, Any],
     catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog: dict[str, dict[str, Any]] | None = None,
 ) -> Chem.Mol | None:
     """Build an RDKit molecule from a frontend graph payload."""
 
-    graph = build_graph_from_state(payload, catalog_path=catalog_path)
+    graph = build_graph_from_state(
+        payload,
+        catalog_path=catalog_path,
+        catalog=catalog,
+    )
     smiles = graph.to_smiles()
     if not smiles:
         return None
@@ -185,13 +203,37 @@ def build_molecule_from_state(
     return molecule
 
 
+def build_molecule_from_definition(definition: dict[str, Any]) -> Chem.Mol | None:
+    """Build an RDKit molecule from one serialized brick definition."""
+
+    node = BrickNode.from_dict(definition)
+    smiles = node.to_smiles()
+    if not smiles:
+        return None
+
+    molecule = Chem.MolFromSmiles(smiles)
+    if molecule is None:
+        raise ValueError(
+            "Failed to construct an RDKit molecule from the brick definition."
+        )
+
+    molecule = cap_hanging_ports_with_hydrogen(molecule)
+    AllChem.Compute2DCoords(molecule)
+    return molecule
+
+
 def render_state_smiles(
     payload: dict[str, Any],
     catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog: dict[str, dict[str, Any]] | None = None,
 ) -> str:
     """Render a frontend graph state payload to a SMILES string."""
 
-    molecule = build_molecule_from_state(payload, catalog_path=catalog_path)
+    molecule = build_molecule_from_state(
+        payload,
+        catalog_path=catalog_path,
+        catalog=catalog,
+    )
     if molecule is None:
         return ""
 
@@ -202,10 +244,15 @@ def render_state_image(
     payload: dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
     catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog: dict[str, dict[str, Any]] | None = None,
 ) -> Image.Image:
     """Render a frontend state payload to a cropped PIL image."""
 
-    molecule = build_molecule_from_state(payload, catalog_path=catalog_path)
+    molecule = build_molecule_from_state(
+        payload,
+        catalog_path=catalog_path,
+        catalog=catalog,
+    )
     if molecule is None:
         return Image.new("RGB", (image_size, image_size), (255, 255, 255))
 
@@ -216,6 +263,7 @@ def render_state_image_bytes(
     payload: dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
     catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog: dict[str, dict[str, Any]] | None = None,
 ) -> bytes:
     """Render a frontend state payload into PNG bytes."""
 
@@ -223,7 +271,33 @@ def render_state_image_bytes(
         payload,
         image_size=image_size,
         catalog_path=catalog_path,
+        catalog=catalog,
     )
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def render_brick_definition_image(
+    definition: dict[str, Any],
+    image_size: int = DEFAULT_IMAGE_SIZE,
+) -> Image.Image:
+    """Render one brick definition payload to a cropped PIL image."""
+
+    molecule = build_molecule_from_definition(definition)
+    if molecule is None:
+        return Image.new("RGB", (image_size, image_size), (255, 255, 255))
+
+    return render_molecule_image(molecule, image_size=image_size)
+
+
+def render_brick_definition_image_bytes(
+    definition: dict[str, Any],
+    image_size: int = DEFAULT_IMAGE_SIZE,
+) -> bytes:
+    """Render one brick definition payload into PNG bytes."""
+
+    image = render_brick_definition_image(definition, image_size=image_size)
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()

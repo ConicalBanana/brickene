@@ -1,23 +1,107 @@
 (() => {
   const frontend = window.BrickeneFrontend = window.BrickeneFrontend || {};
-  
   const catalogUrl = new URL("../assets/brick_configs.json", window.location.href);
+  const brickApiUrl = frontend.config?.brickApiUrl || (() => {
+    const runtimeUrl = new URL(window.location.href);
+    const renderApiUrl = runtimeUrl.searchParams.get("renderApiUrl") || "http://127.0.0.1:8765/render";
 
-  function loadBrickDefinitions() {
+    return runtimeUrl.searchParams.get("brickApiUrl")
+      || (/\/render\/?$/.test(renderApiUrl)
+        ? renderApiUrl.replace(/\/render\/?$/, "/bricks")
+        : "http://127.0.0.1:8765/bricks");
+  })();
+
+  function readJsonSync(url) {
     const request = new XMLHttpRequest();
 
-    request.open("GET", catalogUrl.href, false);
+    request.open("GET", url, false);
     request.send();
 
     if (request.status !== 0 && (request.status < 200 || request.status >= 300)) {
-      throw new Error(`Failed to load brick catalog from ${catalogUrl.href}.`);
+      throw new Error(`Failed to load JSON from ${url}.`);
     }
 
     return JSON.parse(request.responseText);
   }
 
+  function loadBuiltInBrickDefinitions() {
+    return readJsonSync(catalogUrl.href);
+  }
+
+  function normalizeStoredBrickPayload(payload) {
+    if (!payload || typeof payload !== "object" || !Array.isArray(payload.bricks)) {
+      return [];
+    }
+
+    return payload.bricks.filter((definition) => definition && typeof definition === "object");
+  }
+
+  function mergeBrickDefinitions(builtInDefinitions, storedDefinitions) {
+    const mergedDefinitions = { ...builtInDefinitions };
+
+    storedDefinitions.forEach((definition) => {
+      mergedDefinitions[String(definition.id)] = definition;
+    });
+
+    return mergedDefinitions;
+  }
+
+  function loadBrickDefinitions() {
+    const builtInDefinitions = loadBuiltInBrickDefinitions();
+
+    try {
+      const storedDefinitions = normalizeStoredBrickPayload(readJsonSync(brickApiUrl));
+      return mergeBrickDefinitions(builtInDefinitions, storedDefinitions);
+    } catch (error) {
+      frontend.brickDefinitionsError = error instanceof Error
+        ? error.message
+        : "Failed to load stored brick definitions.";
+      return builtInDefinitions;
+    }
+  }
+
+  async function refreshBrickDefinitions() {
+    const response = await fetch(brickApiUrl, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Failed to load stored brick definitions.");
+    }
+
+    const definitions = mergeBrickDefinitions(
+      loadBuiltInBrickDefinitions(),
+      normalizeStoredBrickPayload(payload),
+    );
+    frontend.brickDefinitions = definitions;
+    return definitions;
+  }
+
+  async function storeBrickDefinition(definitionPayload) {
+    const response = await fetch(brickApiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ definition: definitionPayload }),
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Failed to store the brick definition.");
+    }
+
+    return payload.definition;
+  }
+
   try {
     frontend.brickDefinitions = loadBrickDefinitions();
+    frontend.refreshBrickDefinitions = refreshBrickDefinitions;
+    frontend.storeBrickDefinition = storeBrickDefinition;
   } catch (error) {
     console.error("Failed to load brick definitions.", error);
     frontend.brickDefinitions = {};

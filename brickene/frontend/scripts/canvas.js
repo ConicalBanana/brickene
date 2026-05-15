@@ -442,7 +442,11 @@
     clearComponentInteraction(interaction);
     frontend.renderNodes();
     if (didMove) {
-      frontend.notifyGraphChanged({ reason: "node-moved", nodeId: movedNodeId });
+      frontend.notifyGraphChanged({
+        reason: "node-moved",
+        nodeId: movedNodeId,
+        refreshPreview: false,
+      });
     }
     frontend.setCanvasMessage(didMove ? `Node ${movedNodeId} moved.` : `Node ${movedNodeId} selected.`);
   }

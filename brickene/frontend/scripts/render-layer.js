@@ -70,6 +70,10 @@
     requestRenderPreview(detail);
   }
 
+  function shouldRefreshRenderPreview(detail = {}) {
+    return detail.refreshPreview !== false;
+  }
+
   async function readRenderError(response) {
     const contentType = response.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
@@ -87,10 +91,16 @@
     }
 
     dom.canvasViewport.addEventListener(frontend.GRAPH_CHANGE_EVENT, (event) => {
-      refreshRenderPreview(event.detail || {});
+      const detail = event.detail || {};
+      if (!shouldRefreshRenderPreview(detail)) {
+        return;
+      }
+
+      refreshRenderPreview(detail);
     });
   }
 
   frontend.refreshRenderPreview = refreshRenderPreview;
+  frontend.shouldRefreshRenderPreview = shouldRefreshRenderPreview;
   frontend.bindRenderLayer = bindRenderLayer;
 })();

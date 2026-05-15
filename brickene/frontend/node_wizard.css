@@ -140,8 +140,11 @@ body.node-wizard-page {
   gap: 1rem;
 }
 
-.node-wizard-port-header .node-inline-config-feedback {
-  margin-top: 0.22rem;
+.node-wizard-port-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .node-wizard-port-config {
@@ -231,6 +234,14 @@ body.node-wizard-page {
   .node-wizard-menu-row {
     grid-template-columns: 1fr;
     align-items: start;
+
+  .node-wizard-port-header {
+    flex-direction: column;
+  }
+
+  .node-wizard-port-actions {
+    justify-content: flex-start;
+  }
   }
 
   .menu-state.node-wizard-status-wrap {

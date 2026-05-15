@@ -4,6 +4,11 @@
   const DEFAULT_NAME = "User defined";
   const DEFAULT_PORT_TYPE = "SKELETON";
   const BRICK_TYPE_OPTIONS = ["SKELETON", "SIDE_CHAIN", "SUBSTITUENT", "BRIDGE"];
+  const APPEND_IMPORT_OPTIONS = {
+    clearCanvas: false,
+    select: true,
+    throwError: false,
+  };
   const runtimeState = {
     marvinRef: null,
     baseDefinition: null,
@@ -17,6 +22,7 @@
     nameInput: document.getElementById("wizard-node-name"),
     aliasInput: document.getElementById("wizard-node-alias"),
     brickTypeSelect: document.getElementById("wizard-brick-type"),
+    addPortButton: document.getElementById("wizard-add-port"),
     generateButton: document.getElementById("wizard-generate"),
     copyButton: document.getElementById("wizard-copy"),
     sendButton: document.getElementById("wizard-send"),
@@ -32,6 +38,7 @@
 
   function setBusy(isBusy) {
     runtimeState.isBusy = isBusy;
+    dom.addPortButton.disabled = isBusy;
     dom.generateButton.disabled = isBusy;
     dom.copyButton.disabled = isBusy;
     dom.sendButton.disabled = isBusy;
@@ -186,6 +193,26 @@
     dom.jsonOutput.value = definition ? `${JSON.stringify(definition, null, 2)}\n` : "";
   }
 
+  function getNextPortIndex(smiles) {
+    const matches = String(smiles || "").matchAll(/\[\*:(\d+)\]/g);
+    let maxPortIndex = 0;
+
+    for (const match of matches) {
+      maxPortIndex = Math.max(maxPortIndex, Number(match[1]));
+    }
+
+    return maxPortIndex + 1;
+  }
+
+  async function readCurrentSmiles() {
+    if (!runtimeState.marvinRef || runtimeState.marvinRef.isEmpty()) {
+      return "";
+    }
+
+    const exportPayload = await runtimeState.marvinRef.exportDocument("SMILES");
+    return exportPayload?.content?.trim() || "";
+  }
+
   async function exportSmiles() {
     if (!runtimeState.marvinRef) {
       throw new Error("Marvin editor is still loading.");
@@ -221,6 +248,34 @@
     }
 
     return body.definition;
+  }
+
+  async function addDetachedPort() {
+    if (!runtimeState.marvinRef) {
+      throw new Error("Marvin editor is still loading.");
+    }
+
+    setBusy(true);
+
+    try {
+      const currentSmiles = await readCurrentSmiles();
+      const nextPortIndex = getNextPortIndex(currentSmiles);
+      const nextPortSmiles = `[*:${nextPortIndex}]`;
+
+      await runtimeState.marvinRef.importDocument(nextPortSmiles, APPEND_IMPORT_OPTIONS);
+      setStatus(
+        `Added detached port ${nextPortSmiles}. Detect ports again to refresh the node definition.`,
+        { success: true },
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : "Failed to add a detached port.",
+        { error: true },
+      );
+      throw error;
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function generateDefinition() {
@@ -290,7 +345,10 @@
     runtimeState.baseDefinition = null;
     dom.jsonOutput.value = "";
     renderEmptyPortState("Structure changed. Detect ports again to refresh the node definition.");
-    setStatus("Structure changed. Detect ports again to refresh the node definition.");
+
+    if (!runtimeState.isBusy) {
+      setStatus("Structure changed. Detect ports again to refresh the node definition.");
+    }
   }
 
   async function initializeMarvin() {
@@ -347,8 +405,8 @@
         window.marvinLocalStorage.registerAutoSaver(STORAGE_UID, runtimeState.marvinRef);
       }
 
-      renderEmptyPortState("Draw a structure, then click Detect ports.");
-      setStatus("Draw a structure, then click Detect ports.", { success: true });
+      renderEmptyPortState("Draw a structure, create a detached port if needed, then click Detect ports.");
+      setStatus("Draw a structure, create a detached port if needed, then click Detect ports.", { success: true });
     } catch (error) {
       renderEmptyPortState("Marvin failed to load.");
       setStatus(
@@ -361,6 +419,10 @@
   }
 
   function bindEvents() {
+    dom.addPortButton.addEventListener("click", () => {
+      addDetachedPort().catch(() => {});
+    });
+
     dom.generateButton.addEventListener("click", () => {
       generateDefinition().catch(() => {});
     });

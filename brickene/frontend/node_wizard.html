@@ -56,10 +56,6 @@
 
           <div class="node-wizard-copy-block">
             <p class="submenu-label">Structure editor</p>
-            <p class="node-wizard-subtitle">
-              Draw the attachment scaffold in Marvin, detect the exposed ports, then send the generated
-              user-defined node back to the main canvas.
-            </p>
           </div>
 
           <div class="menu-state node-wizard-status-wrap" aria-live="polite">
@@ -116,13 +112,15 @@
                 <div class="node-wizard-port-header">
                   <div>
                     <p class="node-type-label">Detected ports</p>
-                    <p class="node-inline-config-feedback">
-                      Attachment points are inferred from the Marvin-exported SMILES.
-                    </p>
                   </div>
-                  <button type="button" id="wizard-generate" class="node-wizard-action-button node-wizard-action-button-primary">
-                    Detect ports
-                  </button>
+                  <div class="node-wizard-port-actions">
+                    <button type="button" id="wizard-add-port" class="node-wizard-action-button">
+                      Create port
+                    </button>
+                    <button type="button" id="wizard-generate" class="node-wizard-action-button node-wizard-action-button-primary">
+                      Detect ports
+                    </button>
+                  </div>
                 </div>
                 <div id="wizard-port-config" class="node-wizard-port-config" aria-live="polite"></div>
               </section>

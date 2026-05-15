@@ -327,6 +327,284 @@
     dom.canvasViewport.setPointerCapture(event.pointerId);
   }
 
+  function clearComponentInteraction(interaction = frontend.getUiState().componentInteraction) {
+    const ui = frontend.getUiState();
+
+    if (!interaction || ui.componentInteraction !== interaction) {
+      return false;
+    }
+
+    ui.componentInteraction = null;
+    return true;
+  }
+
+  function releaseInteractionPointerCapture(pointerId) {
+    if (dom.canvasViewport.hasPointerCapture(pointerId)) {
+      dom.canvasViewport.releasePointerCapture(pointerId);
+    }
+  }
+
+  function moveEdgeDragInteraction(event, interaction) {
+    interaction.pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
+    interaction.hoverPort = frontend.findHoveredPort(event.clientX, event.clientY);
+    frontend.renderNodes();
+  }
+
+  function endEdgeDragInteraction(event, interaction) {
+    setEdgeDragSelectionState(false);
+    clearComponentInteraction(interaction);
+    frontend.renderNodes();
+
+    const targetPort = frontend.findHoveredPort(event.clientX, event.clientY);
+    if (!targetPort) {
+      frontend.setCanvasMessage("Lining cancelled.");
+      return;
+    }
+
+    const result = frontend.createEdgeBetweenPorts(
+      { nodeId: interaction.sourceNodeId, slotId: interaction.sourceSlotId },
+      targetPort,
+    );
+    frontend.setCanvasMessage(result.message);
+  }
+
+  function cancelEdgeDragInteraction(interaction) {
+    setEdgeDragSelectionState(false);
+    clearComponentInteraction(interaction);
+    frontend.renderNodes();
+  }
+
+  function moveEdgeRetargetInteraction(event, interaction, autoPanDelta) {
+    interaction.pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
+    interaction.hoverPort = frontend.findHoveredPort(event.clientX, event.clientY);
+    interaction.moved = (
+      Math.abs(event.clientX - interaction.startX) > 2
+      || Math.abs(event.clientY - interaction.startY) > 2
+      || autoPanDelta.x !== 0
+      || autoPanDelta.y !== 0
+    );
+    frontend.renderNodes();
+  }
+
+  function endEdgeRetargetInteraction(event, interaction) {
+    setEdgeDragSelectionState(false);
+    clearComponentInteraction(interaction);
+    frontend.renderNodes();
+
+    if (!interaction.moved) {
+      frontend.selectOnlyEdge(interaction.edgeId);
+      frontend.setCanvasMessage(`Edge ${interaction.edgeId} selected.`);
+      return;
+    }
+
+    const targetPort = frontend.findHoveredPort(event.clientX, event.clientY);
+    if (!targetPort) {
+      frontend.deleteEdge(interaction.edgeId);
+      frontend.setCanvasMessage(`Edge ${interaction.edgeId} deleted.`);
+      return;
+    }
+
+    const result = frontend.retargetEdgeDestination(interaction.edgeId, targetPort);
+    frontend.setCanvasMessage(result.message);
+  }
+
+  function cancelEdgeRetargetInteraction(interaction) {
+    setEdgeDragSelectionState(false);
+    clearComponentInteraction(interaction);
+    frontend.renderNodes();
+  }
+
+  function moveNodeDragInteraction(event, interaction, autoPanDelta) {
+    const graph = frontend.getGraphState();
+    const pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
+    const nextX = pointerWorld.x - interaction.pointerOffsetX;
+    const nextY = pointerWorld.y - interaction.pointerOffsetY;
+    const moved = (
+      Math.abs(event.clientX - interaction.startX) > 2
+      || Math.abs(event.clientY - interaction.startY) > 2
+      || autoPanDelta.x !== 0
+      || autoPanDelta.y !== 0
+    );
+
+    graph.nodes = graph.nodes.map((node) => (
+      node.id === interaction.nodeId
+        ? { ...node, x: nextX, y: nextY }
+        : node
+    ));
+    interaction.moved = moved;
+    frontend.renderNodes();
+  }
+
+  function endNodeDragInteraction(_event, interaction) {
+    const movedNodeId = interaction.nodeId;
+    const didMove = interaction.moved;
+
+    clearComponentInteraction(interaction);
+    frontend.renderNodes();
+    if (didMove) {
+      frontend.notifyGraphChanged({ reason: "node-moved", nodeId: movedNodeId });
+    }
+    frontend.setCanvasMessage(didMove ? `Node ${movedNodeId} moved.` : `Node ${movedNodeId} selected.`);
+  }
+
+  function cancelNodeDragInteraction(interaction) {
+    clearComponentInteraction(interaction);
+    frontend.renderNodes();
+  }
+
+  function moveMarqueeInteraction(event, interaction) {
+    const nextPoint = frontend.clientToLayerPoint(event.clientX, event.clientY);
+    const rect = frontend.normalizeRect(interaction.startPoint, nextPoint);
+
+    interaction.endPoint = nextPoint;
+    interaction.moved = rect.right - rect.left > 2 || rect.bottom - rect.top > 2;
+    frontend.showSelectionBox(rect);
+    frontend.updateSelectionFromRect(rect, {
+      preserveSelection: interaction.preserveSelection,
+      baseNodeIds: interaction.baseSelectedNodeIds,
+    });
+  }
+
+  function endMarqueeInteraction(_event, interaction) {
+    frontend.hideSelectionBox();
+    clearComponentInteraction(interaction);
+
+    if (!interaction.moved) {
+      if (!interaction.preserveSelection) {
+        frontend.clearSelection();
+      }
+      frontend.setCanvasMessage("Selection cleared.");
+      return;
+    }
+
+    const ui = frontend.getUiState();
+    frontend.setCanvasMessage(
+      `${ui.selectedNodeIds.size} node(s) and ${ui.selectedEdgeIds.size} edge(s) selected.`,
+    );
+  }
+
+  function cancelMarqueeInteraction(interaction) {
+    frontend.hideSelectionBox();
+    clearComponentInteraction(interaction);
+    frontend.renderNodes();
+  }
+
+  const interactionModeRegistry = {
+    "edge-drag": {
+      move: moveEdgeDragInteraction,
+      end: endEdgeDragInteraction,
+      cancel: cancelEdgeDragInteraction,
+    },
+    "edge-retarget": {
+      move: moveEdgeRetargetInteraction,
+      end: endEdgeRetargetInteraction,
+      cancel: cancelEdgeRetargetInteraction,
+    },
+    "node-drag": {
+      move: moveNodeDragInteraction,
+      end: endNodeDragInteraction,
+      cancel: cancelNodeDragInteraction,
+    },
+    marquee: {
+      move: moveMarqueeInteraction,
+      end: endMarqueeInteraction,
+      cancel: cancelMarqueeInteraction,
+    },
+  };
+
+  function resetCanvasTranslation() {
+    const ui = frontend.getUiState();
+
+    ui.canvasOffset = { x: 0, y: 0 };
+    frontend.applyViewportOffset();
+    frontend.setCanvasMessage("Canvas translation reset to origin.");
+  }
+
+  function createNodeAtContextTarget() {
+    const ui = frontend.getUiState();
+    const node = frontend.createNodeAt(ui.canvasContextTarget.x, ui.canvasContextTarget.y);
+
+    frontend.setCanvasMessage(`Node ${node.id} created at (${Math.round(node.x)}, ${Math.round(node.y)}).`);
+  }
+
+  const contextMenuActionRegistry = {
+    canvas: {
+      center: resetCanvasTranslation,
+      reset: resetCanvasTranslation,
+      node: createNodeAtContextTarget,
+      close: () => {},
+    },
+    node: {
+      delete: () => {
+        const { activeNodeContextId } = frontend.getUiState();
+
+        if (activeNodeContextId === null) {
+          return;
+        }
+
+        frontend.deleteNode(activeNodeContextId);
+        frontend.setCanvasMessage(`Node ${activeNodeContextId} deleted.`);
+      },
+      close: () => {},
+    },
+    edge: {
+      delete: () => {
+        const { activeEdgeContextId } = frontend.getUiState();
+
+        if (activeEdgeContextId === null) {
+          return;
+        }
+
+        frontend.deleteEdge(activeEdgeContextId);
+        frontend.setCanvasMessage(`Edge ${activeEdgeContextId} deleted.`);
+      },
+      close: () => {},
+    },
+  };
+
+  const contextMenuCloseRegistry = {
+    canvas: frontend.closeCanvasContextMenu,
+    node: frontend.closeNodeContextMenu,
+    edge: frontend.closeEdgeContextMenu,
+  };
+
+  function executeContextMenuAction(menuType, actionKey) {
+    const actionHandler = contextMenuActionRegistry[menuType]?.[actionKey];
+
+    if (typeof actionHandler === "function") {
+      actionHandler();
+    }
+
+    contextMenuCloseRegistry[menuType]?.();
+  }
+
+  function bindContextMenuActionItems(items, menuType) {
+    items.forEach((item) => {
+      item.addEventListener("click", () => {
+        executeContextMenuAction(menuType, item.dataset.action || "close");
+      });
+    });
+  }
+
+  function cancelActiveInteraction() {
+    const interaction = frontend.getUiState().componentInteraction;
+
+    if (!interaction) {
+      return false;
+    }
+
+    releaseInteractionPointerCapture(interaction.pointerId);
+    setInteractionGuard(false);
+    interactionModeRegistry[interaction.type]?.cancel?.(interaction);
+
+    if (frontend.getUiState().componentInteraction === interaction) {
+      clearComponentInteraction(interaction);
+      frontend.renderNodes();
+    }
+
+    return true;
+  }
+
   function endComponentInteraction(event) {
     const ui = frontend.getUiState();
     if (!ui.componentInteraction || event.pointerId !== ui.componentInteraction.pointerId) {
@@ -334,89 +612,15 @@
     }
 
     const interaction = ui.componentInteraction;
+    const interactionHandler = interactionModeRegistry[interaction.type];
+
     setInteractionGuard(false);
+    releaseInteractionPointerCapture(event.pointerId);
+    interactionHandler?.end?.(event, interaction);
 
-    if (interaction.type === "edge-drag") {
-      if (dom.canvasViewport.hasPointerCapture(event.pointerId)) {
-        dom.canvasViewport.releasePointerCapture(event.pointerId);
-      }
-
-      setEdgeDragSelectionState(false);
-      ui.componentInteraction = null;
-      frontend.renderNodes();
-
-      const targetPort = frontend.findHoveredPort(event.clientX, event.clientY);
-      if (!targetPort) {
-        frontend.setCanvasMessage("Lining cancelled.");
-        return;
-      }
-
-      const result = frontend.createEdgeBetweenPorts(
-        { nodeId: interaction.sourceNodeId, slotId: interaction.sourceSlotId },
-        targetPort,
-      );
-      frontend.setCanvasMessage(result.message);
-      return;
+    if (frontend.getUiState().componentInteraction === interaction) {
+      clearComponentInteraction(interaction);
     }
-
-    if (interaction.type === "edge-retarget") {
-      if (dom.canvasViewport.hasPointerCapture(event.pointerId)) {
-        dom.canvasViewport.releasePointerCapture(event.pointerId);
-      }
-
-      setEdgeDragSelectionState(false);
-      ui.componentInteraction = null;
-      frontend.renderNodes();
-
-      if (!interaction.moved) {
-        frontend.selectOnlyEdge(interaction.edgeId);
-        frontend.setCanvasMessage(`Edge ${interaction.edgeId} selected.`);
-        return;
-      }
-
-      const targetPort = frontend.findHoveredPort(event.clientX, event.clientY);
-      if (!targetPort) {
-        frontend.deleteEdge(interaction.edgeId);
-        frontend.setCanvasMessage(`Edge ${interaction.edgeId} deleted.`);
-        return;
-      }
-
-      const result = frontend.retargetEdgeDestination(interaction.edgeId, targetPort);
-      frontend.setCanvasMessage(result.message);
-      return;
-    }
-
-    if (dom.canvasViewport.hasPointerCapture(event.pointerId)) {
-      dom.canvasViewport.releasePointerCapture(event.pointerId);
-    }
-
-    if (interaction.type === "marquee") {
-      frontend.hideSelectionBox();
-      if (!interaction.moved) {
-        if (!interaction.preserveSelection) {
-          frontend.clearSelection();
-        }
-        frontend.setCanvasMessage("Selection cleared.");
-      } else {
-        frontend.setCanvasMessage(
-          `${ui.selectedNodeIds.size} node(s) and ${ui.selectedEdgeIds.size} edge(s) selected.`,
-        );
-      }
-    }
-
-    if (interaction.type === "node-drag") {
-      const movedNodeId = interaction.nodeId;
-      const didMove = interaction.moved;
-      ui.componentInteraction = null;
-      frontend.renderNodes();
-      if (didMove) {
-        frontend.notifyGraphChanged({ reason: "node-moved", nodeId: movedNodeId });
-      }
-      frontend.setCanvasMessage(didMove ? `Node ${movedNodeId} moved.` : `Node ${movedNodeId} selected.`);
-      return;
-    }
-
-    ui.componentInteraction = null;
   }
 
   function bindMenuEvents() {
@@ -569,11 +773,7 @@
 
       ui.isSpacePressed = false;
       cancelCanvasPan();
-      setEdgeDragSelectionState(false);
-      setInteractionGuard(false);
-      ui.componentInteraction = null;
-      frontend.hideSelectionBox();
-      frontend.renderNodes();
+      cancelActiveInteraction();
       syncPanShortcutState();
     });
   }
@@ -688,60 +888,11 @@
       }
 
       const autoPanDelta = applyAutoPanForPointer(event.clientX, event.clientY);
-
-      if (ui.componentInteraction.type === "edge-drag") {
-        ui.componentInteraction.pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
-        ui.componentInteraction.hoverPort = frontend.findHoveredPort(event.clientX, event.clientY);
-        frontend.renderNodes();
-        return;
-      }
-
-      if (ui.componentInteraction.type === "edge-retarget") {
-        ui.componentInteraction.pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
-        ui.componentInteraction.hoverPort = frontend.findHoveredPort(event.clientX, event.clientY);
-        ui.componentInteraction.moved = (
-          Math.abs(event.clientX - ui.componentInteraction.startX) > 2
-          || Math.abs(event.clientY - ui.componentInteraction.startY) > 2
-          || autoPanDelta.x !== 0
-          || autoPanDelta.y !== 0
-        );
-        frontend.renderNodes();
-        return;
-      }
-
-      if (ui.componentInteraction.type === "node-drag") {
-        const graph = frontend.getGraphState();
-        const pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
-        const nextX = pointerWorld.x - ui.componentInteraction.pointerOffsetX;
-        const nextY = pointerWorld.y - ui.componentInteraction.pointerOffsetY;
-        const moved = (
-          Math.abs(event.clientX - ui.componentInteraction.startX) > 2
-          || Math.abs(event.clientY - ui.componentInteraction.startY) > 2
-          || autoPanDelta.x !== 0
-          || autoPanDelta.y !== 0
-        );
-
-        graph.nodes = graph.nodes.map((node) => (
-          node.id === ui.componentInteraction.nodeId
-            ? { ...node, x: nextX, y: nextY }
-            : node
-        ));
-        ui.componentInteraction.moved = moved;
-        frontend.renderNodes();
-        return;
-      }
-
-      if (ui.componentInteraction.type === "marquee") {
-        const nextPoint = frontend.clientToLayerPoint(event.clientX, event.clientY);
-        const rect = frontend.normalizeRect(ui.componentInteraction.startPoint, nextPoint);
-        ui.componentInteraction.endPoint = nextPoint;
-        ui.componentInteraction.moved = rect.right - rect.left > 2 || rect.bottom - rect.top > 2;
-        frontend.showSelectionBox(rect);
-        frontend.updateSelectionFromRect(rect, {
-          preserveSelection: ui.componentInteraction.preserveSelection,
-          baseNodeIds: ui.componentInteraction.baseSelectedNodeIds,
-        });
-      }
+      interactionModeRegistry[ui.componentInteraction.type]?.move?.(
+        event,
+        ui.componentInteraction,
+        autoPanDelta,
+      );
     });
 
     dom.canvasViewport.addEventListener("pointerup", endComponentInteraction);
@@ -765,51 +916,9 @@
       }
     });
 
-    dom.canvasContextItems.forEach((item) => {
-      item.addEventListener("click", () => {
-        const action = item.dataset.action;
-        const ui = frontend.getUiState();
-
-        if (action === "center" || action === "reset") {
-          ui.canvasOffset = { x: 0, y: 0 };
-          frontend.applyViewportOffset();
-          frontend.setCanvasMessage("Canvas translation reset to origin.");
-        } else if (action === "node") {
-          const node = frontend.createNodeAt(ui.canvasContextTarget.x, ui.canvasContextTarget.y);
-          frontend.setCanvasMessage(`Node ${node.id} created at (${Math.round(node.x)}, ${Math.round(node.y)}).`);
-        }
-
-        frontend.closeCanvasContextMenu();
-      });
-    });
-
-    dom.nodeContextItems.forEach((item) => {
-      item.addEventListener("click", () => {
-        const action = item.dataset.action;
-        const { activeNodeContextId } = frontend.getUiState();
-
-        if (action === "delete" && activeNodeContextId !== null) {
-          frontend.deleteNode(activeNodeContextId);
-          frontend.setCanvasMessage(`Node ${activeNodeContextId} deleted.`);
-        }
-
-        frontend.closeNodeContextMenu();
-      });
-    });
-
-    dom.edgeContextItems.forEach((item) => {
-      item.addEventListener("click", () => {
-        const action = item.dataset.action;
-        const { activeEdgeContextId } = frontend.getUiState();
-
-        if (action === "delete" && activeEdgeContextId !== null) {
-          frontend.deleteEdge(activeEdgeContextId);
-          frontend.setCanvasMessage(`Edge ${activeEdgeContextId} deleted.`);
-        }
-
-        frontend.closeEdgeContextMenu();
-      });
-    });
+    bindContextMenuActionItems(dom.canvasContextItems, "canvas");
+    bindContextMenuActionItems(dom.nodeContextItems, "node");
+    bindContextMenuActionItems(dom.edgeContextItems, "edge");
   }
 
   function bootstrap() {

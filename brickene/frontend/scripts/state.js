@@ -48,6 +48,10 @@
           label: "Copy As",
           children: [
             {
+              label: "BRICKENE",
+              actionKey: "copy-as-brickene",
+            },
+            {
               label: "SMILES",
               actionKey: "copy-as-smiles",
             },

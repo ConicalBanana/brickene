@@ -67,6 +67,10 @@
     return JSON.stringify(snapshot);
   }
 
+  function formatGraphState(snapshot = exportGraphState()) {
+    return `${JSON.stringify(snapshot, null, 2)}\n`;
+  }
+
   function pushHistorySnapshot(snapshot = exportGraphState()) {
     const serialized = typeof snapshot === "string" ? snapshot : serializeGraphState(snapshot);
 
@@ -159,6 +163,23 @@
     return copied;
   }
 
+  async function writeClipboardTextFromPromise(textPromise) {
+    if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/plain": Promise.resolve(textPromise).then((text) => new Blob([
+            text,
+          ], {
+            type: "text/plain",
+          })),
+        }),
+      ]);
+      return true;
+    }
+
+    return writeClipboardText(await textPromise);
+  }
+
   async function readClipboardText() {
     if (!navigator.clipboard?.readText) {
       throw new Error("Clipboard paste is not available in this browser.");
@@ -181,7 +202,7 @@
     };
   }
 
-  async function copyGraphAsSmiles() {
+  async function fetchGraphSmilesText() {
     const response = await fetch(config.smilesApiUrl, {
       method: "POST",
       headers: {
@@ -200,8 +221,21 @@
       throw new Error("SMILES export returned an empty result.");
     }
 
-    await writeClipboardText(`${smiles}\n`);
-    return smiles;
+    return `${smiles}\n`;
+  }
+
+  async function copyGraphAsSmiles() {
+    const textPromise = fetchGraphSmilesText();
+
+    await writeClipboardTextFromPromise(textPromise);
+    return (await textPromise).trim();
+  }
+
+  async function copyGraphAsBrickene() {
+    const text = formatGraphState();
+
+    await writeClipboardTextFromPromise(text);
+    return text;
   }
 
   function buildNodePositionBounds(nodes) {
@@ -461,7 +495,7 @@
   }
 
   function save() {
-    const blob = new Blob([`${JSON.stringify(exportGraphState(), null, 2)}\n`], {
+    const blob = new Blob([formatGraphState()], {
       type: "application/json",
     });
     const downloadUrl = URL.createObjectURL(blob);
@@ -541,6 +575,16 @@
 
       if (actionKey === "open") {
         return open();
+      }
+
+      if (actionKey === "copy-as-brickene") {
+        try {
+          await copyGraphAsBrickene();
+          frontend.setCanvasMessage("Copied graph as BRICKENE.");
+        } catch (error) {
+          frontend.setCanvasMessage(error instanceof Error ? error.message : "BRICKENE export failed.");
+        }
+        return true;
       }
 
       if (actionKey === "copy-as-smiles") {

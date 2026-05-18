@@ -1295,6 +1295,25 @@
   function bindMenuEvents() {
     let resizeFrameId = null;
 
+    function openTopMenu(button) {
+      const ui = frontend.getUiState();
+      const menuKey = button.dataset.menu || "file";
+
+      dom.menuButtons.forEach((item) => item.classList.remove("is-active"));
+      button.classList.add("is-active");
+      ui.activeMenuKey = menuKey;
+      frontend.renderSubmenu(menuKey, button);
+      dom.submenuDropdown.classList.add("is-open");
+    }
+
+    function closeTopMenu() {
+      const ui = frontend.getUiState();
+
+      dom.submenuDropdown.classList.remove("is-open");
+      dom.menuButtons.forEach((item) => item.classList.remove("is-active"));
+      ui.activeMenuKey = null;
+    }
+
     function refreshLayoutAfterResize() {
       if (resizeFrameId !== null) {
         window.cancelAnimationFrame(resizeFrameId);
@@ -1313,23 +1332,40 @@
         const isSameMenu = ui.activeMenuKey === menuKey;
         const isOpen = dom.submenuDropdown.classList.contains("is-open");
 
-        dom.menuButtons.forEach((item) => item.classList.remove("is-active"));
-        button.classList.add("is-active");
-        ui.activeMenuKey = menuKey;
-        frontend.renderSubmenu(menuKey, button);
-
         if (isSameMenu && isOpen) {
-          dom.submenuDropdown.classList.remove("is-open");
+          closeTopMenu();
           return;
         }
 
-        dom.submenuDropdown.classList.add("is-open");
+        openTopMenu(button);
       });
+
+      button.addEventListener("pointerenter", (event) => {
+        const relatedTarget = event.relatedTarget;
+        const fromMenuSurface = relatedTarget instanceof Element
+          && Boolean(relatedTarget.closest(".submenu-dropdown, .menu-button"));
+
+        if (!dom.submenuDropdown.classList.contains("is-open") && !fromMenuSurface) {
+          return;
+        }
+
+        openTopMenu(button);
+      });
+    });
+
+    dom.submenuDropdown.addEventListener("pointerleave", (event) => {
+      const relatedTarget = event.relatedTarget;
+
+      if (relatedTarget instanceof Element && relatedTarget.closest(".menu-button, .submenu-dropdown")) {
+        return;
+      }
+
+      closeTopMenu();
     });
 
     document.addEventListener("click", (event) => {
       if (!dom.submenuDropdown.contains(event.target) && !event.target.closest(".menu-button")) {
-        dom.submenuDropdown.classList.remove("is-open");
+        closeTopMenu();
       }
 
       if (!dom.canvasContextMenu.contains(event.target) && !dom.nodeContextMenu.contains(event.target)) {

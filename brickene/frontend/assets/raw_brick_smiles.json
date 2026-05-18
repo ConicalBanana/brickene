@@ -187,29 +187,13 @@
         "type": "core",
         "id": "25"
     },
-    "Porphyrin": {
-        "alias": [
-            "Pc"
-        ],
-        "smiles": "[*:2]C1=C([*:10])C([*:11])=C([*:3])C2=C1C1=N\\C\\2=N/C2=C3C(=C4\\N=C5/N=C(/N=C6\\N([*:1]N24)/C(=N\\1)C1=C6C([*:8])=C([*:16])C([*:17])=C1[*:9])C1=C5C([*:6])=C([*:14])C([*:15])=C1[*:7])C([*:5])=C([*:13])C([*:12])=C3[*:4]",
-        "type": "core",
-        "id": "26"
-    },
-    "Porphin": {
-        "alias": [
-            "P"
-        ],
-        "smiles": "[*:2]C1=C([*:3])\\C2=N\\C3=C([*:4])C([*:5])=C4\\N=C5/N=C(/N=C6\\N([*:1]N34)\\C(=N/C1=N2)C([*:9])=C6[*:8])C([*:7])=C5[*:6]",
-        "type": "core",
-        "id": "27"
-    },
     "Boron subphthalocyanines": {
         "alias": [
             "BSubPc"
         ],
         "smiles": "[*:5]C1=C([*:11])C([*:10])=C([*:4])C2=C1C1=NC3=C4C(=C5N=C6C7=C(C8=[N+]6[B-]([*:1])(N1C2=N8)N35)C([*:3])=C([*:9])C([*:8])=C7[*:2])C([*:7])=C([*:13])C([*:12])=C4[*:6]",
         "type": "core",
-        "id": "28"
+        "id": "26"
     },
     "Thiophene": {
         "alias": [
@@ -217,7 +201,7 @@
         ],
         "smiles": "[*:1]C1=C([*:3])C([*:4])=C([*:2])S1",
         "type": "bridge",
-        "id": "29"
+        "id": "27"
     },
     "Thieno[3,2-b]thiophene": {
         "alias": [
@@ -225,7 +209,7 @@
         ],
         "smiles": "[*:1]C1=C([*:3])C2=C(S1)C([*:4])=C([*:2])S2",
         "type": "bridge",
-        "id": "30"
+        "id": "28"
     },
     "Sulphur": {
         "alias": [
@@ -233,7 +217,7 @@
         ],
         "smiles": "[*:1]S[*:2]",
         "type": "bridge",
-        "id": "31"
+        "id": "29"
     },
     "Oxygen": {
         "alias": [
@@ -241,7 +225,7 @@
         ],
         "smiles": "[*:1]O[*:2]",
         "type": "bridge",
-        "id": "32"
+        "id": "30"
     },
     "Selenium": {
         "alias": [
@@ -249,7 +233,7 @@
         ],
         "smiles": "[*:1][Se][*:2]",
         "type": "bridge",
-        "id": "33"
+        "id": "31"
     },
     "Vinylene": {
         "alias": [
@@ -257,7 +241,7 @@
         ],
         "smiles": "[*:1]C=C[*:2]",
         "type": "bridge",
-        "id": "34"
+        "id": "32"
     },
     "Acetylene": {
         "alias": [
@@ -265,7 +249,7 @@
         ],
         "smiles": "[*:1]C#C[*:2]",
         "type": "bridge",
-        "id": "35"
+        "id": "33"
     },
     "2-ethylhexyl": {
         "alias": [
@@ -274,7 +258,7 @@
         ],
         "smiles": "CCCCC(CC)C[*:1]",
         "type": "sidechain",
-        "id": "36"
+        "id": "34"
     },
     "2-butyloctyl": {
         "alias": [
@@ -283,7 +267,7 @@
         ],
         "smiles": "CCCCCCC(C[*:1])CCCC",
         "type": "sidechain",
-        "id": "37"
+        "id": "35"
     },
     "2-hexyldecyl": {
         "alias": [
@@ -292,7 +276,7 @@
         ],
         "smiles": "CCCCCCCCC(C[*:1])CCCCCC",
         "type": "sidechain",
-        "id": "38"
+        "id": "36"
     },
     "2-octyldodecyl": {
         "alias": [
@@ -301,7 +285,7 @@
         ],
         "smiles": "CCCCCCCCCCC(C[*:1])CCCCCCCC",
         "type": "sidechain",
-        "id": "39"
+        "id": "37"
     },
     "2-decyltetradecyl": {
         "alias": [
@@ -310,7 +294,7 @@
         ],
         "smiles": "CCCCCCCCCCCCC(C[*:1])CCCCCCCCCC",
         "type": "sidechain",
-        "id": "40"
+        "id": "38"
     },
     "Fluorine": {
         "alias": [
@@ -318,7 +302,7 @@
         ],
         "smiles": "[*:1]F",
         "type": "sidechain",
-        "id": "41"
+        "id": "39"
     },
     "Chlorine": {
         "alias": [
@@ -326,7 +310,7 @@
         ],
         "smiles": "[*:1]Cl",
         "type": "sidechain",
-        "id": "42"
+        "id": "40"
     },
     "Bromine": {
         "alias": [
@@ -334,7 +318,7 @@
         ],
         "smiles": "[*:1]Br",
         "type": "sidechain",
-        "id": "43"
+        "id": "41"
     },
     "Iodine": {
         "alias": [
@@ -342,7 +326,7 @@
         ],
         "smiles": "[*:1]I",
         "type": "sidechain",
-        "id": "44"
+        "id": "42"
     },
     "Methyl": {
         "alias": [
@@ -351,7 +335,7 @@
         ],
         "smiles": "[*:1]C",
         "type": "sidechain",
-        "id": "45"
+        "id": "43"
     },
     "Ethyl": {
         "alias": [
@@ -360,7 +344,7 @@
         ],
         "smiles": "[*:1]CC",
         "type": "sidechain",
-        "id": "46"
+        "id": "44"
     },
     "Propyl": {
         "alias": [
@@ -369,7 +353,7 @@
         ],
         "smiles": "[*:1]CCC",
         "type": "sidechain",
-        "id": "47"
+        "id": "45"
     },
     "Butyl": {
         "alias": [
@@ -378,7 +362,7 @@
         ],
         "smiles": "[*:1]CCCC",
         "type": "sidechain",
-        "id": "48"
+        "id": "46"
     },
     "Pentyl": {
         "alias": [
@@ -387,7 +371,7 @@
         ],
         "smiles": "[*:1]CCCCC",
         "type": "sidechain",
-        "id": "49"
+        "id": "47"
     },
     "Hexyl": {
         "alias": [
@@ -396,7 +380,7 @@
         ],
         "smiles": "[*:1]CCCCCC",
         "type": "sidechain",
-        "id": "50"
+        "id": "48"
     },
     "Heptyl": {
         "alias": [
@@ -405,7 +389,7 @@
         ],
         "smiles": "[*:1]CCCCCCC",
         "type": "sidechain",
-        "id": "51"
+        "id": "49"
     },
     "Octyl": {
         "alias": [
@@ -414,7 +398,7 @@
         ],
         "smiles": "[*:1]CCCCCCCC",
         "type": "sidechain",
-        "id": "52"
+        "id": "50"
     },
     "Nonyl": {
         "alias": [
@@ -423,7 +407,7 @@
         ],
         "smiles": "[*:1]CCCCCCCCC",
         "type": "sidechain",
-        "id": "53"
+        "id": "51"
     },
     "Decyl": {
         "alias": [
@@ -432,67 +416,67 @@
         ],
         "smiles": "[*:1]CCCCCCCCCC",
         "type": "sidechain",
-        "id": "54"
+        "id": "52"
     },
     "C11": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCC",
         "type": "sidechain",
-        "id": "55"
+        "id": "53"
     },
     "C12": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "56"
+        "id": "54"
     },
     "C13": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "57"
+        "id": "55"
     },
     "C14": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "58"
+        "id": "56"
     },
     "C15": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "59"
+        "id": "57"
     },
     "C16": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "60"
+        "id": "58"
     },
     "C17": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "61"
+        "id": "59"
     },
     "C18": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "62"
+        "id": "60"
     },
     "C19": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "63"
+        "id": "61"
     },
     "C20": {
         "alias": [],
         "smiles": "[*:1]CCCCCCCCCCCCCCCCCCCC",
         "type": "sidechain",
-        "id": "64"
+        "id": "62"
     },
     "BTP": {
         "alias": [
@@ -501,7 +485,7 @@
         ],
         "smiles": "[*:3]N1C2=C(SC3=C2SC([*:1])=C3[*:5])C2=C1C1=C(C3=C(N1[*:4])C1=C(S3)C([*:6])=C([*:2])S1)C1=NSN=C21",
         "type": "core",
-        "id": "65"
+        "id": "63"
     },
     "BZTTP": {
         "alias": [
@@ -509,6 +493,6 @@
         ],
         "smiles": "[*:7]N1N=C2C(=N1)C1=C(N([*:4])C3=C1SC1=C3SC([*:2])=C1[*:6])C1=C2C2=C(N1[*:3])C1=C(S2)C([*:5])=C([*:1])S1",
         "type": "core",
-        "id": "66"
+        "id": "64"
     }
 }

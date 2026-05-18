@@ -24,6 +24,8 @@ DEFAULT_CATALOG_PATH = (
 )
 DEFAULT_IMAGE_SIZE = 1024
 TOOL_BRICK_TYPE = "TOOL"
+DUPLICATOR_TOOL_ACTION = "duplicate"
+PERIOD_TOOL_KIND = "period"
 
 
 def load_brick_catalog(
@@ -65,6 +67,9 @@ def resolve_node_definition(
         return None
 
     if not definition.get("inline_configuration"):
+        if definition.get("tool_kind") == PERIOD_TOOL_KIND:
+            return _resolve_period_definition(node_state, definition)
+
         return definition
 
     custom_config_text = node_state.get("customConfigText")
@@ -129,6 +134,7 @@ def build_graph_from_state(
 
     catalog = _resolve_catalog(catalog_path, catalog)
     node_states, edge_states = expand_tool_nodes(node_states, edge_states, catalog)
+    _validate_period_marker_pairs(node_states, catalog)
     graph = BrickGraph()
     bricks_by_frontend_id: dict[int, BrickNode] = {}
     port_assignments: dict[int, dict[int, int]] = {}
@@ -413,16 +419,76 @@ def _is_tool_node(
     node_state: dict[str, Any],
     catalog: dict[str, dict[str, Any]],
 ) -> bool:
-    """Return whether one frontend node payload references a TOOL definition."""
+    """Return whether one frontend node payload needs tool expansion."""
 
     definition = resolve_node_definition(node_state, catalog)
-    return bool(definition and definition.get("brick_type") == TOOL_BRICK_TYPE)
+    return bool(definition and definition.get("tool_action") == DUPLICATOR_TOOL_ACTION)
 
 
 def _read_node_type_id(node_state: dict[str, Any]) -> str:
     """Return the referenced frontend brick id as a normalized string."""
 
     return str(node_state.get("nodeTypeId") or node_state.get("brickId") or "")
+
+
+def _normalize_period_number(value: Any) -> int:
+    """Normalize one period-node label value to a positive integer."""
+
+    if value is None:
+        return 1
+
+    normalized = str(value).strip()
+    if not normalized.isdigit() or int(normalized) <= 0:
+        raise ValueError("Period number must be a positive integer.")
+
+    return int(normalized)
+
+
+def _resolve_period_definition(
+    node_state: dict[str, Any],
+    definition: dict[str, Any],
+) -> dict[str, Any]:
+    """Apply one frontend period-node label onto the catalog definition."""
+
+    period_number = _normalize_period_number(
+        node_state.get("periodNumber", definition.get("default_period_number", 1))
+    )
+    resolved_definition = deepcopy(definition)
+
+    for site_payload in resolved_definition.get("nodes", []):
+        if site_payload.get("kind") == "atom" and site_payload.get("symbol") == "W":
+            site_payload["atom_map_num"] = period_number
+
+    return resolved_definition
+
+
+def _validate_period_marker_pairs(
+    node_states: list[dict[str, Any]],
+    catalog: dict[str, dict[str, Any]],
+) -> None:
+    """Require each period label to appear exactly twice in one graph."""
+
+    period_counts: dict[int, int] = {}
+
+    for node_state in node_states:
+        definition = resolve_node_definition(node_state, catalog)
+        if not definition or definition.get("tool_kind") != PERIOD_TOOL_KIND:
+            continue
+
+        period_number = _normalize_period_number(
+            node_state.get("periodNumber", definition.get("default_period_number", 1))
+        )
+        period_counts[period_number] = period_counts.get(period_number, 0) + 1
+
+    invalid_numbers = [
+        period_number
+        for period_number, count in period_counts.items()
+        if count != 2
+    ]
+    if invalid_numbers:
+        raise ValueError(
+            "Each period number must appear exactly twice in one molecule."
+        )
 
 
 def _expand_single_tool_node(

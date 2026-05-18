@@ -264,7 +264,7 @@
 
       await runtimeState.marvinRef.importDocument(nextPortSmiles, APPEND_IMPORT_OPTIONS);
       setStatus(
-        `Added detached port ${nextPortSmiles}. Detect ports again to refresh the node definition.`,
+        `Added detached port ${nextPortSmiles}. Attach it to exactly one atom with a single bond before detecting.`,
         { success: true },
       );
     } catch (error) {
@@ -433,8 +433,8 @@
         window.marvinLocalStorage.registerAutoSaver(STORAGE_UID, runtimeState.marvinRef);
       }
 
-      renderEmptyPortState("Draw a structure, create a detached port if needed, then click Detect ports.");
-      setStatus("Draw a structure, create a detached port if needed, then click Detect ports.", { success: true });
+      renderEmptyPortState("Draw a structure, then attach each port to exactly one atom by a single bond before detecting.");
+      setStatus("Draw a structure, then attach each port to exactly one atom by a single bond before detecting.", { success: true });
     } catch (error) {
       renderEmptyPortState("Marvin failed to load.");
       setStatus(

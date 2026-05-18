@@ -30,6 +30,7 @@ PACKAGE_VERSION = get_version()
 def serialize_brick_definition(node: BrickNode) -> dict[str, Any]:
     """Serialize one brick node and annotate its ports with bonded symbols."""
 
+    validate_brick_node(node)
     payload = node.to_dict()
     connected_symbol_by_port = get_connected_symbol_by_port(node)
 
@@ -48,6 +49,7 @@ def get_connected_symbol_by_port(node: BrickNode) -> dict[int, str | None]:
     """Find the directly bonded atom symbol for each port in one brick."""
 
     connected_symbol_by_port = {port.index: None for port in node.ports}
+    connection_counts = {port.index: 0 for port in node.ports}
 
     for edge in node.edges:
         left_site = edge.left
@@ -62,18 +64,41 @@ def get_connected_symbol_by_port(node: BrickNode) -> dict[int, str | None]:
             port_site = right_site
             atom_site = left_site
 
-        if port_site is None or atom_site is None:
+        if port_site is None and atom_site is None:
             continue
 
-        existing_symbol = connected_symbol_by_port[port_site.index]
-        if existing_symbol is not None and existing_symbol != atom_site.symbol:
+        if port_site is None or atom_site is None:
             raise ValueError(
-                "Each port must connect to exactly one atom symbol in the brick."
+                "Each port must connect to exactly one atom."
             )
 
+        if edge.bond_type != "SINGLE":
+            raise ValueError("Each port must connect to an atom by a single bond.")
+
+        if connection_counts[port_site.index] != 0:
+            raise ValueError("Each port must connect to exactly one atom.")
+
         connected_symbol_by_port[port_site.index] = atom_site.symbol
+        connection_counts[port_site.index] += 1
+
+    missing_port_indices = [
+        port_index
+        for port_index, connection_count in connection_counts.items()
+        if connection_count != 1
+    ]
+    if missing_port_indices:
+        raise ValueError("Each port must connect to exactly one atom.")
 
     return connected_symbol_by_port
+
+
+def validate_brick_node(node: BrickNode) -> None:
+    """Validate the port contract for one brick node."""
+
+    if not node.ports:
+        raise ValueError("Node definitions must include at least one port.")
+
+    get_connected_symbol_by_port(node)
 
 
 def parse_brick_type(value: Any) -> BrickType:

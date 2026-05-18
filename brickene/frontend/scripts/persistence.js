@@ -31,6 +31,7 @@
       title: node.title,
       type: node.type,
       nodeTypeId: node.brickId,
+      periodNumber: node.periodNumber,
       customConfigText: node.customConfigText || "",
       position: {
         x: node.x,
@@ -390,6 +391,7 @@
       title: nodeState.title,
       type: nodeState.type || "rectangular",
       brickId: nodeState.nodeTypeId || nodeState.brickId,
+      periodNumber: nodeState.periodNumber,
       customConfigText: typeof nodeState.customConfigText === "string" ? nodeState.customConfigText : "",
       x: Number(position.x ?? nodeState.x ?? 0),
       y: Number(position.y ?? nodeState.y ?? 0),

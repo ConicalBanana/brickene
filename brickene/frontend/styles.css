@@ -624,6 +624,26 @@ textarea {
   stroke-linejoin: round;
 }
 
+.node-tool-illustration-period {
+  display: grid;
+  place-items: center;
+  gap: 0.45rem;
+  border: 1px dashed var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 245, 245, 0.94));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.node-tool-period-token {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.node-tool-period-name {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
 .node-image-empty {
   display: grid;
   place-items: center;
@@ -686,6 +706,20 @@ textarea {
 }
 
 .node-type-select:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 2px;
+}
+
+.node-period-number-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.42rem 0.48rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.node-period-number-input:focus-visible {
   outline: 2px solid var(--border);
   outline-offset: 2px;
 }

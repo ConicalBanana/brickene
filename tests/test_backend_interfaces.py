@@ -127,6 +127,68 @@ def build_tool_payload() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     )
 
 
+def build_period_pair_payload(period_number: int = 1) -> dict[str, Any]:
+    """Build one graph payload containing a valid pair of period nodes."""
+
+    period_value = str(period_number)
+    return {
+        "nodes": [
+            {
+                "id": 1,
+                "nodeTypeId": "4",
+                "portConfiguration": [
+                    {"slotId": 0, "side": "right", "actualPortId": "1"}
+                ],
+            },
+            {
+                "id": 2,
+                "nodeTypeId": "902",
+                "periodNumber": period_value,
+                "portConfiguration": [
+                    {"slotId": 0, "side": "left", "actualPortId": "1"},
+                    {"slotId": 1, "side": "right", "actualPortId": "2"},
+                ],
+            },
+            {
+                "id": 3,
+                "nodeTypeId": "5",
+                "portConfiguration": [
+                    {"slotId": 0, "side": "left", "actualPortId": "1"}
+                ],
+            },
+            {
+                "id": 4,
+                "nodeTypeId": "4",
+                "portConfiguration": [
+                    {"slotId": 0, "side": "right", "actualPortId": "1"}
+                ],
+            },
+            {
+                "id": 5,
+                "nodeTypeId": "902",
+                "periodNumber": period_value,
+                "portConfiguration": [
+                    {"slotId": 0, "side": "left", "actualPortId": "1"},
+                    {"slotId": 1, "side": "right", "actualPortId": "2"},
+                ],
+            },
+            {
+                "id": 6,
+                "nodeTypeId": "5",
+                "portConfiguration": [
+                    {"slotId": 0, "side": "left", "actualPortId": "1"}
+                ],
+            },
+        ],
+        "edges": [
+            {"id": 1, "startNode": 1, "startPort": 0, "endNode": 2, "endPort": 0},
+            {"id": 2, "startNode": 2, "startPort": 1, "endNode": 3, "endPort": 0},
+            {"id": 3, "startNode": 4, "startPort": 0, "endNode": 5, "endPort": 0},
+            {"id": 4, "startNode": 5, "startPort": 1, "endNode": 6, "endPort": 0},
+        ],
+    }
+
+
 def build_inline_user_defined_payload() -> dict[str, Any]:
     """Build one payload containing a standalone inline-configured custom brick."""
 
@@ -220,7 +282,7 @@ def catalog_path(tmp_path: Path) -> Path:
     catalog = load_brick_catalog()
     subset = {
         key: catalog[key]
-        for key in ["2", "4", "5", "900", "901"]
+        for key in ["2", "4", "5", "900", "901", "902"]
     }
     output_path = tmp_path / "brick-catalog.json"
     output_path.write_text(
@@ -262,6 +324,8 @@ def test_load_brick_catalog_reads_tool_definition(catalog_path: Path) -> None:
 
     assert catalog["900"]["brick_type"] == "TOOL"
     assert catalog["900"]["name"] == "Duplicator"
+    assert catalog["902"]["brick_type"] == "TOOL"
+    assert catalog["902"]["name"] == "period"
 
 
 def test_expand_tool_nodes_removes_tool_nodes_and_duplicates_branch(
@@ -344,6 +408,49 @@ def test_render_state_smiles_returns_valid_smiles(catalog_path: Path) -> None:
 
     assert smiles
     assert Chem.MolFromSmiles(smiles) is not None
+
+
+def test_render_state_smiles_preserves_period_markers(catalog_path: Path) -> None:
+    """Period nodes should render to mapped tungsten markers in SMILES output."""
+
+    smiles = render_state_smiles(
+        build_period_pair_payload(period_number=1),
+        catalog_path=catalog_path,
+    )
+
+    assert smiles.count("[W:1]") == 2
+
+
+def test_build_graph_from_state_rejects_unpaired_period_markers(
+    catalog_path: Path,
+) -> None:
+    """Each period number should appear exactly twice in one graph payload."""
+
+    payload = build_period_pair_payload(period_number=1)
+    payload["nodes"] = [node for node in payload["nodes"] if node["id"] != 5]
+    payload["edges"] = [
+        edge
+        for edge in payload["edges"]
+        if edge["startNode"] != 5 and edge["endNode"] != 5
+    ]
+
+    with pytest.raises(
+        ValueError,
+        match="Each period number must appear exactly twice in one molecule.",
+    ):
+        build_graph_from_state(payload, catalog_path=catalog_path)
+
+
+def test_build_graph_from_state_rejects_invalid_period_numbers(
+    catalog_path: Path,
+) -> None:
+    """Period nodes should require a positive integer period number."""
+
+    payload = build_period_pair_payload(period_number=1)
+    payload["nodes"][1]["periodNumber"] = "abc"
+
+    with pytest.raises(ValueError, match="Period number must be a positive integer."):
+        build_graph_from_state(payload, catalog_path=catalog_path)
 
 
 def test_render_state_image_and_bytes_return_png_output(catalog_path: Path) -> None:
@@ -477,6 +584,66 @@ def test_render_server_brick_config_endpoint_returns_serialized_definition(
     assert definition["brick_type"] == "BRIDGE"
     assert [node["index"] for node in port_nodes] == [1, 2]
     assert [node["connected_symbol"] for node in port_nodes] == ["C", "C"]
+
+
+def test_render_server_brick_config_endpoint_requires_at_least_one_port(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The brick-config endpoint should reject structures without any ports."""
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/brick-config",
+        body=json.dumps({"smiles": "CC", "brick_type": "BRIDGE"}),
+        headers={"Content-Type": "application/json"},
+    )
+    body = json.loads(payload)
+
+    assert status == 400
+    assert headers["content-type"] == "application/json"
+    assert body["error"] == "Node definitions must include at least one port."
+
+
+def test_render_server_brick_config_endpoint_requires_single_atom_per_port(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The brick-config endpoint should reject ports attached to multiple atoms."""
+
+    status, _headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/brick-config",
+        body=json.dumps({"smiles": "[*:1](C)C", "brick_type": "BRIDGE"}),
+        headers={"Content-Type": "application/json"},
+    )
+    body = json.loads(payload)
+
+    assert status == 400
+    assert body["error"] == "Each port must connect to exactly one atom."
+
+
+def test_render_server_brick_config_endpoint_requires_single_port_bonds(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The brick-config endpoint should reject non-single bonds on ports."""
+
+    status, _headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "POST",
+        "/brick-config",
+        body=json.dumps({"smiles": "[*:1]=C", "brick_type": "BRIDGE"}),
+        headers={"Content-Type": "application/json"},
+    )
+    body = json.loads(payload)
+
+    assert status == 400
+    assert body["error"] == "Each port must connect to an atom by a single bond."
+
+
 
 
 def test_render_server_render_endpoint_returns_png(

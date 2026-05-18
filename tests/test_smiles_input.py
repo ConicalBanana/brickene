@@ -98,3 +98,11 @@ def test_render_state_smiles_supports_problematic_bricks() -> None:
 
         assert smiles
         assert Chem.MolFromSmiles(smiles) is not None
+
+
+def test_brick_node_round_trip_preserves_atom_map_numbers_on_atoms() -> None:
+    """Atom-map numbers on non-dummy atoms should survive SMILES round-trips."""
+
+    node = BrickNode.from_smiles("[*:1][W:7][*:2]", brick_type=BrickType.TOOL)
+
+    assert "[W:7]" in node.to_smiles()

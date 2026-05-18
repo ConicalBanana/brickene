@@ -2,6 +2,7 @@
   const frontend = window.BrickeneFrontend;
   const { config, dom } = frontend;
   const USER_DEFINED_BRICK_ID = "901";
+  const PERIOD_BRICK_ID = "902";
   const DEFAULT_NODE_IMAGE_SOURCE_WIDTH = 512;
   const DEFAULT_NODE_IMAGE_SOURCE_HEIGHT = 268;
   const DUPLICATOR_IMAGE_SRC = "../assets/images/duplicator.svg";
@@ -117,6 +118,8 @@
     const supportsInlineConfiguration = Boolean(definition.inline_configuration);
     const hasStaticImage = /^\d+$/.test(id) && !isToolNode && !supportsInlineConfiguration;
     const isDuplicator = id === "900";
+    const isPeriodNode = id === PERIOD_BRICK_ID;
+    const isCompactTool = isDuplicator || isPeriodNode;
 
     return {
       ...definition,
@@ -130,7 +133,7 @@
       imageLayoutSrc: hasStaticImage
         ? `../assets/brick_images/${encodeURIComponent(id)}.json`
         : "",
-      hideStructurePreview: (isToolNode && !isDuplicator) || supportsInlineConfiguration || (!hasStaticImage && !isDuplicator),
+      hideStructurePreview: (isToolNode && !isCompactTool) || supportsInlineConfiguration || (!hasStaticImage && !isCompactTool),
       lockPortAssignments: isToolNode || supportsInlineConfiguration,
       supportsInlineConfiguration,
     };
@@ -452,6 +455,14 @@
     return createPortPoolFromDefinition(getBrickDefinition(brickRef));
   }
 
+  function isPeriodBrickDefinition(brickDefinition) {
+    return String(brickDefinition?.id || "") === PERIOD_BRICK_ID;
+  }
+
+  function isPeriodNode(node) {
+    return String(node?.brickId || "") === PERIOD_BRICK_ID;
+  }
+
   function isDirectionalBrickDefinition(brickDefinition) {
     return brickDefinition?.brick_type === "TOOL";
   }
@@ -526,6 +537,16 @@
     return portOption?.label || "Unassigned";
   }
 
+  function normalizePeriodNumber(value) {
+    const normalized = String(value ?? "").trim();
+
+    if (!/^\d+$/.test(normalized) || Number(normalized) <= 0) {
+      return null;
+    }
+
+    return normalized;
+  }
+
   function buildNode(nodeConfig) {
     const { brickDefinition, customConfigText, customConfigError } = resolveBrickDefinition(nodeConfig);
     const brickId = brickDefinition?.id || defaultBrickId;
@@ -548,6 +569,9 @@
       hideStructurePreview: Boolean(brickDefinition?.hideStructurePreview),
       lockPortAssignments: Boolean(brickDefinition?.lockPortAssignments),
       supportsInlineConfiguration: Boolean(brickDefinition?.supportsInlineConfiguration),
+      periodNumber: isPeriodBrickDefinition(brickDefinition)
+        ? normalizePeriodNumber(nodeConfig.periodNumber ?? brickDefinition?.default_period_number) || "1"
+        : null,
       customConfigText,
       customConfigError,
       portPool,
@@ -661,18 +685,18 @@
   function getNodeImageMetrics(node) {
     const layout = getBrickImageLayout(node.brickImageLayoutSrc);
     const imageSize = getBrickImageSize(node.brickImageSrc);
-    const isDuplicator = node.brickId === "900";
-    const fallbackWidth = node.brickId === "900"
+    const isCompactTool = node.brickId === "900" || node.brickId === PERIOD_BRICK_ID;
+    const fallbackWidth = isCompactTool
       ? DUPLICATOR_IMAGE_SOURCE_WIDTH
       : DEFAULT_NODE_IMAGE_SOURCE_WIDTH;
-    const fallbackHeight = node.brickId === "900"
+    const fallbackHeight = isCompactTool
       ? DUPLICATOR_IMAGE_SOURCE_HEIGHT
       : DEFAULT_NODE_IMAGE_SOURCE_HEIGHT;
     const sourceWidth = Math.max(1, Number(imageSize?.width) || fallbackWidth);
     const sourceHeight = Math.max(1, Number(imageSize?.height) || fallbackHeight);
-    const imageWidth = isDuplicator ? DUPLICATOR_IMAGE_DISPLAY_WIDTH : NODE_IMAGE_DISPLAY_WIDTH;
+    const imageWidth = isCompactTool ? DUPLICATOR_IMAGE_DISPLAY_WIDTH : NODE_IMAGE_DISPLAY_WIDTH;
     const scale = imageWidth / sourceWidth;
-    const imageHeight = isDuplicator
+    const imageHeight = isCompactTool
       ? DUPLICATOR_IMAGE_DISPLAY_HEIGHT
       : sourceHeight * scale;
 
@@ -896,13 +920,39 @@
             </select>
           </label>
         </div>
+        ${isPeriodNode(node) ? renderPeriodNumberEditor(node) : ""}
         ${renderCompactPortAssignments(node, leftSlots)}
         ${node.supportsInlineConfiguration ? renderInlineConfigurationEditor(node) : ""}
       </div>
     `;
   }
 
+  function renderPeriodNumberEditor(node) {
+    return `
+      <label class="node-type-field node-type-field-compact">
+        <span class="node-type-label">Period number</span>
+        <input
+          class="node-period-number-input node-control"
+          data-node-id="${node.id}"
+          type="text"
+          inputmode="numeric"
+          aria-label="${escapeHtml(node.title)} period number"
+          value="${escapeHtml(node.periodNumber || "1")}"
+        />
+      </label>
+    `;
+  }
+
   function renderNodeIllustration(node, imageMetrics) {
+    if (isPeriodNode(node)) {
+      return `
+        <div class="node-tool-illustration node-tool-illustration-period" aria-label="period marker">
+          <span class="node-tool-period-token">[W:${escapeHtml(node.periodNumber || "1")}]</span>
+          <span class="node-tool-period-name">period</span>
+        </div>
+      `;
+    }
+
     if (node.brickImageSrc) {
       return `
         <img
@@ -1012,6 +1062,9 @@
         hideStructurePreview: Boolean(nextDefinition.hideStructurePreview),
         lockPortAssignments: Boolean(nextDefinition.lockPortAssignments),
         supportsInlineConfiguration: Boolean(nextDefinition.supportsInlineConfiguration),
+        periodNumber: isPeriodBrickDefinition(nextDefinition)
+          ? normalizePeriodNumber(graphNode.periodNumber ?? nextDefinition.default_period_number) || "1"
+          : null,
         customConfigText: nextCustomConfigText,
         customConfigError: resolvedDefinition.customConfigError,
         portPool: nextPortData.portPool,
@@ -1149,6 +1202,38 @@
     frontend.setCanvasMessage(`Node ${nodeId} slot ${slotId + 1} assigned to ${result.portLabel}.`);
   }
 
+  function setNodePeriodNumber(nodeId, periodNumberValue) {
+    const graph = frontend.getGraphState();
+    const node = findNode(nodeId);
+
+    if (!node || !isPeriodNode(node)) {
+      return { updated: false, error: "", periodNumber: node?.periodNumber || "" };
+    }
+
+    const normalizedPeriodNumber = normalizePeriodNumber(periodNumberValue);
+    if (!normalizedPeriodNumber) {
+      return {
+        updated: false,
+        error: "Period number must be a positive integer.",
+        periodNumber: node.periodNumber || "1",
+      };
+    }
+
+    if (normalizedPeriodNumber === node.periodNumber) {
+      return { updated: false, error: "", periodNumber: normalizedPeriodNumber };
+    }
+
+    graph.nodes = graph.nodes.map((graphNode) => (
+      graphNode.id === nodeId
+        ? { ...graphNode, periodNumber: normalizedPeriodNumber }
+        : graphNode
+    ));
+
+    renderNodes();
+    frontend.notifyGraphChanged({ reason: "node-period-number", nodeId });
+    return { updated: true, error: "", periodNumber: normalizedPeriodNumber };
+  }
+
   function handleNodeCustomConfigurationChange(event) {
     const textarea = event.target.closest(".node-inline-config-input");
     if (!textarea) {
@@ -1172,6 +1257,26 @@
     frontend.setCanvasMessage(`Node ${nodeId} definition applied as ${result.brickName}.${removedEdgeCopy}`);
   }
 
+  function handleNodePeriodNumberChange(event) {
+    const input = event.target.closest(".node-period-number-input");
+    if (!input) {
+      return;
+    }
+
+    const nodeId = Number(input.dataset.nodeId);
+    const result = setNodePeriodNumber(nodeId, input.value);
+    if (!result.updated) {
+      input.value = result.periodNumber || "1";
+      if (result.error) {
+        frontend.setCanvasMessage(result.error);
+      }
+      return;
+    }
+
+    input.value = result.periodNumber;
+    frontend.setCanvasMessage(`Node ${nodeId} period number set to ${result.periodNumber}.`);
+  }
+
   function bindNodeControlEvents() {
     dom.nodeContainer.addEventListener("pointerdown", (event) => {
       if (event.target.closest(".node-control")) {
@@ -1187,6 +1292,11 @@
 
       if (event.target.closest(".node-port-select")) {
         handlePortAssignmentChange(event);
+        return;
+      }
+
+      if (event.target.closest(".node-period-number-input")) {
+        handleNodePeriodNumberChange(event);
         return;
       }
 
@@ -1337,6 +1447,7 @@
       type: nodeConfig.type || "rectangular",
       title: nodeConfig.title || `Node ${graph.nextNodeId}`,
       brickId: nodeConfig.brickId || defaultBrickId,
+      periodNumber: nodeConfig.periodNumber,
       customConfigText: nodeConfig.customConfigText || "",
       x: nodeConfig.x,
       y: nodeConfig.y,

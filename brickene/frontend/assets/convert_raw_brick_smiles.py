@@ -28,6 +28,7 @@ TOOL_BRICK_PAYLOADS: dict[str, dict[str, Any]] = {
         "name": "Duplicator",
         "alias": [],
         "brick_type": "TOOL",
+        "tool_action": "duplicate",
         "nodes": [
             {"index": 1, "kind": "port", "side": "left"},
             {"index": 2, "kind": "port", "side": "left"},
@@ -46,6 +47,23 @@ TOOL_BRICK_PAYLOADS: dict[str, dict[str, Any]] = {
         "inline_configuration": True,
         "nodes": [],
         "edges": [],
+    },
+    "902": {
+        "id": "902",
+        "name": "period",
+        "alias": [],
+        "brick_type": "TOOL",
+        "tool_kind": "period",
+        "default_period_number": 1,
+        "nodes": [
+            {"index": 1, "kind": "port", "side": "left"},
+            {"index": 2, "kind": "port", "side": "right"},
+            {"index": 3, "kind": "atom", "symbol": "W", "atom_map_num": 1},
+        ],
+        "edges": [
+            [1, 3, "SINGLE"],
+            [3, 2, "SINGLE"],
+        ],
     }
 }
 

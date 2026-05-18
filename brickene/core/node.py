@@ -18,6 +18,7 @@ class BrickType(enum.Enum):
     SIDE_CHAIN = 1
     SUBSTITUENT = 2
     BRIDGE = 3
+    TOOL = 4
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,6 +55,7 @@ class Atom(Site):
         is_aromatic: Whether the atom belongs to an aromatic system.
         no_implicit: Whether RDKit should suppress implicit hydrogens.
         num_explicit_hs: Explicit hydrogen count carried by the source atom.
+        atom_map_num: Atom-map number preserved on non-dummy atoms.
     """
 
     symbol: str
@@ -61,6 +63,7 @@ class Atom(Site):
     is_aromatic: bool = False
     no_implicit: bool = False
     num_explicit_hs: int = 0
+    atom_map_num: int = 0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -156,6 +159,7 @@ class BrickNode:
                     is_aromatic=atom.GetIsAromatic(),
                     no_implicit=atom.GetNoImplicit(),
                     num_explicit_hs=atom.GetNumExplicitHs(),
+                    atom_map_num=atom.GetAtomMapNum(),
                 )
                 next_atom_index += 1
 
@@ -252,6 +256,8 @@ class BrickNode:
                 atom.SetNoImplicit(site.no_implicit)
                 if site.num_explicit_hs > 0:
                     atom.SetNumExplicitHs(site.num_explicit_hs)
+                if site.atom_map_num > 0:
+                    atom.SetAtomMapNum(site.atom_map_num)
             else:
                 raise ValueError(f"Unsupported site type: {type(site)!r}")
 
@@ -314,6 +320,8 @@ class BrickNode:
                 payload["no_implicit"] = True
             if site.num_explicit_hs > 0:
                 payload["num_explicit_hs"] = site.num_explicit_hs
+            if site.atom_map_num > 0:
+                payload["atom_map_num"] = site.atom_map_num
             return payload
 
         raise TypeError(f"Unsupported site type: {type(site)!r}")
@@ -396,6 +404,7 @@ class BrickNode:
                 is_aromatic=bool(payload.get("is_aromatic", False)),
                 no_implicit=bool(payload.get("no_implicit", False)),
                 num_explicit_hs=int(payload.get("num_explicit_hs", 0)),
+                atom_map_num=int(payload.get("atom_map_num", 0)),
             )
 
         raise ValueError(f"Unsupported site kind: {kind}")

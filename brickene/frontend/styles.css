@@ -8,7 +8,9 @@
   --text-muted: #525252;
   --accent: #dcdcdc;
   --shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
-  --menu-height: 60px;
+  --menu-button-height: 2rem;
+  --menu-button-margin: 0.45rem;
+  --menu-height: calc(var(--menu-button-height) + var(--menu-button-margin) * 2);
   --port-info-gap: 8px;
 }
 
@@ -48,22 +50,22 @@ textarea {
 
 .menu-region {
   display: block;
+  position: relative;
+  z-index: 30;
   height: var(--menu-height);
-  padding: 0.75rem 1rem 0.6rem;
+  padding: var(--menu-button-margin) 1rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 
 .menu-row {
-  display: grid;
-  grid-template-columns: 260px 1fr 340px;
-  align-items: center;
-  gap: 1rem;
+  position: relative;
+  min-height: var(--menu-button-height);
   min-width: 0;
 }
 
 .brand-block,
-.menu-state {
+.menu-meta {
   min-width: 0;
 }
 
@@ -81,31 +83,43 @@ textarea {
 .brand-block h1,
 .canvas-overlay h2,
 .stage-copy h2 {
-  margin: 0.2rem 0 0;
-  font-size: 1rem;
+  margin: 0;
+  font-size: 1.1rem;
   font-weight: 700;
+  letter-spacing: 0.12em;
 }
 
 .menu-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
   flex-wrap: nowrap;
   min-width: 0;
 }
 
 .menu-actions-wrap {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   min-width: 0;
+}
+
+.brand-block {
+  position: absolute;
+  top: 0.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
 }
 
 .menu-button {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  padding: 0.5rem 0.9rem;
-  min-width: 6.25rem;
+  height: var(--menu-button-height);
+  padding: 0.42rem 0.82rem;
+  min-width: 5rem;
   cursor: pointer;
 }
 
@@ -117,34 +131,46 @@ textarea {
   outline: none;
 }
 
-.menu-state {
-  display: grid;
-  justify-items: end;
-  gap: 0.35rem;
-}
-
-.menu-state p {
+.menu-status-copy {
   margin: 0;
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 7;
+  max-width: min(30rem, calc(100% - 7rem));
   text-align: right;
   color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  background: transparent;
+  pointer-events: none;
 }
 
+.menu-meta {
+  position: absolute;
+  top: 0.1rem;
+  right: 0;
+}
+
+.menu-version,
 .state-badge {
+  margin: 0;
   display: inline-block;
   padding: 0.25rem 0.5rem;
   border: 1px solid var(--border);
   color: var(--text);
   background: var(--surface-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .submenu-dropdown {
   position: absolute;
   top: calc(100% + 0.4rem);
   left: 0;
-  z-index: 5;
+  z-index: 31;
   display: none;
   width: 14rem;
   padding: 0.45rem;
@@ -156,7 +182,6 @@ textarea {
 .submenu-content {
   display: grid;
   gap: 0.2rem;
-  margin-top: 0.3rem;
 }
 
 .menu-separator {
@@ -194,8 +219,48 @@ textarea {
   outline: none;
 }
 
+.submenu-portal {
+  position: relative;
+}
+
+.submenu-portal-trigger {
+  position: relative;
+  padding-right: 1.7rem;
+}
+
+.submenu-portal-trigger::after {
+  content: ">";
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  transform: translateY(-50%);
+}
+
+.submenu-tertiary-menu {
+  position: absolute;
+  top: 0;
+  left: calc(100% - 1px);
+  z-index: 6;
+  display: none;
+  width: 12rem;
+  padding: 0.45rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.submenu-portal:hover > .submenu-tertiary-menu,
+.submenu-portal:focus-within > .submenu-tertiary-menu {
+  display: block;
+}
+
+.submenu-tertiary-menu .submenu-content {
+  margin-top: 0;
+}
+
 .canvas-region {
   position: relative;
+  z-index: 0;
   overflow: hidden;
   background: var(--surface-muted);
 }
@@ -218,6 +283,8 @@ textarea {
 }
 
 .canvas-zoom-button {
+  display: grid;
+  place-items: center;
   width: 2.5rem;
   height: 2.5rem;
   border: 1px solid var(--border);
@@ -227,6 +294,22 @@ textarea {
   line-height: 1;
   cursor: pointer;
   box-shadow: var(--shadow);
+}
+
+.canvas-zoom-button-reset {
+  padding: 0.45rem;
+}
+
+.canvas-zoom-button-icon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+}
+
+.canvas-zoom-button-reset:hover .canvas-zoom-button-icon,
+.canvas-zoom-button-reset:focus-visible .canvas-zoom-button-icon {
+  filter: brightness(0) invert(1);
 }
 
 .canvas-zoom-button:hover,

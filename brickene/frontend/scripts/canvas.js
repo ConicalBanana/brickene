@@ -161,6 +161,24 @@
     }
   }
 
+  function zoomCanvasFromViewportCenter(direction) {
+    handleZoomButtonClick(direction);
+    return true;
+  }
+
+  function resetCanvasZoomAtViewportCenter() {
+    const centerPoint = getViewportCenterClientPoint();
+    if (!centerPoint) {
+      return false;
+    }
+
+    const reset = frontend.setCanvasScale(1, centerPoint.x, centerPoint.y);
+    if (reset) {
+      frontend.setCanvasMessage("Canvas zoom reset to 100%.");
+    }
+    return reset;
+  }
+
   function handleCanvasWheel(event) {
     if (!(event.target instanceof Element) || shouldIgnoreWheelPan(event.target)) {
       return;
@@ -1450,12 +1468,17 @@
       handleZoomButtonClick(-1);
     });
 
+    dom.canvasZoomResetButton?.addEventListener("click", () => {
+      resetCanvasZoomAtViewportCenter();
+    });
+
     dom.canvasViewport.addEventListener("wheel", handleCanvasWheel, { passive: false });
 
     dom.canvasViewport.addEventListener("pointerdown", (event) => {
       const ui = frontend.getUiState();
       if (
         ui.isSpacePressed
+        || event.target.closest(".canvas-zoom-controls")
         || dom.canvasContextMenu.contains(event.target)
         || dom.portCommandPanel?.contains(event.target)
         || dom.nodeContextMenu.contains(event.target)
@@ -1613,6 +1636,9 @@
   frontend.endComponentInteraction = endComponentInteraction;
   frontend.cancelCanvasPan = cancelCanvasPan;
   frontend.handleCanvasWheel = handleCanvasWheel;
+  frontend.zoomCanvasFromViewportCenter = zoomCanvasFromViewportCenter;
+  frontend.resetCanvasZoomAtViewportCenter = resetCanvasZoomAtViewportCenter;
+  frontend.resetCanvasTranslation = resetCanvasTranslation;
   frontend.setEdgeDragSelectionState = setEdgeDragSelectionState;
   frontend.setInteractionGuard = setInteractionGuard;
   frontend.prepareCanvasContextMenu = prepareCanvasContextMenu;

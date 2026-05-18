@@ -10,11 +10,6 @@
     <div class="app-shell">
       <header class="menu-region" aria-label="Application menu">
         <div class="menu-row">
-          <div class="brand-block">
-            <p class="brand-label">Brickene</p>
-            <h1>Web Framework</h1>
-          </div>
-
           <div class="menu-actions-wrap">
             <nav class="menu-actions" aria-label="Primary navigation">
               <button type="button" class="menu-button is-active" data-menu="file">File</button>
@@ -24,14 +19,16 @@
             </nav>
 
             <div id="submenu-dropdown" class="submenu-dropdown" aria-label="Sub-menu placeholder">
-              <p class="submenu-label">Sub-menu</p>
               <div id="submenu-content" class="submenu-content" role="menu"></div>
             </div>
           </div>
 
-          <div class="menu-state" aria-live="polite">
-            <span class="state-badge">Desktop layout</span>
-            <p id="menu-state-copy">Menu commands are scaffolded for future integration.</p>
+          <div class="brand-block">
+            <h1>BRICKENE</h1>
+          </div>
+
+          <div class="menu-meta">
+            <p id="menu-version" class="menu-version">v0.4.3</p>
           </div>
         </div>
       </header>
@@ -42,7 +39,23 @@
           <div class="canvas-zoom-controls" aria-label="Canvas zoom controls">
             <button id="canvas-zoom-in" type="button" class="canvas-zoom-button" aria-label="Zoom in">+</button>
             <button id="canvas-zoom-out" type="button" class="canvas-zoom-button" aria-label="Zoom out">-</button>
+            <button
+              id="canvas-zoom-reset"
+              type="button"
+              class="canvas-zoom-button canvas-zoom-button-reset"
+              aria-label="Reset zoom"
+            >
+              <img
+                class="canvas-zoom-button-icon"
+                src="./assets/images/reset.svg"
+                alt=""
+                aria-hidden="true"
+              />
+            </button>
           </div>
+          <p id="menu-state-copy" class="menu-status-copy" aria-live="polite">
+            Menu commands are scaffolded for future integration.
+          </p>
           <div id="canvas-layer" class="canvas-layer" aria-label="Canvas layer">
             <div class="canvas-grid" aria-hidden="true"></div>
             <div class="canvas-plane" aria-hidden="true">

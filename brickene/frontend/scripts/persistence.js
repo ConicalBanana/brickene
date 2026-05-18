@@ -1,6 +1,6 @@
 (() => {
   const frontend = window.BrickeneFrontend;
-  const { dom } = frontend;
+  const { config, dom } = frontend;
   const FILE_EXTENSION = ".brickene";
   const PASTE_NUDGE_PX = 32;
   const history = {
@@ -179,6 +179,29 @@
       nodeCount: selectionSnapshot.nodes.length,
       edgeCount: selectionSnapshot.edges.length,
     };
+  }
+
+  async function copyGraphAsSmiles() {
+    const response = await fetch(config.smilesApiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(exportGraphState()),
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Failed to export SMILES.");
+    }
+
+    const smiles = String(payload.smiles || "").trim();
+    if (!smiles) {
+      throw new Error("SMILES export returned an empty result.");
+    }
+
+    await writeClipboardText(`${smiles}\n`);
+    return smiles;
   }
 
   function buildNodePositionBounds(nodes) {
@@ -520,6 +543,16 @@
         return open();
       }
 
+      if (actionKey === "copy-as-smiles") {
+        try {
+          await copyGraphAsSmiles();
+          frontend.setCanvasMessage("Copied graph as SMILES.");
+        } catch (error) {
+          frontend.setCanvasMessage(error instanceof Error ? error.message : "SMILES export failed.");
+        }
+        return true;
+      }
+
       return false;
     }
 
@@ -563,18 +596,6 @@
         return true;
       }
 
-      if (actionKey === "create-new-node") {
-        const node = createNodeAtViewportCenter();
-        if (!node) {
-          return false;
-        }
-
-        frontend.setCanvasMessage(
-          `Node ${node.id} created at (${Math.round(node.x)}, ${Math.round(node.y)}).`,
-        );
-        return true;
-      }
-
       return false;
     }
 
@@ -593,6 +614,30 @@
 
       if (actionKey === "open-node-wizard") {
         return openNodeWizard();
+      }
+
+      return false;
+    }
+
+    if (menuKey === "view") {
+      if (actionKey === "center-canvas") {
+        frontend.resetCanvasTranslation?.();
+        return true;
+      }
+
+      if (actionKey === "reset-zoom") {
+        frontend.resetCanvasZoomAtViewportCenter?.();
+        return true;
+      }
+
+      if (actionKey === "zoom-in") {
+        frontend.zoomCanvasFromViewportCenter?.(1);
+        return true;
+      }
+
+      if (actionKey === "zoom-out") {
+        frontend.zoomCanvasFromViewportCenter?.(-1);
+        return true;
       }
 
       return false;
@@ -642,6 +687,7 @@
   frontend.save = save;
   frontend.open = open;
   frontend.copySelection = copySelection;
+  frontend.copyGraphAsSmiles = copyGraphAsSmiles;
   frontend.pasteSelection = pasteSelection;
   frontend.pasteSelectionSnapshot = pasteSelectionSnapshot;
   frontend.undo = undo;

@@ -1,7 +1,6 @@
 # brickene
 
 <div align="center">
-
 [![Build status](https://github.com/ConicalBanana/brickene/workflows/build/badge.svg?branch=main&event=push)](https://github.com/ConicalBanana/brickene/actions?query=workflow%3Abuild)
 [![Python Version](https://img.shields.io/pypi/pyversions/brickene.svg)](https://pypi.org/project/brickene/)
 [![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/ConicalBanana/brickene/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
@@ -12,7 +11,7 @@
 [![License](https://img.shields.io/github/license/ConicalBanana/brickene)](https://github.com/ConicalBanana/brickene/blob/main/LICENSE)
 ![Coverage Report](assets/images/coverage.svg)
 
-brickene – A flow-graph based visual builder for block-assembled organic molecules.
+brickene – Building block-based molecule drawing software
 
 ![Preview image](./assets/images/preview.png)
 
@@ -33,16 +32,16 @@ conda activate brickene
 pip install poetry
 ```
 
-Then you can run the client using the following command:
+Then you can install `brickene` using the following comamnd:
 
 ```bash
-brickene --help
+make install
 ```
 
-or with `Poetry`:
+You could open frontend+backend using the quick-start script:
 
 ```bash
-poetry run brickene --help
+./start.sh
 ```
 
 ### Makefile usage
@@ -202,6 +201,10 @@ make cleanup
 </p>
 </details>
 
+### User operation
+
+
+
 ## 🛡 License
 
 [![License](https://img.shields.io/github/license/ConicalBanana/brickene)](https://github.com/ConicalBanana/brickene/blob/main/LICENSE)
@@ -224,3 +227,5 @@ This project is licensed under the terms of the `MIT` license. See [LICENSE](htt
 ## Credits [![🚀 Your next Python package needs a bleeding-edge project structure.](https://img.shields.io/badge/P3G-%F0%9F%9A%80-brightgreen)](https://github.com/Undertone0809/python-package-template)
 
 This project was generated with [P3G](https://github.com/Undertone0809/P3G)
+
+Some vectors and icons are shared by <a href="https://www.svgrepo.com" target="_blank">SVG Repo</a>

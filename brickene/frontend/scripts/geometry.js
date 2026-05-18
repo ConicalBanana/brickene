@@ -95,10 +95,10 @@
         const nodeBottom = nodeTop + nodeElement.offsetHeight;
 
         return (
-          nodeLeft >= worldRect.left
-          && nodeTop >= worldRect.top
-          && nodeRight <= worldRect.right
-          && nodeBottom <= worldRect.bottom
+          nodeRight >= worldRect.left
+          && nodeBottom >= worldRect.top
+          && nodeLeft <= worldRect.right
+          && nodeTop <= worldRect.bottom
         );
       })
       .map((node) => node.id);

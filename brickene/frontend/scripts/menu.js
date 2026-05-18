@@ -15,27 +15,59 @@
     dom.submenuDropdown.style.minWidth = `${button.offsetWidth + 80}px`;
   }
 
+  function buildSubmenuActionItem(menuKey, itemConfig, className = "submenu-pill") {
+    const label = typeof itemConfig === "string" ? itemConfig : itemConfig.label || "";
+    const item = document.createElement("button");
+
+    item.type = "button";
+    item.className = className;
+    item.textContent = label;
+    item.dataset.menuKey = menuKey;
+    item.dataset.actionKey = typeof itemConfig === "object" && itemConfig.actionKey
+      ? itemConfig.actionKey
+      : toActionKey(label);
+    item.setAttribute("role", "menuitem");
+    return item;
+  }
+
+  function buildSubmenuEntry(menuKey, itemConfig) {
+    if (itemConfig === "|") {
+      const divider = document.createElement("div");
+      divider.className = "menu-separator submenu-separator";
+      divider.setAttribute("role", "separator");
+      return divider;
+    }
+
+    if (typeof itemConfig === "object" && itemConfig && Array.isArray(itemConfig.children)) {
+      const portal = document.createElement("div");
+      const trigger = buildSubmenuActionItem(
+        menuKey,
+        { label: itemConfig.label || "", actionKey: itemConfig.actionKey || "" },
+        "submenu-pill submenu-portal-trigger",
+      );
+      const portalMenu = document.createElement("div");
+      const portalContent = document.createElement("div");
+
+      portal.className = "submenu-portal";
+      trigger.dataset.hasChildren = "true";
+      trigger.setAttribute("aria-haspopup", "true");
+      portalMenu.className = "submenu-tertiary-menu";
+      portalMenu.setAttribute("role", "menu");
+      portalContent.className = "submenu-content";
+      portalContent.replaceChildren(...itemConfig.children.map((child) => buildSubmenuEntry(menuKey, child)));
+      portalMenu.appendChild(portalContent);
+      portal.append(trigger, portalMenu);
+      return portal;
+    }
+
+    return buildSubmenuActionItem(menuKey, itemConfig);
+  }
+
   function renderSubmenu(menuKey, button) {
     const items = config.submenuMap[menuKey] || [];
 
     dom.submenuContent.replaceChildren(
-      ...items.map((label) => {
-        if (label === "|") {
-          const divider = document.createElement("div");
-          divider.className = "menu-separator submenu-separator";
-          divider.setAttribute("role", "separator");
-          return divider;
-        }
-
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "submenu-pill";
-        item.textContent = label;
-        item.dataset.menuKey = menuKey;
-        item.dataset.actionKey = toActionKey(label);
-        item.setAttribute("role", "menuitem");
-        return item;
-      }),
+      ...items.map((itemConfig) => buildSubmenuEntry(menuKey, itemConfig)),
     );
 
     dom.stateCopy.textContent = config.stateMap[menuKey] || "Framework ready.";
@@ -103,7 +135,7 @@
   function bindSubmenuEvents() {
     dom.submenuContent.addEventListener("click", async (event) => {
       const item = event.target.closest(".submenu-pill");
-      if (!item) {
+      if (!item || item.dataset.hasChildren === "true") {
         return;
       }
 
@@ -134,6 +166,10 @@
   frontend.openCanvasContextMenu = openCanvasContextMenu;
   frontend.openNodeContextMenu = openNodeContextMenu;
   frontend.openEdgeContextMenu = openEdgeContextMenu;
+
+  if (dom.menuVersion) {
+    dom.menuVersion.textContent = `v${config.appVersion}`;
+  }
 
   bindSubmenuEvents();
 })();

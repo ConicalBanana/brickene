@@ -21,6 +21,10 @@
     || (/\/render\/?$/.test(renderApiUrl)
       ? renderApiUrl.replace(/\/render\/?$/, "/brick-config")
       : "http://127.0.0.1:8765/brick-config");
+  const smilesApiUrl = runtimeUrl.searchParams.get("smilesApiUrl")
+    || (/\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/render\/?$/, "/smiles")
+      : "http://127.0.0.1:8765/smiles");
   const nodeWizardUrl = (() => {
     const wizardUrl = new URL("./node_wizard.html", runtimeUrl);
 
@@ -31,19 +35,37 @@
   })();
 
   frontend.config = {
+    appVersion: "0.4.3",
     submenuMap: {
-      file: ["New", "|", "Open", "Open recently", "Save"],
-      edit: ["Undo", "Redo", "|", "Copy", "Paste", "Delete", "Create new node"],
+      file: [
+        "New",
+        "|",
+        "Open",
+        "Open recently",
+        "Save",
+        "|",
+        {
+          label: "Copy As",
+          children: [
+            {
+              label: "SMILES",
+              actionKey: "copy-as-smiles",
+            },
+          ],
+        },
+      ],
+      edit: ["Undo", "Redo", "|", "Copy", "Paste", "Delete"],
       node: ["Create node", "Open node wizard"],
-      view: ["Center canvas", "Grid", "Legend"],
+      view: ["Center canvas", "Grid", "Reset zoom", "Zoom in", "Zoom out"],
     },
     stateMap: {
-      file: "File actions can open and save .brickene graph configurations.",
+      file: "File actions can open, save, and export graph configurations.",
       edit: "Edit actions will target node and edge operations.",
       node: "Node controls can create nodes directly or open the external node wizard.",
       view: "View controls will tune the integral canvas workspace.",
     },
     renderApiUrl,
+    smilesApiUrl,
     brickApiUrl,
     brickConfigApiUrl,
     brickRenderApiUrl,
@@ -74,6 +96,7 @@
   frontend.dom = {
     submenuDropdown: document.getElementById("submenu-dropdown"),
     submenuContent: document.getElementById("submenu-content"),
+    menuVersion: document.getElementById("menu-version"),
     stateCopy: document.getElementById("menu-state-copy"),
     menuButtons: document.querySelectorAll(".menu-button"),
     canvasViewport: document.getElementById("canvas-viewport"),
@@ -87,6 +110,7 @@
     selectionRect: document.getElementById("selection-rect"),
     canvasZoomInButton: document.getElementById("canvas-zoom-in"),
     canvasZoomOutButton: document.getElementById("canvas-zoom-out"),
+    canvasZoomResetButton: document.getElementById("canvas-zoom-reset"),
     renderLayer: document.getElementById("render-layer"),
     renderPreviewWindow: document.getElementById("render-preview-window"),
     renderPreviewImage: document.getElementById("render-preview-image"),

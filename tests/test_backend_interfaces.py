@@ -13,6 +13,7 @@ import pytest
 from PIL import Image
 from rdkit import Chem
 
+from brickene import get_version
 from brickene.core.rendering import (
     build_graph_from_state,
     build_molecule_from_state,
@@ -386,6 +387,25 @@ def test_render_server_health_endpoint_reports_configuration(
     assert body["catalog_path"] == str(catalog_path)
     assert body["stored_brick_count"] == 0
     assert body["brick_db_path"].endswith("brick-store.sqlite3")
+
+
+def test_render_server_version_endpoint_returns_package_version(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The version endpoint should return the installed package version."""
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "GET",
+        "/version",
+    )
+    body = json.loads(payload)
+
+    assert status == 200
+    assert headers["content-type"] == "application/json"
+    assert headers["access-control-allow-origin"] == "*"
+    assert body["version"] == get_version()
 
 
 def test_render_server_options_returns_cors_headers(

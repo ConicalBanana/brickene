@@ -31,7 +31,6 @@
       title: node.title,
       type: node.type,
       nodeTypeId: node.brickId,
-      isStartNode: Boolean(node.isStartNode),
       customConfigText: node.customConfigText || "",
       position: {
         x: node.x,
@@ -391,14 +390,13 @@
       title: nodeState.title,
       type: nodeState.type || "rectangular",
       brickId: nodeState.nodeTypeId || nodeState.brickId,
-      isStartNode: Boolean(nodeState.isStartNode),
       customConfigText: typeof nodeState.customConfigText === "string" ? nodeState.customConfigText : "",
       x: Number(position.x ?? nodeState.x ?? 0),
       y: Number(position.y ?? nodeState.y ?? 0),
       portSlots: portConfiguration.map((slot, index) => ({
         id: Number(slot.slotId ?? slot.id ?? index),
         label: `P${Number(slot.slotId ?? slot.id ?? index) + 1}`,
-        side: slot.side || "right",
+        side: slot.side || null,
         actualPortId: slot.actualPortId === null || typeof slot.actualPortId === "undefined"
           ? null
           : String(slot.actualPortId),

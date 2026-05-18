@@ -2,6 +2,22 @@
   const frontend = window.BrickeneFrontend;
   const { config, dom } = frontend;
   const USER_DEFINED_BRICK_ID = "901";
+  const DEFAULT_NODE_IMAGE_SOURCE_WIDTH = 512;
+  const DEFAULT_NODE_IMAGE_SOURCE_HEIGHT = 268;
+  const DUPLICATOR_IMAGE_SRC = "../assets/images/duplicator.svg";
+  const DUPLICATOR_IMAGE_SOURCE_WIDTH = 465;
+  const DUPLICATOR_IMAGE_SOURCE_HEIGHT = 255;
+  const NODE_IMAGE_DISPLAY_WIDTH = 320;
+  const NODE_IMAGE_FRAME_MARGIN = 10;
+  const DUPLICATOR_SURFACE_WIDTH = (NODE_IMAGE_DISPLAY_WIDTH + NODE_IMAGE_FRAME_MARGIN * 2) / 3;
+  const DUPLICATOR_IMAGE_DISPLAY_WIDTH = Math.max(1, DUPLICATOR_SURFACE_WIDTH - NODE_IMAGE_FRAME_MARGIN * 2);
+  const NODE_PORT_OUTSIDE_EXTENSION = 16;
+  const NODE_PORT_OVERLAP_DISTANCE = 18;
+  const NODE_PORT_OVERLAP_EXTENSION = 14;
+  const brickImageSizeCache = new Map();
+  const brickImageSizeRequests = new Map();
+  const brickImageLayoutCache = new Map();
+  const brickImageLayoutRequests = new Map();
   let brickCatalog = [];
   let brickDefinitionsById = {};
   let brickIdByName = new Map();
@@ -98,6 +114,7 @@
     const isToolNode = definition.brick_type === "TOOL";
     const supportsInlineConfiguration = Boolean(definition.inline_configuration);
     const hasStaticImage = /^\d+$/.test(id) && !isToolNode && !supportsInlineConfiguration;
+    const isDuplicator = id === "900";
 
     return {
       ...definition,
@@ -105,11 +122,161 @@
       name: definition.name || configKey,
       imageSrc: hasStaticImage
         ? `../assets/brick_images/${encodeURIComponent(id)}.png`
+        : isDuplicator
+          ? DUPLICATOR_IMAGE_SRC
+          : "",
+      imageLayoutSrc: hasStaticImage
+        ? `../assets/brick_images/${encodeURIComponent(id)}.json`
         : "",
-      hideStructurePreview: isToolNode || supportsInlineConfiguration || !hasStaticImage,
+      hideStructurePreview: (isToolNode && !isDuplicator) || supportsInlineConfiguration || (!hasStaticImage && !isDuplicator),
       lockPortAssignments: isToolNode || supportsInlineConfiguration,
       supportsInlineConfiguration,
     };
+  }
+
+  function normalizeBrickImageLayout(payload) {
+    if (!payload || typeof payload !== "object" || typeof payload.ports !== "object") {
+      return null;
+    }
+
+    const portEntries = Object.entries(payload.ports)
+      .map(([portId, portLayout]) => {
+        const start = Array.isArray(portLayout?.port_start_pos)
+          ? portLayout.port_start_pos.map((value) => Number(value))
+          : null;
+        const vector = Array.isArray(portLayout?.port_vec)
+          ? portLayout.port_vec.map((value) => Number(value))
+          : null;
+
+        if (
+          !start
+          || !vector
+          || start.length !== 2
+          || vector.length !== 2
+          || !start.every(Number.isFinite)
+          || !vector.every(Number.isFinite)
+        ) {
+          return null;
+        }
+
+        return {
+          portId: String(portId),
+          startX: start[0],
+          startY: start[1],
+          vectorX: vector[0],
+          vectorY: vector[1],
+        };
+      })
+      .filter(Boolean);
+
+    if (!portEntries.length) {
+      return null;
+    }
+
+    const xValues = portEntries.flatMap((entry) => [entry.startX, entry.startX + entry.vectorX]);
+    const yValues = portEntries.flatMap((entry) => [entry.startY, entry.startY + entry.vectorY]);
+    const minX = Math.min(0, ...xValues);
+    const minY = Math.min(0, ...yValues);
+    const maxX = Math.max(DEFAULT_NODE_IMAGE_SOURCE_WIDTH, ...xValues);
+    const maxY = Math.max(DEFAULT_NODE_IMAGE_SOURCE_HEIGHT, ...yValues);
+
+    return {
+      minX,
+      minY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY),
+      ports: Object.fromEntries(portEntries.map((entry) => [entry.portId, entry])),
+    };
+  }
+
+  function cacheBrickImageLayout(imageLayoutSrc, layout) {
+    brickImageLayoutCache.set(imageLayoutSrc, layout);
+    window.requestAnimationFrame(() => {
+      frontend.renderNodes?.();
+    });
+  }
+
+  function cacheBrickImageSize(imageSrc, size) {
+    brickImageSizeCache.set(imageSrc, size);
+    window.requestAnimationFrame(() => {
+      frontend.renderNodes?.();
+    });
+  }
+
+  function ensureBrickImageSize(imageSrc) {
+    if (!imageSrc || brickImageSizeCache.has(imageSrc) || brickImageSizeRequests.has(imageSrc)) {
+      return;
+    }
+
+    const image = new Image();
+    const request = new Promise((resolve) => {
+      image.addEventListener("load", () => {
+        resolve({
+          width: image.naturalWidth || DEFAULT_NODE_IMAGE_SOURCE_WIDTH,
+          height: image.naturalHeight || DEFAULT_NODE_IMAGE_SOURCE_HEIGHT,
+        });
+      }, { once: true });
+      image.addEventListener("error", () => {
+        resolve({
+          width: DEFAULT_NODE_IMAGE_SOURCE_WIDTH,
+          height: DEFAULT_NODE_IMAGE_SOURCE_HEIGHT,
+        });
+      }, { once: true });
+    })
+      .then((size) => {
+        cacheBrickImageSize(imageSrc, size);
+      })
+      .finally(() => {
+        brickImageSizeRequests.delete(imageSrc);
+      });
+
+    brickImageSizeRequests.set(imageSrc, request);
+    image.src = imageSrc;
+  }
+
+  function getBrickImageSize(imageSrc) {
+    if (!imageSrc) {
+      return null;
+    }
+
+    if (!brickImageSizeCache.has(imageSrc)) {
+      ensureBrickImageSize(imageSrc);
+      return null;
+    }
+
+    return brickImageSizeCache.get(imageSrc);
+  }
+
+  function ensureBrickImageLayout(imageLayoutSrc) {
+    if (!imageLayoutSrc || brickImageLayoutCache.has(imageLayoutSrc) || brickImageLayoutRequests.has(imageLayoutSrc)) {
+      return;
+    }
+
+    const request = fetch(imageLayoutSrc)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => normalizeBrickImageLayout(payload))
+      .catch(() => null)
+      .then((layout) => {
+        cacheBrickImageLayout(imageLayoutSrc, layout);
+      })
+      .finally(() => {
+        brickImageLayoutRequests.delete(imageLayoutSrc);
+      });
+
+    brickImageLayoutRequests.set(imageLayoutSrc, request);
+  }
+
+  function getBrickImageLayout(imageLayoutSrc) {
+    if (!imageLayoutSrc) {
+      return null;
+    }
+
+    if (!brickImageLayoutCache.has(imageLayoutSrc)) {
+      ensureBrickImageLayout(imageLayoutSrc);
+      return null;
+    }
+
+    return brickImageLayoutCache.get(imageLayoutSrc);
   }
 
   function buildInlineConfigurationTemplate(sourceDefinition) {
@@ -283,6 +450,14 @@
     return createPortPoolFromDefinition(getBrickDefinition(brickRef));
   }
 
+  function isDirectionalBrickDefinition(brickDefinition) {
+    return brickDefinition?.brick_type === "TOOL";
+  }
+
+  function isDirectionalNode(node) {
+    return node?.brickType === "TOOL";
+  }
+
   function getSlotSide(index, total) {
     return index === 0 && total > 0 ? "left" : "right";
   }
@@ -314,7 +489,9 @@
       portSlots: portPool.map((portOption, index) => ({
         id: index,
         label: `P${index + 1}`,
-        side: portOption.side || getSlotSide(index, portPool.length),
+        side: isDirectionalBrickDefinition(brickDefinition)
+          ? (portOption.side || getSlotSide(index, portPool.length))
+          : null,
         actualPortId: portOption.id,
         edgeId: null,
       })),
@@ -339,11 +516,7 @@
   }
 
   function getEffectiveSlotSide(node, slot) {
-    if (node.isStartNode) {
-      return "right";
-    }
-
-    return slot.side;
+    return isDirectionalNode(node) ? slot.side : null;
   }
 
   function getSlotPortLabel(node, slot) {
@@ -356,7 +529,10 @@
     const brickId = brickDefinition?.id || defaultBrickId;
     const defaultPortData = createPortSlotsFromDefinition(brickDefinition);
     const portPool = nodeConfig.portPool?.map((portOption) => ({ ...portOption })) ?? defaultPortData.portPool;
-    const portSlots = nodeConfig.portSlots?.map((slot) => ({ ...slot })) ?? defaultPortData.portSlots;
+    const portSlots = nodeConfig.portSlots?.map((slot) => ({
+      ...slot,
+      side: isDirectionalBrickDefinition(brickDefinition) ? slot.side || null : null,
+    })) ?? defaultPortData.portSlots;
 
     return {
       ...nodeConfig,
@@ -365,9 +541,9 @@
       brickId,
       brickName: brickDefinition?.name || "Unknown",
       brickImageSrc: brickDefinition?.imageSrc || "",
+      brickImageLayoutSrc: brickDefinition?.imageLayoutSrc || "",
       brickType: brickDefinition?.brick_type || "UNCONFIGURED",
       hideStructurePreview: Boolean(brickDefinition?.hideStructurePreview),
-      isStartNode: Boolean(nodeConfig.isStartNode),
       lockPortAssignments: Boolean(brickDefinition?.lockPortAssignments),
       supportsInlineConfiguration: Boolean(brickDefinition?.supportsInlineConfiguration),
       customConfigText,
@@ -391,6 +567,10 @@
     return {
       leftSlots: node.portSlots
         .filter((slot) => getEffectiveSlotSide(node, slot) === "left")
+        .slice()
+        .sort((left, right) => getPortSortValue(node, left) - getPortSortValue(node, right)),
+      neutralSlots: node.portSlots
+        .filter((slot) => getEffectiveSlotSide(node, slot) === null)
         .slice()
         .sort((left, right) => getPortSortValue(node, left) - getPortSortValue(node, right)),
       rightSlots: node.portSlots
@@ -457,21 +637,6 @@
     `).join("");
   }
 
-  function renderStructurePreview(node) {
-    if (!node.brickImageSrc) {
-      return '<p class="node-structure-empty">No structure image</p>';
-    }
-
-    return `
-      <img
-        class="node-structure-image"
-        src="${escapeHtml(node.brickImageSrc)}"
-        alt="${escapeHtml(node.brickName)} structure"
-      />
-      <div class="node-structure-mask" aria-hidden="true"></div>
-    `;
-  }
-
   function renderInlineConfigurationEditor(node) {
     const helperCopy = node.customConfigError
       ? node.customConfigError
@@ -491,120 +656,264 @@
     `;
   }
 
-  function removeNodeEdgesBySlotPredicate(nodeId, predicate) {
-    const graph = frontend.getGraphState();
-    const ui = frontend.getUiState();
-    const removedEdgeIds = graph.edges
-      .filter((edge) => {
-        if (edge.from.nodeId === nodeId) {
-          const slot = frontend.findPortSlot(nodeId, edge.from.slotId);
-          return slot ? predicate(slot) : false;
-        }
+  function getNodeImageMetrics(node) {
+    const layout = getBrickImageLayout(node.brickImageLayoutSrc);
+    const imageSize = getBrickImageSize(node.brickImageSrc);
+    const isDuplicator = node.brickId === "900";
+    const fallbackWidth = node.brickId === "900"
+      ? DUPLICATOR_IMAGE_SOURCE_WIDTH
+      : DEFAULT_NODE_IMAGE_SOURCE_WIDTH;
+    const fallbackHeight = node.brickId === "900"
+      ? DUPLICATOR_IMAGE_SOURCE_HEIGHT
+      : DEFAULT_NODE_IMAGE_SOURCE_HEIGHT;
+    const sourceWidth = Math.max(1, Number(imageSize?.width) || fallbackWidth);
+    const sourceHeight = Math.max(1, Number(imageSize?.height) || fallbackHeight);
+    const imageWidth = isDuplicator ? DUPLICATOR_IMAGE_DISPLAY_WIDTH : NODE_IMAGE_DISPLAY_WIDTH;
+    const scale = imageWidth / sourceWidth;
+    const imageHeight = isDuplicator
+      ? sourceHeight * (NODE_IMAGE_DISPLAY_WIDTH / sourceWidth)
+      : sourceHeight * scale;
 
-        if (edge.to.nodeId === nodeId) {
-          const slot = frontend.findPortSlot(nodeId, edge.to.slotId);
-          return slot ? predicate(slot) : false;
-        }
+    return {
+      layout,
+      scale,
+      imageRect: {
+        left: NODE_IMAGE_FRAME_MARGIN,
+        top: NODE_IMAGE_FRAME_MARGIN,
+        right: NODE_IMAGE_FRAME_MARGIN + imageWidth,
+        bottom: NODE_IMAGE_FRAME_MARGIN + imageHeight,
+      },
+      surfaceWidth: imageWidth + NODE_IMAGE_FRAME_MARGIN * 2,
+      surfaceHeight: imageHeight + NODE_IMAGE_FRAME_MARGIN * 2,
+    };
+  }
 
-        return false;
-      })
-      .map((edge) => edge.id);
+  function getPortDisplayId(slot) {
+    return String(slot.actualPortId ?? slot.id + 1);
+  }
 
-    if (!removedEdgeIds.length) {
-      return 0;
+  function getPortNumericId(slot) {
+    const numericId = Number(getPortDisplayId(slot));
+    return Number.isFinite(numericId) ? numericId : Number.MAX_SAFE_INTEGER;
+  }
+
+  function normalizeVector(vectorX, vectorY, side) {
+    const length = Math.hypot(vectorX, vectorY);
+
+    if (length > 0.001) {
+      return {
+        unitX: vectorX / length,
+        unitY: vectorY / length,
+        length,
+      };
     }
 
-    graph.edges = graph.edges.filter((edge) => !removedEdgeIds.includes(edge.id));
-    graph.nodes = graph.nodes.map((graphNode) => ({
-      ...graphNode,
-      portSlots: graphNode.portSlots.map((slot) => (
-        removedEdgeIds.includes(slot.edgeId) ? { ...slot, edgeId: null } : slot
-      )),
-    }));
-    ui.selectedEdgeIds = new Set(
-      [...ui.selectedEdgeIds].filter((edgeId) => !removedEdgeIds.includes(edgeId)),
+    return {
+      unitX: side === "left" ? -1 : 1,
+      unitY: 0,
+      length: NODE_PORT_OUTSIDE_EXTENSION,
+    };
+  }
+
+  function pointIsInsideRect(point, rect) {
+    return (
+      point.x >= rect.left
+      && point.x <= rect.right
+      && point.y >= rect.top
+      && point.y <= rect.bottom
     );
-    return removedEdgeIds.length;
   }
 
-  function setNodeStartState(nodeId, isStartNode) {
-    const graph = frontend.getGraphState();
-    const node = findNode(nodeId);
+  function getRayExitDistance(startPoint, direction, rect) {
+    const distances = [];
 
-    if (!node || node.isStartNode === isStartNode) {
-      return { updated: false, removedEdgeCount: 0 };
+    if (Math.abs(direction.unitX) > 0.0001) {
+      [rect.left, rect.right].forEach((targetX) => {
+        const distance = (targetX - startPoint.x) / direction.unitX;
+        const targetY = startPoint.y + distance * direction.unitY;
+
+        if (distance >= 0 && targetY >= rect.top - 0.1 && targetY <= rect.bottom + 0.1) {
+          distances.push(distance);
+        }
+      });
     }
 
-    const removedEdgeCount = removeNodeEdgesBySlotPredicate(
-      nodeId,
-      (slot) => slot.side === "left",
+    if (Math.abs(direction.unitY) > 0.0001) {
+      [rect.top, rect.bottom].forEach((targetY) => {
+        const distance = (targetY - startPoint.y) / direction.unitY;
+        const targetX = startPoint.x + distance * direction.unitX;
+
+        if (distance >= 0 && targetX >= rect.left - 0.1 && targetX <= rect.right + 0.1) {
+          distances.push(distance);
+        }
+      });
+    }
+
+    const positiveDistances = distances.filter((distance) => distance >= 0);
+    return positiveDistances.length ? Math.min(...positiveDistances) : 0;
+  }
+
+  function buildFallbackPortLayout(side, index, total, metrics) {
+    const positionY = metrics.imageRect.top
+      + ((index + 1) / (Math.max(1, total) + 1)) * (metrics.imageRect.bottom - metrics.imageRect.top);
+
+    return {
+      startX: side === "left" ? metrics.imageRect.left : metrics.imageRect.right,
+      startY: positionY,
+      vectorX: side === "left" ? -NODE_PORT_OUTSIDE_EXTENSION : NODE_PORT_OUTSIDE_EXTENSION,
+      vectorY: 0,
+    };
+  }
+
+  function buildPortVisual(slot, node, sideIndex, sideTotal, metrics, ui) {
+    const connectionSide = getEffectiveSlotSide(node, slot);
+    const layoutEntry = metrics.layout?.ports?.[getPortDisplayId(slot)] || null;
+    const visualSide = layoutEntry
+      ? (layoutEntry.vectorX < 0 ? "left" : "right")
+      : (connectionSide || slot.side || getSlotSide(sideIndex, sideTotal));
+    const fallbackLayout = buildFallbackPortLayout(visualSide, sideIndex, sideTotal, metrics);
+    const startX = layoutEntry
+      ? metrics.imageRect.left + layoutEntry.startX * metrics.scale
+      : fallbackLayout.startX;
+    const startY = layoutEntry
+      ? metrics.imageRect.top + layoutEntry.startY * metrics.scale
+      : fallbackLayout.startY;
+    const direction = normalizeVector(
+      layoutEntry ? layoutEntry.vectorX * metrics.scale : fallbackLayout.vectorX,
+      layoutEntry ? layoutEntry.vectorY * metrics.scale : fallbackLayout.vectorY,
+      visualSide,
     );
+    const exitDistance = getRayExitDistance({ x: startX, y: startY }, direction, metrics.imageRect);
+    let portDistance = Math.max(direction.length, exitDistance + NODE_PORT_OUTSIDE_EXTENSION);
+    let dotPoint = {
+      x: startX + direction.unitX * portDistance,
+      y: startY + direction.unitY * portDistance,
+    };
 
-    graph.nodes = graph.nodes.map((graphNode) => (
-      graphNode.id === nodeId
-        ? { ...graphNode, isStartNode }
-        : graphNode
-    ));
-
-    renderNodes();
-    frontend.notifyGraphChanged({ reason: "node-start-state", nodeId });
-    return { updated: true, removedEdgeCount };
-  }
-
-  function renderPortAssignmentControl(node, slot) {
-    const slotPortLabel = getSlotPortLabel(node, slot);
-    const effectiveSide = getEffectiveSlotSide(node, slot);
-
-    if (node.lockPortAssignments || effectiveSide !== "left") {
-      return `<p class="node-port-name">${escapeHtml(slotPortLabel)}</p>`;
+    if (pointIsInsideRect(dotPoint, metrics.imageRect)) {
+      portDistance = exitDistance + NODE_PORT_OUTSIDE_EXTENSION;
+      dotPoint = {
+        x: startX + direction.unitX * portDistance,
+        y: startY + direction.unitY * portDistance,
+      };
     }
 
-    return `
-      <select
-        class="node-port-select node-control"
-        data-node-id="${node.id}"
-        data-slot-id="${slot.id}"
-        aria-label="${escapeHtml(node.title)} slot ${slot.id + 1} port assignment"
-      >
-        ${renderPortAssignmentOptions(node, slot.actualPortId)}
-      </select>
-    `;
-  }
-
-  function renderPortEntry(node, slot, side, ui) {
     const isHoverTarget = ui.componentInteraction?.type === "edge-drag"
       && ui.componentInteraction.hoverPort?.nodeId === node.id
       && ui.componentInteraction.hoverPort?.slotId === slot.id;
-    const isLeft = side === "left";
-    const slotPortLabel = getSlotPortLabel(node, slot);
+    const isConnectedToSelectedEdge = slot.edgeId !== null && ui.selectedEdgeIds.has(slot.edgeId);
+
+    return {
+      slot,
+      side: connectionSide || "neutral",
+      labelSide: direction.unitX < 0 ? "left" : "right",
+      portId: getPortDisplayId(slot),
+      numericPortId: getPortNumericId(slot),
+      startX,
+      startY,
+      unitX: direction.unitX,
+      unitY: direction.unitY,
+      distance: portDistance,
+      dotX: dotPoint.x,
+      dotY: dotPoint.y,
+      isHoverTarget,
+      isConnectedToSelectedEdge,
+    };
+  }
+
+  function resolvePortOverlayCollisions(portVisuals) {
+    const sortedVisuals = portVisuals.slice().sort((left, right) => left.numericPortId - right.numericPortId);
+
+    sortedVisuals.forEach((currentVisual, currentIndex) => {
+      for (let passIndex = 0; passIndex < 8; passIndex += 1) {
+        const overlappingVisual = sortedVisuals.slice(0, currentIndex).find((previousVisual) => (
+          Math.hypot(
+            currentVisual.dotX - previousVisual.dotX,
+            currentVisual.dotY - previousVisual.dotY,
+          ) < NODE_PORT_OVERLAP_DISTANCE
+        ));
+
+        if (!overlappingVisual) {
+          break;
+        }
+
+        currentVisual.distance += NODE_PORT_OVERLAP_EXTENSION;
+        currentVisual.dotX = currentVisual.startX + currentVisual.unitX * currentVisual.distance;
+        currentVisual.dotY = currentVisual.startY + currentVisual.unitY * currentVisual.distance;
+      }
+    });
+
+    return portVisuals;
+  }
+
+  function buildNodePortVisuals(node, metrics, ui) {
+    const { leftSlots, neutralSlots, rightSlots } = getPortSlotGroups(node);
+    const leftVisuals = leftSlots.map((slot, index) => buildPortVisual(slot, node, index, leftSlots.length, metrics, ui));
+    const neutralVisuals = neutralSlots.map((slot, index) => buildPortVisual(slot, node, index, neutralSlots.length, metrics, ui));
+    const rightVisuals = rightSlots.map((slot, index) => buildPortVisual(slot, node, index, rightSlots.length, metrics, ui));
+
+    return resolvePortOverlayCollisions([...leftVisuals, ...neutralVisuals, ...rightVisuals]);
+  }
+
+  function renderCompactPortAssignments(node, leftSlots) {
+    if (node.lockPortAssignments || !leftSlots.length) {
+      return "";
+    }
 
     return `
-      <div class="node-port-entry node-port-entry-${side}">
-        ${isLeft ? `
-          <button
-            type="button"
-            class="node-port node-port-left${isHoverTarget ? " is-hover-target" : ""}"
-            data-node-id="${node.id}"
-            data-slot-id="${slot.id}"
-            aria-label="${escapeHtml(node.title)} ${escapeHtml(slotPortLabel)}"
-          ></button>
-          <div class="node-port-info node-port-info-left">
-            ${renderPortAssignmentControl(node, slot)}
-          </div>
-        ` : `
-          <div class="node-port-info node-port-info-right">
-            ${renderPortAssignmentControl(node, slot)}
-          </div>
-          <button
-            type="button"
-            class="node-port node-port-right${isHoverTarget ? " is-hover-target" : ""}"
-            data-node-id="${node.id}"
-            data-slot-id="${slot.id}"
-            aria-label="${escapeHtml(node.title)} ${escapeHtml(slotPortLabel)}"
-          ></button>
-        `}
+      <div class="node-port-assignment-strip">
+        ${leftSlots.map((slot) => `
+          <label class="node-port-chip">
+            <span class="node-port-chip-label">Port ${escapeHtml(getPortDisplayId(slot))}</span>
+            <select
+              class="node-port-select node-control"
+              data-node-id="${node.id}"
+              data-slot-id="${slot.id}"
+              aria-label="${escapeHtml(node.title)} port ${escapeHtml(getPortDisplayId(slot))} assignment"
+            >
+              ${renderPortAssignmentOptions(node, slot.actualPortId)}
+            </select>
+          </label>
+        `).join("")}
       </div>
     `;
+  }
+
+  function renderNodeFooter(node, leftSlots) {
+    return `
+      <div class="node-editor-panel">
+        <div class="node-editor-row">
+          <label class="node-type-field node-type-field-compact">
+            <span class="node-type-label">Node type</span>
+            <select
+              class="node-type-select node-control"
+              data-node-id="${node.id}"
+              aria-label="${escapeHtml(node.title)} type"
+            >
+              ${renderNodeTypeOptions(node.brickId)}
+            </select>
+          </label>
+        </div>
+        ${renderCompactPortAssignments(node, leftSlots)}
+        ${node.supportsInlineConfiguration ? renderInlineConfigurationEditor(node) : ""}
+      </div>
+    `;
+  }
+
+  function renderNodeIllustration(node, imageMetrics) {
+    if (node.brickImageSrc) {
+      return `
+        <img
+          class="node-image"
+          src="${escapeHtml(node.brickImageSrc)}"
+          alt="${escapeHtml(node.brickName)} structure"
+          width="${Math.round(imageMetrics.imageRect.right - imageMetrics.imageRect.left)}"
+          height="${Math.round(imageMetrics.imageRect.bottom - imageMetrics.imageRect.top)}"
+        />
+      `;
+    }
+
+    return '<div class="node-image-empty">No structure image</div>';
   }
 
   function swapAssignedPorts(nodeId, sourceSlotId, destinationPortId) {
@@ -696,6 +1005,7 @@
         brickId: brickDefinition.id,
         brickName: nextDefinition.name,
         brickImageSrc: nextDefinition.imageSrc,
+        brickImageLayoutSrc: nextDefinition.imageLayoutSrc,
         brickType: nextDefinition.brick_type,
         hideStructurePreview: Boolean(nextDefinition.hideStructurePreview),
         lockPortAssignments: Boolean(nextDefinition.lockPortAssignments),
@@ -775,6 +1085,7 @@
         brickId: USER_DEFINED_BRICK_ID,
         brickName: nextDefinition.name,
         brickImageSrc: nextDefinition.imageSrc,
+        brickImageLayoutSrc: nextDefinition.imageLayoutSrc,
         brickType: nextDefinition.brick_type,
         hideStructurePreview: Boolean(nextDefinition.hideStructurePreview),
         lockPortAssignments: Boolean(nextDefinition.lockPortAssignments),
@@ -836,25 +1147,6 @@
     frontend.setCanvasMessage(`Node ${nodeId} slot ${slotId + 1} assigned to ${result.portLabel}.`);
   }
 
-  function handleNodeStartStateChange(event) {
-    const checkbox = event.target.closest(".node-start-toggle");
-    if (!checkbox) {
-      return;
-    }
-
-    const nodeId = Number(checkbox.dataset.nodeId);
-    const result = setNodeStartState(nodeId, checkbox.checked);
-    if (!result.updated) {
-      return;
-    }
-
-    frontend.setCanvasMessage(
-      checkbox.checked
-        ? `Node ${nodeId} marked as start node.${result.removedEdgeCount ? ` ${result.removedEdgeCount} left edge(s) cleared.` : ""}`
-        : `Node ${nodeId} start node cleared.${result.removedEdgeCount ? ` ${result.removedEdgeCount} left edge(s) cleared.` : ""}`,
-    );
-  }
-
   function handleNodeCustomConfigurationChange(event) {
     const textarea = event.target.closest(".node-inline-config-input");
     if (!textarea) {
@@ -896,11 +1188,6 @@
         return;
       }
 
-      if (event.target.closest(".node-start-toggle")) {
-        handleNodeStartStateChange(event);
-        return;
-      }
-
       if (event.target.closest(".node-inline-config-input")) {
         handleNodeCustomConfigurationChange(event);
       }
@@ -911,62 +1198,61 @@
     const ui = frontend.getUiState();
     const isSelected = ui.selectedNodeIds.has(node.id);
     const isDragging = ui.componentInteraction?.type === "node-drag" && ui.componentInteraction.nodeId === node.id;
-    const { leftSlots, rightSlots } = getPortSlotGroups(node);
+    const { leftSlots } = getPortSlotGroups(node);
+    const imageMetrics = getNodeImageMetrics(node);
+    const portVisuals = buildNodePortVisuals(node, imageMetrics, ui);
 
     return `
       <article
         class="node-component${isSelected ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}"
         data-node-id="${node.id}"
-        style="left: ${node.x}px; top: ${node.y}px"
+        style="left: ${node.x}px; top: ${node.y}px; --node-surface-width: ${imageMetrics.surfaceWidth}px"
         aria-selected="${String(isSelected)}"
       >
-        <div class="node-content">
-          <div class="node-info-area">
-            <div class="node-header">
-              <p class="overlay-label">${escapeHtml(node.brickType)}</p>
-              <p class="node-title">${escapeHtml(node.title)}</p>
-            </div>
-            <div class="node-body">
-              <label class="node-type-field">
-                <span class="node-type-label">Node type</span>
-                <select
-                  class="node-type-select node-control"
-                  data-node-id="${node.id}"
-                  aria-label="${escapeHtml(node.title)} type"
-                >
-                  ${renderNodeTypeOptions(node.brickId)}
-                </select>
-              </label>
-              ${node.supportsInlineConfiguration ? renderInlineConfigurationEditor(node) : ""}
-              ${node.hideStructurePreview ? "" : `
-              <div class="node-structure-preview">
-                ${renderStructurePreview(node)}
-              </div>
-              `}
-            </div>
+        <p class="node-id-label">Node ${node.id}</p>
+        <div
+          class="node-selection-surface${isSelected ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}"
+          data-node-id="${node.id}"
+          style="width: ${imageMetrics.surfaceWidth}px; height: ${imageMetrics.surfaceHeight}px"
+        >
+          <div class="node-image-frame">
+            ${renderNodeIllustration(node, imageMetrics)}
           </div>
-          <div class="node-port-area">
-            <label class="node-start-option">
-              <input
-                type="checkbox"
-                class="node-start-toggle node-control"
+          <svg
+            class="node-port-bond-layer"
+            viewBox="0 0 ${imageMetrics.surfaceWidth} ${imageMetrics.surfaceHeight}"
+            aria-hidden="true"
+          >
+            ${portVisuals.map((visual) => `
+              <line
+                class="node-port-bond"
+                x1="${visual.startX}"
+                y1="${visual.startY}"
+                x2="${visual.dotX}"
+                y2="${visual.dotY}"
+              ></line>
+            `).join("")}
+          </svg>
+          <div class="node-port-site-layer">
+            ${portVisuals.map((visual) => `
+              <button
+                type="button"
+                class="node-port node-port-${visual.side}${visual.isHoverTarget ? " is-hover-target" : ""}${visual.isConnectedToSelectedEdge ? " is-edge-selected" : ""}"
                 data-node-id="${node.id}"
-                ${node.isStartNode ? "checked" : ""}
-              />
-              <span>Start node</span>
-            </label>
-            <div class="node-port-area-content${node.isStartNode ? " is-start-node" : ""}">
-              ${node.isStartNode ? "" : `
-              <div class="node-port-column node-port-column-left">
-                ${leftSlots.map((slot) => renderPortEntry(node, slot, "left", ui)).join("")}
-              </div>
-              `}
-              <div class="node-port-column node-port-column-right">
-                ${rightSlots.map((slot) => renderPortEntry(node, slot, "right", ui)).join("")}
-              </div>
-            </div>
+                data-slot-id="${visual.slot.id}"
+                data-tangent-x="${visual.unitX}"
+                data-tangent-y="${visual.unitY}"
+                aria-label="${escapeHtml(node.title)} port ${escapeHtml(visual.portId)}"
+                style="left: ${visual.dotX}px; top: ${visual.dotY}px"
+              ></button>
+              <span
+                class="node-port-label node-port-label-${visual.labelSide}${visual.isConnectedToSelectedEdge ? " is-edge-selected" : ""}"
+                style="left: ${visual.dotX}px; top: ${visual.dotY}px"
+              >${escapeHtml(visual.portId)}</span>
+            `).join("")}
           </div>
         </div>
+        ${renderNodeFooter(node, leftSlots)}
       </article>
     `;
   }
@@ -1050,7 +1336,6 @@
       title: nodeConfig.title || `Node ${graph.nextNodeId}`,
       brickId: nodeConfig.brickId || defaultBrickId,
       customConfigText: nodeConfig.customConfigText || "",
-      isStartNode: graph.nodes.length === 0,
       x: nodeConfig.x,
       y: nodeConfig.y,
     });
@@ -1196,7 +1481,6 @@
   frontend.updateNodePortEdge = updateNodePortEdge;
   frontend.setNodeBrickName = setNodeBrickName;
   frontend.setNodeCustomConfiguration = setNodeCustomConfiguration;
-  frontend.setNodeStartState = setNodeStartState;
   frontend.renderNodes = renderNodes;
   frontend.getBrickTypeGroups = getBrickTypeGroups;
   frontend.setSelectedNodes = setSelectedNodes;

@@ -499,14 +499,17 @@ textarea {
   stroke: rgba(17, 17, 17, 0);
   stroke-width: 6;
   pointer-events: stroke;
+  cursor: pointer;
 }
 
 .edge-line {
   stroke: var(--border);
   stroke-width: 2;
+  cursor: pointer;
 }
 
 .edge-line.is-selected {
+  stroke: #bf2b2b;
   stroke-width: 3;
 }
 
@@ -532,13 +535,13 @@ textarea {
 
 .node-component {
   position: absolute;
-  width: 260px;
+  width: var(--node-surface-width, 340px);
   min-height: 0;
   padding: 0;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: var(--shadow);
-  cursor: move;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
   user-select: none;
   overflow: visible;
 }
@@ -549,129 +552,109 @@ textarea {
   user-select: none;
 }
 
-.node-component.is-selected {
+.node-component.is-selected,
+.node-component.is-dragging {
+  box-shadow: none;
+}
+
+.node-id-label {
+  position: absolute;
+  top: -1.2rem;
+  left: 50%;
+  margin: 0;
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.node-selection-surface {
+  position: relative;
+  overflow: visible;
+  cursor: move;
+}
+
+.node-selection-surface.is-selected {
   outline: 2px solid var(--border);
   outline-offset: 2px;
 }
 
-.node-component.is-dragging {
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.14);
+.node-selection-surface.is-dragging {
+  filter: drop-shadow(0 18px 38px rgba(0, 0, 0, 0.18));
 }
 
-.node-header,
-.node-body {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.node-content {
-  display: grid;
-  grid-template-rows: auto auto;
-}
-
-.node-info-area,
-.node-port-area {
-  padding-left: 0.8rem;
-  padding-right: 0.8rem;
-}
-
-.node-info-area {
-  padding-top: 0.7rem;
-  padding-bottom: 0.55rem;
-}
-
-.node-port-area {
-  position: relative;
-  padding-top: 0.55rem;
-  padding-bottom: 0.8rem;
-  border-top: 1px solid var(--accent);
-  background: rgba(250, 250, 250, 0.88);
-}
-
-.node-start-option {
-  display: inline-flex;
+.node-image-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--shadow);
+}
+
+.node-image,
+.node-image-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.node-image {
+  object-fit: contain;
+}
+
+.node-tool-illustration {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+}
+
+.node-tool-illustration-duplicator path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.node-image-empty {
+  display: grid;
+  place-items: center;
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  border: 1px dashed var(--accent);
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.node-start-option input {
-  margin: 0;
+.node-port-bond-layer,
+.node-port-site-layer {
+  position: absolute;
+  inset: 0;
 }
 
-.node-port-area-content {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.6rem;
-  align-items: start;
-  margin-top: 0.55rem;
+.node-port-bond-layer {
+  overflow: visible;
+  pointer-events: none;
 }
 
-.node-port-area-content.is-start-node {
-  grid-template-columns: minmax(0, 1fr);
+.node-port-bond {
+  stroke: rgba(0, 0, 0, 0.6);
+  stroke-width: 2;
+  fill: none;
+  vector-effect: non-scaling-stroke;
 }
 
-.node-port-column {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.node-port-column-left {
-  align-content: start;
-}
-
-.node-port-column-right {
-  align-content: start;
-  gap: 0.28rem;
-}
-
-.node-port-entry {
-  display: flex;
-  width: 100%;
-  min-height: 40px;
-  align-items: center;
-}
-
-.node-port-entry-left {
-  justify-content: flex-start;
-  gap: var(--port-info-gap);
-}
-
-.node-port-entry-right {
-  justify-content: flex-end;
-  gap: var(--port-info-gap);
-}
-
-.node-header {
-  padding-bottom: 0.55rem;
-  border-bottom: 1px solid var(--accent);
-}
-
-.node-title,
-.node-subtitle,
-.node-description,
-.node-port-name {
-  margin: 0;
-}
-
-.node-title {
-  font-size: 0.96rem;
-  font-weight: 700;
-}
-
-.node-subtitle,
-.node-description,
-.node-port-name {
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-.node-body {
-  padding: 0.65rem 0;
+.node-port-site-layer {
+  pointer-events: none;
 }
 
 .node-type-field {
@@ -684,8 +667,7 @@ textarea {
   gap: 0.28rem;
 }
 
-.node-type-label,
-.node-structure-preview-label {
+.node-type-label {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.64rem;
@@ -712,6 +694,46 @@ textarea {
 .node-control * {
   -webkit-user-select: text;
   user-select: text;
+}
+
+.node-editor-panel {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.65rem;
+  padding: 0.6rem;
+  border: 1px solid var(--accent);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+}
+
+.node-editor-row {
+  display: flex;
+  align-items: end;
+  gap: 0.6rem;
+}
+
+.node-type-field-compact {
+  flex: 1 1 auto;
+}
+
+.node-port-assignment-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.node-port-chip {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.node-port-chip-label {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .node-inline-config-input {
@@ -741,50 +763,20 @@ textarea {
   color: #7a1010;
 }
 
-.node-structure-preview {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 96px;
-  padding: 0.35rem;
-  border: 1px dashed var(--accent);
-  background: rgba(255, 255, 255, 0.92);
-  overflow: hidden;
-}
-
-.node-structure-image {
-  display: block;
-  width: 100%;
-  max-height: 104px;
-  object-fit: contain;
-}
-
-.node-structure-mask {
-  position: absolute;
-  inset: 0;
-  background: transparent;
-}
-
-.node-structure-empty {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .node-port {
-  position: relative;
-  top: auto;
-  width: 14px;
-  height: 14px;
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 12px;
   padding: 0;
-  border: 1px solid var(--border);
+  margin: 0;
+  border: 1px solid rgba(17, 17, 17, 0.38);
   border-radius: 999px;
-  background: var(--surface);
+  background: #808080;
   cursor: crosshair;
-  transform: none;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  z-index: 2;
 }
 
 .node-port.is-hover-target {
@@ -792,49 +784,52 @@ textarea {
   outline-offset: 2px;
 }
 
+.node-port.is-edge-selected {
+  background: #bf2b2b;
+  border-color: #7a1010;
+  box-shadow: 0 0 0 2px rgba(191, 43, 43, 0.18);
+}
+
 .node-port-left {
-  margin-left: calc(-0.8rem - 8px);
+  background: #bf2b2b;
 }
 
 .node-port-right {
-  margin-right: calc(-0.8rem - 8px);
-  order: 2;
+  background: #808080;
 }
 
-.node-port-info {
-  position: relative;
-  display: grid;
-  gap: 0.15rem;
-  width: 96px;
-  padding: 0.2rem 0.3rem;
-  border: 1px solid var(--accent);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+.node-port-neutral {
+  background: #808080;
 }
 
-.node-port-info-left {
-  margin-left: 0;
-}
-
-.node-port-info-right {
-  order: 1;
-  margin-right: 0;
-}
-
-.node-port-name {
-  margin-top: 0;
-  padding: 0.18rem 0.22rem;
-  border: 1px dashed var(--accent);
-  background: var(--surface-muted);
-  font-size: 0.66rem;
-  line-height: 1.05;
+.node-port-label {
+  position: absolute;
+  top: 0;
+  margin: 0;
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.node-port-label.is-edge-selected {
+  color: #7a1010;
+}
+
+.node-port-label-left {
+  transform: translate(calc(-100% - 8px), -50%);
+  text-align: right;
+}
+
+.node-port-label-right {
+  transform: translate(8px, -50%);
+  text-align: left;
 }
 
 .node-port-select {
-  width: 100%;
+  width: auto;
   min-width: 0;
   padding: 0.16rem 0.22rem;
   border: 1px dashed var(--accent);

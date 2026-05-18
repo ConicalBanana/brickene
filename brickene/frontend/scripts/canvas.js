@@ -708,12 +708,37 @@
     dom.portCommandPanel.style.top = `${top}px`;
   }
 
+  function positionPortCommandPanelAtClientPoint(clientX, clientY) {
+    if (!dom.portCommandPanel) {
+      return;
+    }
+
+    const viewportRect = dom.canvasViewport?.getBoundingClientRect();
+    if (!viewportRect) {
+      return;
+    }
+
+    const panelWidth = dom.portCommandPanel.offsetWidth || 320;
+    const panelHeight = dom.portCommandPanel.offsetHeight || 220;
+    const left = Math.min(
+      Math.max(8, clientX - viewportRect.left - panelWidth / 2),
+      viewportRect.width - panelWidth - 8,
+    );
+    const top = Math.min(
+      Math.max(8, clientY - viewportRect.top - panelHeight / 2),
+      viewportRect.height - panelHeight - 8,
+    );
+
+    dom.portCommandPanel.style.left = `${left}px`;
+    dom.portCommandPanel.style.top = `${top}px`;
+  }
+
   function schedulePortCommandEdgeRefresh(nodeId) {
     window.requestAnimationFrame(() => {
       frontend.renderEdges();
 
       const structureImage = dom.nodeContainer.querySelector(
-        `.node-component[data-node-id="${nodeId}"] .node-structure-image`,
+        `.node-component[data-node-id="${nodeId}"] .node-image`,
       );
 
       if (!structureImage || structureImage.complete) {
@@ -742,9 +767,26 @@
   }
 
   function createNodeFromPortCommand(candidate) {
-    const sourcePort = activePortCommand?.sourcePort;
-    if (!candidate || !sourcePort) {
+    if (!candidate || !activePortCommand) {
       return false;
+    }
+
+    const sourcePort = activePortCommand.sourcePort;
+
+    if (!sourcePort) {
+      const targetWorld = activePortCommand.targetWorld;
+      if (!targetWorld) {
+        closePortCommandPanel();
+        return false;
+      }
+
+      const newNode = frontend.createNodeAt(targetWorld.x, targetWorld.y, { brickId: candidate.id });
+      frontend.setCanvasMessage(
+        `Node ${newNode.id} (${newNode.brickName}) created at (${Math.round(newNode.x)}, ${Math.round(newNode.y)}).`,
+      );
+      schedulePortCommandEdgeRefresh(newNode.id);
+      closePortCommandPanel();
+      return true;
     }
 
     const sourceNode = frontend.findNode(sourcePort.nodeId);
@@ -763,8 +805,14 @@
       { brickId: candidate.id },
     );
 
-    const desiredSide = sourceSide === "left" ? "right" : "left";
-    const newSlot = newNode.portSlots.find((slot) => frontend.getEffectiveSlotSide(newNode, slot) === desiredSide);
+    const desiredSides = sourceSide === "left"
+      ? ["right", null]
+      : sourceSide === "right"
+        ? ["left", null]
+        : [null, "left", "right"];
+    const newSlot = desiredSides
+      .map((desiredSide) => newNode.portSlots.find((slot) => frontend.getEffectiveSlotSide(newNode, slot) === desiredSide))
+      .find(Boolean) || newNode.portSlots[0] || null;
     let connectMessage = "";
 
     if (sourceSlot.edgeId !== null) {
@@ -813,6 +861,33 @@
     dom.portCommandInput.focus();
     dom.portCommandInput.select();
     frontend.setCanvasMessage(`Port command opened for node ${portReference.nodeId}, slot ${portReference.slotId}.`);
+    return true;
+  }
+
+  function openCanvasNodeCommandPanel() {
+    if (!dom.portCommandPanel || !dom.portCommandInput) {
+      return false;
+    }
+
+    const centerPoint = getViewportCenterClientPoint();
+    if (!centerPoint) {
+      return false;
+    }
+
+    frontend.closeAllContextMenus();
+    activePortCommand = {
+      sourcePort: null,
+      targetWorld: frontend.clientToWorldPoint(centerPoint.x, centerPoint.y),
+      candidates: [],
+      selectedIndex: 0,
+    };
+    dom.portCommandPanel.hidden = false;
+    positionPortCommandPanelAtClientPoint(centerPoint.x, centerPoint.y);
+    dom.portCommandInput.value = "";
+    refreshPortCommandCandidates();
+    dom.portCommandInput.focus();
+    dom.portCommandInput.select();
+    frontend.setCanvasMessage("Canvas node command opened.");
     return true;
   }
 
@@ -1457,6 +1532,13 @@
           return;
         }
 
+        if (event.shiftKey) {
+          if (openCanvasNodeCommandPanel()) {
+            event.preventDefault();
+          }
+          return;
+        }
+
         if (openPortCommandPanel(frontend.getUiState().hoveredPort)) {
           event.preventDefault();
         }
@@ -1559,7 +1641,7 @@
 
       frontend.closeAllContextMenus();
       const portElement = event.target.closest(".node-port");
-      const nodeElement = event.target.closest(".node-component");
+      const nodeElement = event.target.closest(".node-selection-surface");
 
       if (portElement) {
         const nodeId = Number(portElement.dataset.nodeId);
@@ -1629,7 +1711,7 @@
       event.preventDefault();
     });
     dom.canvasViewport.addEventListener("dragstart", (event) => {
-      if (event.target instanceof Element && event.target.closest(".node-component, .edge-layer")) {
+      if (event.target instanceof Element && event.target.closest(".node-selection-surface, .edge-layer")) {
         event.preventDefault();
       }
     });
@@ -1638,7 +1720,7 @@
       if (
         ui.canvasPanState
         || ui.componentInteraction
-        || (event.target instanceof Element && event.target.closest(".node-component, .edge-layer"))
+        || (event.target instanceof Element && event.target.closest(".node-selection-surface, .edge-layer"))
       ) {
         event.preventDefault();
       }

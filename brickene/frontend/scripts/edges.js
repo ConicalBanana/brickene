@@ -27,15 +27,91 @@
     return Math.hypot(point.x - closestPoint.x, point.y - closestPoint.y);
   }
 
-  function getEdgeWorldSegment(edge) {
+  function cubicBezierPoint(t, start, controlOne, controlTwo, end) {
+    const inverse = 1 - t;
+    const inverseSquared = inverse * inverse;
+    const inverseCubed = inverseSquared * inverse;
+    const tSquared = t * t;
+    const tCubed = tSquared * t;
+
+    return {
+      x: inverseCubed * start.x
+        + 3 * inverseSquared * t * controlOne.x
+        + 3 * inverse * tSquared * controlTwo.x
+        + tCubed * end.x,
+      y: inverseCubed * start.y
+        + 3 * inverseSquared * t * controlOne.y
+        + 3 * inverse * tSquared * controlTwo.y
+        + tCubed * end.y,
+    };
+  }
+
+  function getCurveControlPoints(from, to, startTangent = null, endTangent = null) {
+    const deltaX = to.x - from.x;
+    const deltaY = to.y - from.y;
+    const direction = deltaX === 0 ? 1 : Math.sign(deltaX);
+    const controlOffset = Math.max(48, Math.abs(deltaX) * 0.45, Math.abs(deltaY) * 0.2);
+    const normalizedStartTangent = startTangent && Math.hypot(startTangent.x, startTangent.y) > 0.0001
+      ? startTangent
+      : { x: direction, y: 0 };
+    const normalizedEndTangent = endTangent && Math.hypot(endTangent.x, endTangent.y) > 0.0001
+      ? endTangent
+      : { x: direction, y: 0 };
+
+    return {
+      controlOne: {
+        x: from.x + controlOffset * normalizedStartTangent.x,
+        y: from.y + controlOffset * normalizedStartTangent.y,
+      },
+      controlTwo: {
+        x: to.x + controlOffset * normalizedEndTangent.x,
+        y: to.y + controlOffset * normalizedEndTangent.y,
+      },
+    };
+  }
+
+  function buildEdgeCurve(from, to, startTangent = null, endTangent = null) {
+    const { controlOne, controlTwo } = getCurveControlPoints(from, to, startTangent, endTangent);
+
+    return {
+      from,
+      to,
+      controlOne,
+      controlTwo,
+      pathData: `M ${from.x} ${from.y} C ${controlOne.x} ${controlOne.y}, ${controlTwo.x} ${controlTwo.y}, ${to.x} ${to.y}`,
+    };
+  }
+
+  function distanceToCurve(point, curve) {
+    let bestDistance = Infinity;
+    let previousPoint = curve.from;
+
+    for (let sampleIndex = 1; sampleIndex <= 24; sampleIndex += 1) {
+      const nextPoint = cubicBezierPoint(
+        sampleIndex / 24,
+        curve.from,
+        curve.controlOne,
+        curve.controlTwo,
+        curve.to,
+      );
+      bestDistance = Math.min(bestDistance, distanceToSegment(point, previousPoint, nextPoint));
+      previousPoint = nextPoint;
+    }
+
+    return bestDistance;
+  }
+
+  function getEdgeWorldCurve(edge) {
     const from = getPortWorldPoint(edge.from.nodeId, edge.from.slotId);
     const to = getPortWorldPoint(edge.to.nodeId, edge.to.slotId);
+    const startTangent = getPortTangent(edge.from.nodeId, edge.from.slotId);
+    const endTangent = getPortTangent(edge.to.nodeId, edge.to.slotId);
 
     if (!from || !to) {
       return null;
     }
 
-    return { from, to };
+    return buildEdgeCurve(from, to, startTangent, endTangent);
   }
 
   function findEdgeAtClientPoint(clientX, clientY) {
@@ -49,12 +125,12 @@
     let bestDistance = Infinity;
 
     frontend.getGraphState().edges.forEach((edge) => {
-      const segment = getEdgeWorldSegment(edge);
-      if (!segment) {
+      const curve = getEdgeWorldCurve(edge);
+      if (!curve) {
         return;
       }
 
-      const distance = distanceToSegment(point, segment.from, segment.to);
+      const distance = distanceToCurve(point, curve);
       if (distance <= EDGE_HIT_RADIUS && distance < bestDistance) {
         matchedEdgeId = edge.id;
         bestDistance = distance;
@@ -127,6 +203,28 @@
     );
   }
 
+  function getPortTangent(nodeId, slotId) {
+    const portElement = dom.nodeContainer.querySelector(
+      `.node-port[data-node-id="${nodeId}"][data-slot-id="${slotId}"]`,
+    );
+    if (!portElement) {
+      return null;
+    }
+
+    const tangentX = Number(portElement.dataset.tangentX);
+    const tangentY = Number(portElement.dataset.tangentY);
+    const tangentLength = Math.hypot(tangentX, tangentY);
+
+    if (!Number.isFinite(tangentX) || !Number.isFinite(tangentY) || tangentLength <= 0.0001) {
+      return null;
+    }
+
+    return {
+      x: tangentX / tangentLength,
+      y: tangentY / tangentLength,
+    };
+  }
+
   function findHoveredPort(clientX, clientY) {
     const port = document.elementFromPoint(clientX, clientY)?.closest(".node-port");
     if (!port) {
@@ -150,9 +248,9 @@
         return "";
       }
 
-      const segment = getEdgeWorldSegment(edge);
+      const curve = getEdgeWorldCurve(edge);
 
-      if (!segment) {
+      if (!curve) {
         return "";
       }
 
@@ -160,22 +258,16 @@
 
       return `
         <g class="edge-group${isSelected ? " is-selected" : ""}" data-edge-id="${edge.id}">
-          <line
+          <path
             class="edge-line-outline"
-            x1="${segment.from.x}"
-            y1="${segment.from.y}"
-            x2="${segment.to.x}"
-            y2="${segment.to.y}"
+            d="${curve.pathData}"
             data-edge-id="${edge.id}"
-          ></line>
-          <line
+          ></path>
+          <path
             class="edge-line${isSelected ? " is-selected" : ""}"
-            x1="${segment.from.x}"
-            y1="${segment.from.y}"
-            x2="${segment.to.x}"
-            y2="${segment.to.y}"
+            d="${curve.pathData}"
             data-edge-id="${edge.id}"
-          ></line>
+          ></path>
         </g>
       `;
     }).join("");
@@ -183,28 +275,26 @@
     let draftMarkup = "";
     if (ui.componentInteraction?.type === "edge-drag") {
       const from = getPortWorldPoint(ui.componentInteraction.sourceNodeId, ui.componentInteraction.sourceSlotId);
+      const startTangent = getPortTangent(ui.componentInteraction.sourceNodeId, ui.componentInteraction.sourceSlotId);
       if (from) {
+        const draftCurve = buildEdgeCurve(from, ui.componentInteraction.pointerWorld, startTangent, null);
         draftMarkup = `
-          <line
+          <path
             class="edge-line-draft"
-            x1="${from.x}"
-            y1="${from.y}"
-            x2="${ui.componentInteraction.pointerWorld.x}"
-            y2="${ui.componentInteraction.pointerWorld.y}"
-          ></line>
+            d="${draftCurve.pathData}"
+          ></path>
         `;
       }
     } else if (ui.componentInteraction?.type === "edge-retarget" && ui.componentInteraction.moved) {
       const from = getPortWorldPoint(ui.componentInteraction.sourceNodeId, ui.componentInteraction.sourceSlotId);
+      const startTangent = getPortTangent(ui.componentInteraction.sourceNodeId, ui.componentInteraction.sourceSlotId);
       if (from) {
+        const draftCurve = buildEdgeCurve(from, ui.componentInteraction.pointerWorld, startTangent, null);
         draftMarkup = `
-          <line
+          <path
             class="edge-line-draft"
-            x1="${from.x}"
-            y1="${from.y}"
-            x2="${ui.componentInteraction.pointerWorld.x}"
-            y2="${ui.componentInteraction.pointerWorld.y}"
-          ></line>
+            d="${draftCurve.pathData}"
+          ></path>
         `;
       }
     }
@@ -282,11 +372,15 @@
       return { success: false, message: "Node not found." };
     }
 
-    if (
-      frontend.getEffectiveSlotSide(sourceNode, sourceSlot) !== "right"
-      || frontend.getEffectiveSlotSide(targetNode, targetSlot) !== "left"
-    ) {
-      return { success: false, message: "Only right-side to left-side connections are allowed." };
+    const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
+    const targetSide = frontend.getEffectiveSlotSide(targetNode, targetSlot);
+
+    if (sourceSide === "left") {
+      return { success: false, message: "Tool left ports cannot start a connection." };
+    }
+
+    if (targetSide === "right") {
+      return { success: false, message: "Tool right ports cannot end a connection." };
     }
 
     return { success: true, sourceSlot, targetSlot };

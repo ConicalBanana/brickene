@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 import typer
 
+from brickene import get_version
 from brickene.brick_store import DEFAULT_BRICK_DB_PATH, BrickStore
 from brickene.core.node import Atom, BrickNode, BrickType, Port
 from brickene.core.rendering import (
@@ -23,6 +24,7 @@ from brickene.core.rendering import (
 )
 
 app = typer.Typer(help="Run the Brickene RDKit render server.")
+PACKAGE_VERSION = get_version()
 
 
 def serialize_brick_definition(node: BrickNode) -> dict[str, Any]:
@@ -176,7 +178,7 @@ def create_handler(
     class RenderRequestHandler(BaseHTTPRequestHandler):
         """Handle HTTP requests for graph image rendering."""
 
-        server_version = "BrickeneRenderServer/0.1"
+        server_version = f"BrickeneRenderServer/{PACKAGE_VERSION}"
 
         def do_OPTIONS(self) -> None:
             """Respond to CORS preflight requests."""
@@ -200,6 +202,13 @@ def create_handler(
                         "brick_db_path": str(brick_db_path),
                         "stored_brick_count": brick_store.count_bricks(),
                     },
+                )
+                return
+
+            if request_path == "/version":
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"version": PACKAGE_VERSION},
                 )
                 return
 

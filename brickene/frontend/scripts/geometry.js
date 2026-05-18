@@ -84,7 +84,9 @@
 
     const nextSelection = nodes
       .filter((node) => {
-        const nodeElement = dom.nodeContainer.querySelector(`[data-node-id="${node.id}"]`);
+        const nodeElement = dom.nodeContainer.querySelector(
+          `.node-component[data-node-id="${node.id}"] .node-selection-surface`,
+        );
         if (!nodeElement) {
           return false;
         }

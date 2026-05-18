@@ -12,6 +12,10 @@
     || (/\/render\/?$/.test(renderApiUrl)
       ? renderApiUrl.replace(/\/render\/?$/, "/brick-render")
       : "http://127.0.0.1:8765/brick-render");
+  const versionApiUrl = runtimeUrl.searchParams.get("versionApiUrl")
+    || (/\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/render\/?$/, "/version")
+      : "http://127.0.0.1:8765/version");
   const marvinPort = runtimeUrl.searchParams.get("marvinPort");
   const marvinWebUrl = (
     runtimeUrl.searchParams.get("marvinUrl")
@@ -35,7 +39,7 @@
   })();
 
   frontend.config = {
-    appVersion: "0.4.3",
+    appVersion: "",
     submenuMap: {
       file: [
         "New",
@@ -73,9 +77,10 @@
     brickApiUrl,
     brickConfigApiUrl,
     brickRenderApiUrl,
+    versionApiUrl,
     marvinWebUrl,
     nodeWizardUrl,
-    nodeSize: { width: 260, height: 196 },
+    nodeSize: { width: 340, height: 188 },
     defaultPortCount: 3,
     initialNodeConfigs: [
       {

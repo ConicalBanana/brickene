@@ -2,6 +2,40 @@
   const frontend = window.BrickeneFrontend;
   const { config, dom } = frontend;
 
+  function renderMenuVersion(version) {
+    if (!dom.menuVersion) {
+      return;
+    }
+
+    dom.menuVersion.textContent = `v${version}`;
+  }
+
+  async function refreshMenuVersion() {
+    if (!config.versionApiUrl) {
+      renderMenuVersion(config.appVersion || "unknown");
+      return;
+    }
+
+    try {
+      const response = await fetch(config.versionApiUrl, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+        },
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to load application version.");
+      }
+
+      config.appVersion = String(payload.version || "unknown");
+      renderMenuVersion(config.appVersion);
+    } catch (_error) {
+      renderMenuVersion(config.appVersion || "unknown");
+    }
+  }
+
   function toActionKey(label) {
     return String(label || "")
       .trim()
@@ -167,9 +201,8 @@
   frontend.openNodeContextMenu = openNodeContextMenu;
   frontend.openEdgeContextMenu = openEdgeContextMenu;
 
-  if (dom.menuVersion) {
-    dom.menuVersion.textContent = `v${config.appVersion}`;
-  }
+  renderMenuVersion(config.appVersion || "...");
 
   bindSubmenuEvents();
+  void refreshMenuVersion();
 })();

@@ -606,9 +606,13 @@
     const normalizedQuery = normalizeNodeQueryValue(query);
     const catalog = getPortCommandCatalog();
 
-    return (normalizedQuery
-      ? catalog.filter((option) => matchesNodeQuery(option, normalizedQuery))
-      : catalog)
+    if (!normalizedQuery) {
+      return catalog;
+    }
+
+    return catalog
+      .filter((option) => matchesNodeQuery(option, normalizedQuery))
+      .sort((left, right) => getNodeQueryMatchRank(left, normalizedQuery) - getNodeQueryMatchRank(right, normalizedQuery))
       .slice(0, PORT_COMMAND_RESULT_LIMIT);
   }
 
@@ -921,6 +925,15 @@
 
   function normalizeNodeQueryValue(value) {
     return String(value || "").trim().toLowerCase();
+  }
+
+  function getNodeQueryMatchRank(option, normalizedQuery) {
+    const exactMatchTerms = [
+      option.definition?.name,
+      ...(Array.isArray(option.definition?.alias) ? option.definition.alias : []),
+    ];
+
+    return exactMatchTerms.some((term) => String(term || "").trim().toLowerCase() === normalizedQuery) ? 0 : 1;
   }
 
   function matchesNodeQuery(option, normalizedQuery) {
@@ -1278,7 +1291,10 @@
 
   function bindPortCommandEvents() {
     dom.portCommandInput?.addEventListener("input", () => {
-      refreshPortCommandCandidates({ preserveSelection: true });
+      if (activePortCommand) {
+        activePortCommand.selectedIndex = 0;
+      }
+      refreshPortCommandCandidates();
     });
 
     dom.portCommandInput?.addEventListener("keydown", (event) => {

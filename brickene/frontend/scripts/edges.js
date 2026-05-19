@@ -1,12 +1,80 @@
 (() => {
   const frontend = window.BrickeneFrontend;
   const { dom } = frontend;
+  const DUPLICATOR_BRICK_ID = "900";
   const EDGE_OUTLINE_WIDTH = 6;
   const EDGE_VISIBLE_WIDTH = 2;
   const EDGE_HIT_RADIUS = EDGE_OUTLINE_WIDTH / 2;
 
   function findEdge(edgeId) {
     return frontend.getGraphState().edges.find((edge) => edge.id === edgeId) || null;
+  }
+
+  function isDuplicatorNode(node) {
+    return String(node?.brickId || "") === DUPLICATOR_BRICK_ID;
+  }
+
+  function buildNodeAdjacency(edges) {
+    return edges.reduce(
+      (maps, edge) => {
+        const startNodeId = edge.from.nodeId;
+        const endNodeId = edge.to.nodeId;
+
+        if (!maps.outgoing.has(startNodeId)) {
+          maps.outgoing.set(startNodeId, []);
+        }
+        maps.outgoing.get(startNodeId).push(endNodeId);
+
+        if (!maps.incoming.has(endNodeId)) {
+          maps.incoming.set(endNodeId, []);
+        }
+        maps.incoming.get(endNodeId).push(startNodeId);
+
+        return maps;
+      },
+      { outgoing: new Map(), incoming: new Map() },
+    );
+  }
+
+  function collectReachableNodeIds(startNodeId, adjacency) {
+    const visitedNodeIds = new Set();
+    const pendingNodeIds = [startNodeId];
+
+    while (pendingNodeIds.length) {
+      const currentNodeId = pendingNodeIds.pop();
+      const nextNodeIds = adjacency.get(currentNodeId) || [];
+
+      nextNodeIds.forEach((nextNodeId) => {
+        if (visitedNodeIds.has(nextNodeId) || nextNodeId === startNodeId) {
+          return;
+        }
+
+        visitedNodeIds.add(nextNodeId);
+        pendingNodeIds.push(nextNodeId);
+      });
+    }
+
+    return visitedNodeIds;
+  }
+
+  function crossesDuplicatorBoundary(sourceNodeId, targetNodeId) {
+    const graph = frontend.getGraphState();
+    const duplicatorNodes = graph.nodes.filter(isDuplicatorNode);
+    if (!duplicatorNodes.length || !graph.edges.length) {
+      return false;
+    }
+
+    const adjacency = buildNodeAdjacency(graph.edges);
+
+    return duplicatorNodes.some((duplicatorNode) => {
+      const upstreamNodeIds = collectReachableNodeIds(duplicatorNode.id, adjacency.incoming);
+      const downstreamNodeIds = collectReachableNodeIds(duplicatorNode.id, adjacency.outgoing);
+
+      return (
+        (upstreamNodeIds.has(sourceNodeId) && downstreamNodeIds.has(targetNodeId))
+        || (upstreamNodeIds.has(targetNodeId) && downstreamNodeIds.has(sourceNodeId))
+      );
+    });
   }
 
   function distanceToSegment(point, start, end) {
@@ -381,6 +449,13 @@
 
     if (targetSide === "right") {
       return { success: false, message: "Tool right ports cannot end a connection." };
+    }
+
+    if (crossesDuplicatorBoundary(sourcePort.nodeId, targetPort.nodeId)) {
+      return {
+        success: false,
+        message: "Cannot connect ports across an existing duplicator branch.",
+      };
     }
 
     return { success: true, sourceSlot, targetSlot };

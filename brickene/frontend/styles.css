@@ -536,6 +536,7 @@ textarea {
 .node-component {
   position: absolute;
   width: var(--node-surface-width, 340px);
+  min-width: 12rem;
   min-height: 0;
   padding: 0;
   border: 0;
@@ -559,6 +560,7 @@ textarea {
 
 .node-selection-surface {
   position: relative;
+  margin: 0 auto;
   overflow: visible;
   cursor: move;
 }

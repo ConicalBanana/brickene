@@ -1545,6 +1545,18 @@
         return;
       }
 
+      if (!event.metaKey && !event.ctrlKey && !event.altKey && event.shiftKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void frontend.copyGraphAsSmiles()
+          .then(() => {
+            frontend.setCanvasMessage("Copied graph as SMILES.");
+          })
+          .catch((error) => {
+            frontend.setCanvasMessage(error instanceof Error ? error.message : "SMILES export failed.");
+          });
+        return;
+      }
+
       if (event.code !== "Space") {
         return;
       }

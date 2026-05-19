@@ -15,12 +15,14 @@ from PIL import Image, ImageChops, ImageDraw
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
+from rdkit.Geometry import Point2D, Point3D
 
 DEFAULT_SOURCE_PATH = Path(__file__).resolve().parent / "raw_brick_smiles.json"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "brick_images"
 DEFAULT_IMAGE_SIZE = 512
 LARGE_BRICK_ATOM_THRESHOLD = 20
 Point = tuple[float, float]
+CoordinateBounds = tuple[float, float, float, float]
 RGBAColor = tuple[int, int, int, int]
 FONT_CANDIDATES = (
     Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
@@ -249,6 +251,41 @@ def find_ports(molecule: Chem.Mol) -> dict[int, tuple[int, tuple[int, ...]]]:
     return ports
 
 
+def get_molecule_coordinate_bounds(molecule: Chem.Mol) -> CoordinateBounds:
+    """Return the 2D coordinate bounds for one molecule."""
+
+    conformer = molecule.GetConformer()
+    x_coords = [
+        conformer.GetAtomPosition(index).x
+        for index in range(molecule.GetNumAtoms())
+    ]
+    y_coords = [
+        conformer.GetAtomPosition(index).y
+        for index in range(molecule.GetNumAtoms())
+    ]
+    return (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
+
+
+def translate_molecule_to_origin(
+    molecule: Chem.Mol,
+    bounds: CoordinateBounds,
+) -> Chem.Mol:
+    """Shift molecule coordinates so the bounding box starts at the origin."""
+
+    translated = Chem.Mol(molecule)
+    conformer = translated.GetConformer()
+    min_x, min_y, _, _ = bounds
+
+    for index in range(translated.GetNumAtoms()):
+        position = conformer.GetAtomPosition(index)
+        conformer.SetAtomPosition(
+            index,
+            Point3D(position.x - min_x, position.y - min_y, position.z),
+        )
+
+    return translated
+
+
 def build_port_geometry(
     drawer: Any,
     ports: dict[int, tuple[int, tuple[int, ...]]],
@@ -302,6 +339,7 @@ def render_svg_layer(
     image_size: int,
     *,
     show_port_labels: bool,
+    shared_coordinate_size: Point | None = None,
 ) -> tuple[str, Any]:
     """Render one molecule to an RDKit SVG string.
 
@@ -315,6 +353,12 @@ def render_svg_layer(
     """
 
     draw_molecule = rdMolDraw2D.PrepareMolForDrawing(Chem.Mol(molecule), kekulize=False)
+    if shared_coordinate_size is not None:
+        draw_molecule = translate_molecule_to_origin(
+            draw_molecule,
+            get_molecule_coordinate_bounds(draw_molecule),
+        )
+
     drawer = rdMolDraw2D.MolDraw2DSVG(image_size, image_size)
     draw_options = drawer.drawOptions()
     configure_draw_options(draw_options, molecule)
@@ -325,6 +369,14 @@ def render_svg_layer(
 
         draw_options.atomLabels[atom.GetIdx()] = (
             str(atom.GetAtomMapNum()) if show_port_labels else ""
+        )
+
+    if shared_coordinate_size is not None:
+        drawer.SetScale(
+            image_size,
+            image_size,
+            Point2D(0.0, 0.0),
+            Point2D(shared_coordinate_size[0], shared_coordinate_size[1]),
         )
 
     drawer.DrawMolecule(draw_molecule)
@@ -497,9 +549,9 @@ def configure_draw_options(
 
     draw_options.padding = 0.0
 
-    if molecule.GetNumAtoms() > LARGE_BRICK_ATOM_THRESHOLD:
-        if hasattr(draw_options, "fixedFontSize"):
-            draw_options.fixedFontSize = 30
+    # if molecule.GetNumAtoms() > LARGE_BRICK_ATOM_THRESHOLD:
+    #     if hasattr(draw_options, "fixedFontSize"):
+    #         draw_options.fixedFontSize = 30
 
     bold_font_file = get_bold_font_file()
     if bold_font_file is not None:
@@ -540,6 +592,7 @@ def render_draw_layer(
 def render_molecule_svg(
     molecule: Chem.Mol,
     image_size: int,
+    shared_coordinate_size: Point | None = None,
 ) -> tuple[str, int, int, dict[str, dict[str, Point]]]:
     """Render one molecule to a cropped SVG asset and port geometry.
 
@@ -556,6 +609,7 @@ def render_molecule_svg(
         molecule,
         image_size,
         show_port_labels=True,
+        shared_coordinate_size=shared_coordinate_size,
     )
     stripped_svg = remove_port_elements_from_svg(
         labeled_svg,
@@ -589,6 +643,8 @@ def render_brick_image(
     raw_entry: dict[str, Any],
     output_dir: Path,
     image_size: int,
+    molecule: Chem.Mol | None = None,
+    shared_coordinate_size: Point | None = None,
 ) -> tuple[Path, Path]:
     """Render one brick image and return the output path.
 
@@ -602,7 +658,7 @@ def render_brick_image(
         Paths to the written image and port-geometry JSON files.
     """
 
-    molecule = build_molecule(raw_entry["smiles"])
+    molecule = molecule or build_molecule(raw_entry["smiles"])
     brick_id = get_brick_id(brick_name, raw_entry)
     output_stem = sanitize_filename(brick_id)
     image_output_path = output_dir / f"{output_stem}.svg"
@@ -610,6 +666,7 @@ def render_brick_image(
     rendered_svg, rendered_width, rendered_height, port_geometry = render_molecule_svg(
         molecule,
         image_size,
+        shared_coordinate_size=shared_coordinate_size,
     )
     image_output_path.write_text(rendered_svg, encoding="utf-8")
     json_output_path.write_text(
@@ -646,6 +703,19 @@ def render_catalog(
     catalog = load_catalog(source_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    molecules_by_name: dict[str, Chem.Mol] = {}
+    max_coordinate_width = 0.0
+    max_coordinate_height = 0.0
+
+    for brick_name, raw_entry in catalog.items():
+        molecule = build_molecule(raw_entry["smiles"])
+        molecules_by_name[brick_name] = molecule
+        min_x, min_y, max_x, max_y = get_molecule_coordinate_bounds(molecule)
+        max_coordinate_width = max(max_coordinate_width, max_x - min_x)
+        max_coordinate_height = max(max_coordinate_height, max_y - min_y)
+
+    shared_coordinate_size = (max_coordinate_width, max_coordinate_height)
+
     rendered_paths: list[tuple[Path, Path]] = []
     for brick_name, raw_entry in catalog.items():
         image_output_path, json_output_path = render_brick_image(
@@ -653,6 +723,8 @@ def render_catalog(
             raw_entry=raw_entry,
             output_dir=output_dir,
             image_size=image_size,
+            molecule=molecules_by_name[brick_name],
+            shared_coordinate_size=shared_coordinate_size,
         )
         rendered_paths.append((image_output_path, json_output_path))
 

@@ -5,6 +5,7 @@
   const PERIOD_BRICK_ID = "902";
   const DEFAULT_NODE_IMAGE_SOURCE_WIDTH = 512;
   const DEFAULT_NODE_IMAGE_SOURCE_HEIGHT = 268;
+  const NODE_IMAGE_DISPLAY_SCALE = 0.75;
   const DUPLICATOR_IMAGE_SRC = "../assets/images/duplicator.svg";
   const DUPLICATOR_IMAGE_SOURCE_WIDTH = 465;
   const DUPLICATOR_IMAGE_SOURCE_HEIGHT = 255;
@@ -705,11 +706,11 @@
       1,
       Number(imageSize?.height) || Number(layout?.imageHeight) || fallbackHeight,
     );
-    const imageWidth = isCompactTool ? DUPLICATOR_IMAGE_DISPLAY_WIDTH : NODE_IMAGE_DISPLAY_WIDTH;
+    const imageWidth = isCompactTool ? DUPLICATOR_IMAGE_DISPLAY_WIDTH : sourceWidth * NODE_IMAGE_DISPLAY_SCALE;
     const scale = imageWidth / sourceWidth;
     const imageHeight = isCompactTool
       ? DUPLICATOR_IMAGE_DISPLAY_HEIGHT
-      : sourceHeight * scale;
+      : sourceHeight * NODE_IMAGE_DISPLAY_SCALE;
 
     return {
       layout,
@@ -883,13 +884,39 @@
     return portVisuals;
   }
 
+  function resolvePortLabelCollisions(portVisuals) {
+    const sortedVisuals = portVisuals.slice().sort((left, right) => left.numericPortId - right.numericPortId);
+
+    sortedVisuals.forEach((currentVisual, currentIndex) => {
+      currentVisual.labelOffsetY = 0;
+
+      for (let passIndex = 0; passIndex < 8; passIndex += 1) {
+        const overlappingVisual = sortedVisuals.slice(0, currentIndex).find((previousVisual) => (
+          Math.abs(currentVisual.dotY + currentVisual.labelOffsetY - (previousVisual.dotY + (previousVisual.labelOffsetY || 0))) < 14
+          && currentVisual.labelSide === previousVisual.labelSide
+          && Math.abs(currentVisual.dotX - previousVisual.dotX) < 28
+        ));
+
+        if (!overlappingVisual) {
+          break;
+        }
+
+        currentVisual.labelOffsetY += 14;
+      }
+    });
+
+    return portVisuals;
+  }
+
   function buildNodePortVisuals(node, metrics, ui) {
     const { leftSlots, neutralSlots, rightSlots } = getPortSlotGroups(node);
     const leftVisuals = leftSlots.map((slot, index) => buildPortVisual(slot, node, index, leftSlots.length, metrics, ui));
     const neutralVisuals = neutralSlots.map((slot, index) => buildPortVisual(slot, node, index, neutralSlots.length, metrics, ui));
     const rightVisuals = rightSlots.map((slot, index) => buildPortVisual(slot, node, index, rightSlots.length, metrics, ui));
 
-    return resolvePortOverlayCollisions([...leftVisuals, ...neutralVisuals, ...rightVisuals]);
+    return resolvePortLabelCollisions(
+      resolvePortOverlayCollisions([...leftVisuals, ...neutralVisuals, ...rightVisuals]),
+    );
   }
 
   function renderCompactPortAssignments(node, leftSlots) {
@@ -1332,7 +1359,6 @@
         style="left: ${node.x}px; top: ${node.y}px; --node-surface-width: ${imageMetrics.surfaceWidth}px"
         aria-selected="${String(isSelected)}"
       >
-        <p class="node-id-label">Node ${node.id}</p>
         <div
           class="node-selection-surface${isSelected ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}"
           data-node-id="${node.id}"
@@ -1370,7 +1396,7 @@
               ></button>
               <span
                 class="node-port-label node-port-label-${visual.labelSide}${visual.isConnectedToSelectedEdge ? " is-edge-selected" : ""}"
-                style="left: ${visual.dotX}px; top: ${visual.dotY}px"
+                style="left: ${visual.dotX}px; top: ${visual.dotY + (visual.labelOffsetY || 0)}px"
               >${escapeHtml(visual.portId)}</span>
             `).join("")}
           </div>

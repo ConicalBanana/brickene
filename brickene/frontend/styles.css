@@ -557,20 +557,6 @@ textarea {
   box-shadow: none;
 }
 
-.node-id-label {
-  position: absolute;
-  top: -1.2rem;
-  left: 50%;
-  margin: 0;
-  color: var(--text);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
-
 .node-selection-surface {
   position: relative;
   overflow: visible;
@@ -589,10 +575,11 @@ textarea {
 .node-image-frame {
   position: absolute;
   inset: 0;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  padding: 9px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.98);
   box-shadow: var(--shadow);

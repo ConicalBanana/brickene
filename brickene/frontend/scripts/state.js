@@ -82,24 +82,7 @@
     nodeWizardUrl,
     nodeSize: { width: 340, height: 188 },
     defaultPortCount: 3,
-    initialNodeConfigs: [
-      {
-        id: 1,
-        type: "rectangular",
-        title: "Node 1",
-        brickId: "2",
-        x: 96,
-        y: 88,
-      },
-      {
-        id: 2,
-        type: "rectangular",
-        title: "Node 2",
-        brickId: "3",
-        x: 388,
-        y: 228,
-      },
-    ],
+    initialNodeConfigs: [],
   };
 
   frontend.dom = {

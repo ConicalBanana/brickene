@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='iso-8859-1'?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="full" xml:space="preserve" width="21" height="30" viewBox="464 241 21 30">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="full" xml:space="preserve" width="7" height="10" viewBox="26 401 7 10">
 
 <rect style="opacity:1.0;fill:#FFFFFF;stroke:none" width="512.0" height="512.0" x="0.0" y="0.0"> </rect>
-<path class="atom-1" d="M 464.9 270.3 L 464.9 241.7 L 484.5 241.7 L 484.5 246.5 L 470.7 246.5 L 470.7 253.3 L 482.7 253.3 L 482.7 258.1 L 470.7 258.1 L 470.7 270.3 L 464.9 270.3 " fill="#33CCCC" />
+<path class="atom-1" d="M 26.7 410.3 L 26.7 401.9 L 32.5 401.9 L 32.5 403.3 L 28.4 403.3 L 28.4 405.3 L 31.9 405.3 L 31.9 406.8 L 28.4 406.8 L 28.4 410.3 L 26.7 410.3 " fill="#33CCCC" />
 </svg>

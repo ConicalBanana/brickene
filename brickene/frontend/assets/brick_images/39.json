@@ -1,14 +1,14 @@
 {
-  "image_height": 30,
-  "image_width": 21,
+  "image_height": 10,
+  "image_width": 7,
   "ports": {
     "1": {
       "port_start_pos": [
-        10.73,
-        15.0
+        3.56,
+        5.12
       ],
       "port_vec": [
-        -440.99,
+        -29.56,
         0.0
       ]
     }

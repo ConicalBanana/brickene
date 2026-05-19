@@ -4,7 +4,6 @@
 [![Build status](https://github.com/ConicalBanana/brickene/workflows/build/badge.svg?branch=main&event=push)](https://github.com/ConicalBanana/brickene/actions?query=workflow%3Abuild)
 [![Python Version](https://img.shields.io/pypi/pyversions/brickene.svg)](https://pypi.org/project/brickene/)
 [![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/ConicalBanana/brickene/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
-
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/ConicalBanana/brickene/blob/main/.pre-commit-config.yaml)
 [![Semantic Versions](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--versions-e10079.svg)](https://github.com/ConicalBanana/brickene/releases)
@@ -201,9 +200,14 @@ make cleanup
 </p>
 </details>
 
-### User operation
+### Keyboard shortcut
 
-
+- `Q` when cursor is on a port: Create a new node from a port.
+- `Delete`: Delete a selected node/edge.
+- `shift + Q`: Create a new node on the canvas.
+- `CMD/Ctrl + A`: Select all node.
+- `CMD/Ctrl + C`: Copy selected node(s) and edge(s).
+- `CMD/Ctrl + V`: Paste selected node(s) and edge(s).
 
 ## 🛡 License
 
@@ -224,8 +228,10 @@ This project is licensed under the terms of the `MIT` license. See [LICENSE](htt
 }
 ```
 
-## Credits [![🚀 Your next Python package needs a bleeding-edge project structure.](https://img.shields.io/badge/P3G-%F0%9F%9A%80-brightgreen)](https://github.com/Undertone0809/python-package-template)
+## Credits 
 
-This project was generated with [P3G](https://github.com/Undertone0809/P3G)
+## [![🚀 Your next Python package needs a bleeding-edge project structure.](https://img.shields.io/badge/P3G-%F0%9F%9A%80-brightgreen)](https://github.com/Undertone0809/python-package-template)
 
-Some vectors and icons are shared by <a href="https://www.svgrepo.com" target="_blank">SVG Repo</a>
+- This project was generated with [P3G](https://github.com/Undertone0809/P3G)
+
+- Some vectors and icons are shared by <a href="https://www.svgrepo.com" target="_blank">SVG Repo</a>

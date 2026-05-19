@@ -1,12 +1,14 @@
 {
+  "image_height": 512,
+  "image_width": 512,
   "ports": {
     "1": {
       "port_start_pos": [
-        384.0,
-        1.0
+        500.0,
+        256.0
       ],
       "port_vec": [
-        -384.0,
+        -481.71,
         0.0
       ]
     }

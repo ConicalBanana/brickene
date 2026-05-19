@@ -1,6 +1,7 @@
 --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 click==8.3.3 ; python_full_version == "3.11.15"
+cairosvg==2.8.2 ; python_full_version == "3.11.15"
 colorama==0.4.6 ; python_full_version == "3.11.15"
 commonmark==0.9.1 ; python_full_version == "3.11.15"
 networkx==3.4.2 ; python_full_version == "3.11.15"

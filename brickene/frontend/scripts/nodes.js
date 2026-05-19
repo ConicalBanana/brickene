@@ -126,7 +126,7 @@
       id,
       name: definition.name || configKey,
       imageSrc: hasStaticImage
-        ? `../assets/brick_images/${encodeURIComponent(id)}.png`
+        ? `../assets/brick_images/${encodeURIComponent(id)}.svg`
         : isDuplicator
           ? DUPLICATOR_IMAGE_SRC
           : "",
@@ -143,6 +143,9 @@
     if (!payload || typeof payload !== "object" || typeof payload.ports !== "object") {
       return null;
     }
+
+    const imageWidth = Number(payload.image_width);
+    const imageHeight = Number(payload.image_height);
 
     const portEntries = Object.entries(payload.ports)
       .map(([portId, portLayout]) => {
@@ -190,6 +193,8 @@
       minY,
       width: Math.max(1, maxX - minX),
       height: Math.max(1, maxY - minY),
+      imageWidth: Number.isFinite(imageWidth) && imageWidth > 0 ? imageWidth : null,
+      imageHeight: Number.isFinite(imageHeight) && imageHeight > 0 ? imageHeight : null,
       ports: Object.fromEntries(portEntries.map((entry) => [entry.portId, entry])),
     };
   }
@@ -692,8 +697,14 @@
     const fallbackHeight = isCompactTool
       ? DUPLICATOR_IMAGE_SOURCE_HEIGHT
       : DEFAULT_NODE_IMAGE_SOURCE_HEIGHT;
-    const sourceWidth = Math.max(1, Number(imageSize?.width) || fallbackWidth);
-    const sourceHeight = Math.max(1, Number(imageSize?.height) || fallbackHeight);
+    const sourceWidth = Math.max(
+      1,
+      Number(imageSize?.width) || Number(layout?.imageWidth) || fallbackWidth,
+    );
+    const sourceHeight = Math.max(
+      1,
+      Number(imageSize?.height) || Number(layout?.imageHeight) || fallbackHeight,
+    );
     const imageWidth = isCompactTool ? DUPLICATOR_IMAGE_DISPLAY_WIDTH : NODE_IMAGE_DISPLAY_WIDTH;
     const scale = imageWidth / sourceWidth;
     const imageHeight = isCompactTool

@@ -47,6 +47,7 @@ rich = "^10.13.0"
 rdkit = "2022.9.5"
 networkx = ">=3.4.2,<3.5"
 numpy = "<2"
+cairosvg = "^2.8.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"

@@ -6,9 +6,11 @@ import argparse
 import io
 import json
 import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+import cairosvg
 from PIL import Image, ImageChops, ImageDraw
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -27,6 +29,7 @@ FONT_CANDIDATES = (
 WHITE_RGB = (255, 255, 255)
 WHITE_RGBA = (255, 255, 255, 255)
 TRANSPARENT_RGBA = (255, 255, 255, 0)
+SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,7 +41,7 @@ def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Render individual PNG images for every brick in "
+            "Render individual SVG images for every brick in "
             "raw_brick_smiles.json."
         )
     )
@@ -52,7 +55,7 @@ def parse_args() -> argparse.Namespace:
         "--output-dir",
         type=Path,
         default=DEFAULT_OUTPUT_DIR,
-        help="Directory where rendered brick images will be written.",
+        help="Directory where rendered brick SVG assets will be written.",
     )
     parser.add_argument(
         "--image-size",
@@ -247,7 +250,7 @@ def find_ports(molecule: Chem.Mol) -> dict[int, tuple[int, tuple[int, ...]]]:
 
 
 def build_port_geometry(
-    drawer: rdMolDraw2D.MolDraw2DCairo,
+    drawer: Any,
     ports: dict[int, tuple[int, tuple[int, ...]]],
     offset: Point = (0.0, 0.0),
 ) -> dict[str, dict[str, Point]]:
@@ -292,6 +295,138 @@ def build_port_geometry(
         }
 
     return port_geometry
+
+
+def render_svg_layer(
+    molecule: Chem.Mol,
+    image_size: int,
+    *,
+    show_port_labels: bool,
+) -> tuple[str, Any]:
+    """Render one molecule to an RDKit SVG string.
+
+    Args:
+        molecule: RDKit molecule with 2D coordinates.
+        image_size: Width and height of the SVG canvas in pixels.
+        show_port_labels: Whether mapped dummy atoms should show their port number.
+
+    Returns:
+        SVG text and the configured RDKit SVG drawer.
+    """
+
+    draw_molecule = rdMolDraw2D.PrepareMolForDrawing(Chem.Mol(molecule), kekulize=False)
+    drawer = rdMolDraw2D.MolDraw2DSVG(image_size, image_size)
+    draw_options = drawer.drawOptions()
+    configure_draw_options(draw_options, molecule)
+
+    for atom in draw_molecule.GetAtoms():
+        if atom.GetAtomicNum() != 0 or atom.GetAtomMapNum() <= 0:
+            continue
+
+        draw_options.atomLabels[atom.GetIdx()] = (
+            str(atom.GetAtomMapNum()) if show_port_labels else ""
+        )
+
+    drawer.DrawMolecule(draw_molecule)
+    drawer.FinishDrawing()
+    return drawer.GetDrawingText(), drawer
+
+
+def remove_port_elements_from_svg(
+    svg_text: str,
+    port_atom_indices: set[int],
+) -> str:
+    """Remove mapped port atoms and their bond segments from an RDKit SVG.
+
+    Args:
+        svg_text: Source SVG text.
+        port_atom_indices: Atom indices corresponding to mapped dummy ports.
+
+    Returns:
+        SVG text with port-related elements removed.
+    """
+
+    ET.register_namespace("", SVG_NAMESPACE)
+    xml_declaration = ""
+    stripped_text = svg_text.lstrip()
+    if stripped_text.startswith("<?xml"):
+        xml_declaration = stripped_text.splitlines()[0]
+
+    root = ET.fromstring(svg_text)
+    port_atom_classes = {f"atom-{atom_idx}" for atom_idx in port_atom_indices}
+
+    for parent in root.iter():
+        for child in list(parent):
+            class_tokens = set(child.attrib.get("class", "").split())
+            if class_tokens & port_atom_classes:
+                parent.remove(child)
+
+    cleaned_svg = ET.tostring(root, encoding="unicode")
+    return f"{xml_declaration}\n{cleaned_svg}" if xml_declaration else cleaned_svg
+
+
+def rasterize_svg(svg_text: str, image_size: int) -> Image.Image:
+    """Rasterize one SVG string into a white-background RGBA PIL image.
+
+    Args:
+        svg_text: SVG content to rasterize.
+        image_size: Output raster width and height in pixels.
+
+    Returns:
+        Rasterized PIL image.
+    """
+
+    png_bytes = cairosvg.svg2png(
+        bytestring=svg_text.encode("utf-8"),
+        output_width=image_size,
+        output_height=image_size,
+        background_color="white",
+    )
+    with Image.open(io.BytesIO(png_bytes)) as rasterized_image:
+        return rasterized_image.convert("RGBA")
+
+
+def crop_svg_to_bounds(
+    svg_text: str,
+    bounds: tuple[int, int, int, int] | None,
+    image_size: int,
+) -> tuple[str, int, int]:
+    """Crop one SVG to the requested bounds by adjusting its viewBox.
+
+    Args:
+        svg_text: SVG content to crop.
+        bounds: Bounding box in the original render coordinate space.
+        image_size: Original square render size when no bounds are available.
+
+    Returns:
+        Cropped SVG text plus its output width and height.
+    """
+
+    ET.register_namespace("", SVG_NAMESPACE)
+    xml_declaration = ""
+    stripped_text = svg_text.lstrip()
+    if stripped_text.startswith("<?xml"):
+        xml_declaration = stripped_text.splitlines()[0]
+
+    root = ET.fromstring(svg_text)
+
+    if bounds is None:
+        left, top, right, bottom = 0, 0, image_size, image_size
+    else:
+        left, top, right, bottom = bounds
+
+    width = max(1, right - left)
+    height = max(1, bottom - top)
+    root.set("viewBox", f"{left} {top} {width} {height}")
+    root.set("width", str(width))
+    root.set("height", str(height))
+
+    cropped_svg = ET.tostring(root, encoding="unicode")
+    return (
+        f"{xml_declaration}\n{cropped_svg}" if xml_declaration else cropped_svg,
+        width,
+        height,
+    )
 
 
 def mask_ports(
@@ -402,58 +537,51 @@ def render_draw_layer(
         return rendered_image.convert("RGBA"), drawer
 
 
-def render_molecule_image(
+def render_molecule_svg(
     molecule: Chem.Mol,
     image_size: int,
-) -> tuple[Image.Image, dict[str, dict[str, Point]]]:
-    """Render one molecule to a cropped PIL image and port geometry.
+) -> tuple[str, int, int, dict[str, dict[str, Point]]]:
+    """Render one molecule to a cropped SVG asset and port geometry.
 
     Args:
         molecule: RDKit molecule with 2D coordinates.
         image_size: Width and height of the base render canvas in pixels.
 
     Returns:
-        Cropped PIL image plus per-port geometry in trimmed image space.
+        Cropped SVG text, cropped width, cropped height, and per-port geometry.
     """
 
     ports = find_ports(molecule)
-    base_image, base_drawer = render_draw_layer(
+    labeled_svg, svg_drawer = render_svg_layer(
         molecule,
         image_size,
-        atom_palette=build_uniform_atom_palette((1.0, 1.0, 1.0)),
+        show_port_labels=True,
     )
-    masked_base_image = mask_ports(base_image, base_drawer, ports)
+    stripped_svg = remove_port_elements_from_svg(
+        labeled_svg,
+        {port_atom_idx for port_atom_idx, _ in ports.values()},
+    )
+    stripped_image = rasterize_svg(stripped_svg, image_size)
+    trim_bounds = get_trim_bounds(stripped_image)
 
-    text_overlay_image, _ = render_draw_layer(
-        molecule,
+    cropped_svg, cropped_width, cropped_height = crop_svg_to_bounds(
+        stripped_svg,
+        trim_bounds,
         image_size,
-        symbol_color=(1.0, 1.0, 1.0),
     )
-    transparent_text_overlay = make_white_pixels_transparent(text_overlay_image)
 
-    trim_bounds = merge_bounds(
-        get_trim_bounds(masked_base_image),
-        get_alpha_bounds(transparent_text_overlay),
-    )
     if trim_bounds is None:
-        composited_image = Image.alpha_composite(
-            masked_base_image.convert("RGBA"),
-            transparent_text_overlay,
+        return cropped_svg, cropped_width, cropped_height, build_port_geometry(
+            svg_drawer,
+            ports,
         )
-        return composited_image.convert("RGB"), build_port_geometry(base_drawer, ports)
 
-    cropped_base_image = masked_base_image.crop(trim_bounds)
-    cropped_text_overlay = transparent_text_overlay.crop(trim_bounds)
-    composited_image = Image.alpha_composite(
-        cropped_base_image.convert("RGBA"),
-        cropped_text_overlay,
-    )
     port_geometry = build_port_geometry(
-        base_drawer,
+        svg_drawer,
         ports,
         offset=(float(trim_bounds[0]), float(trim_bounds[1])),
     )
-    return composited_image.convert("RGB"), port_geometry
+    return cropped_svg, cropped_width, cropped_height, port_geometry
 
 
 def render_brick_image(
@@ -477,12 +605,23 @@ def render_brick_image(
     molecule = build_molecule(raw_entry["smiles"])
     brick_id = get_brick_id(brick_name, raw_entry)
     output_stem = sanitize_filename(brick_id)
-    image_output_path = output_dir / f"{output_stem}.png"
+    image_output_path = output_dir / f"{output_stem}.svg"
     json_output_path = output_dir / f"{output_stem}.json"
-    rendered_image, port_geometry = render_molecule_image(molecule, image_size)
-    rendered_image.save(image_output_path)
+    rendered_svg, rendered_width, rendered_height, port_geometry = render_molecule_svg(
+        molecule,
+        image_size,
+    )
+    image_output_path.write_text(rendered_svg, encoding="utf-8")
     json_output_path.write_text(
-        json.dumps({"ports": port_geometry}, indent=2, sort_keys=True),
+        json.dumps(
+            {
+                "image_width": rendered_width,
+                "image_height": rendered_height,
+                "ports": port_geometry,
+            },
+            indent=2,
+            sort_keys=True,
+        ),
         encoding="utf-8",
     )
     return image_output_path, json_output_path

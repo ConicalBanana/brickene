@@ -7,7 +7,7 @@ from typing import Any
 import networkx as nx
 from rdkit import Chem
 
-from .node import BrickNode, Port
+from brickene.model.brick import BrickNode, Port
 
 
 class BrickGraph(nx.Graph):
@@ -198,4 +198,3 @@ class BrickGraph(nx.Graph):
         if len(neighbors) != 1:
             raise ValueError("Ports must have exactly one neighboring atom.")
         return neighbors[0].GetIdx()
-

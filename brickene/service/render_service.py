@@ -1,4 +1,4 @@
-"""Render frontend graph state payloads into molecule images."""
+"""Service layer for graph assembly and molecule rendering."""
 
 from __future__ import annotations
 
@@ -8,16 +8,25 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageChops
+from PIL import Image
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from rdkit.Chem.Draw import rdMolDraw2D
 
-from brickene.brick_store import DEFAULT_BRICK_DB_PATH, BrickStore
+from brickene.dto.frontend_payload import GraphPayload
+from brickene.model.brick import BrickNode
+from brickene.model.network import BrickGraph
+from brickene.render.rendering import (
+    DEFAULT_IMAGE_SIZE,
+    cap_hanging_ports_with_hydrogen,
+    render_molecule_image,
+    render_molecule_svg_text,
+)
+from brickene.repository.brick_repository import (
+    DEFAULT_BRICK_DB_PATH,
+    DEFAULT_USER_BRICK_DB_PATH,
+    RuntimeBrickStore,
+)
 
-from .network import BrickGraph
-from .node import BrickNode
-DEFAULT_IMAGE_SIZE = 1024
 TOOL_BRICK_TYPE = "TOOL"
 DUPLICATOR_TOOL_ACTION = "duplicate"
 PERIOD_TOOL_KIND = "period"
@@ -26,19 +35,23 @@ PERIOD_TOOL_KIND = "period"
 def load_brick_catalog(
     catalog_path: Path | None = None,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> dict[str, dict[str, Any]]:
     """Load the configured brick catalog.
 
     Args:
         catalog_path: Optional path to an explicit JSON brick catalog.
-        brick_db_path: SQLite database used when no catalog file is supplied.
+        brick_db_path: SQLite database used for system bricks when no catalog
+            file is supplied.
+        user_brick_db_path: SQLite database used for user bricks when no
+            catalog file is supplied.
 
     Returns:
         Catalog keyed by brick id.
     """
 
     if catalog_path is None:
-        return BrickStore(brick_db_path).catalog_entries()
+        return RuntimeBrickStore(brick_db_path, user_brick_db_path).catalog_entries()
 
     return json.loads(Path(catalog_path).read_text(encoding="utf-8"))
 
@@ -47,20 +60,29 @@ def _resolve_catalog(
     catalog_path: Path | None,
     catalog: dict[str, dict[str, Any]] | None,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> dict[str, dict[str, Any]]:
     """Return one catalog payload from either memory or disk."""
 
     if catalog is not None:
         return catalog
 
-    return load_brick_catalog(catalog_path, brick_db_path)
+    return load_brick_catalog(catalog_path, brick_db_path, user_brick_db_path)
 
 
 def resolve_node_definition(
     node_state: dict[str, Any],
     catalog: dict[str, dict[str, Any]],
 ) -> dict[str, Any] | None:
-    """Resolve one frontend node payload to the brick definition used for rendering."""
+    """Resolve one frontend node payload to the brick definition used for rendering.
+
+    Args:
+        node_state: Raw frontend node state dict.
+        catalog: Brick catalog keyed by id.
+
+    Returns:
+        Resolved brick definition dict, or ``None`` when the brick id is unknown.
+    """
 
     node_type_id = _read_node_type_id(node_state)
     definition = catalog.get(node_type_id)
@@ -97,7 +119,16 @@ def expand_tool_nodes(
     edge_states: list[dict[str, Any]],
     catalog: dict[str, dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Expand TOOL nodes into direct graph branches before molecule assembly."""
+    """Expand TOOL nodes into direct graph branches before molecule assembly.
+
+    Args:
+        node_states: Raw frontend node state dicts.
+        edge_states: Raw frontend edge state dicts.
+        catalog: Brick catalog keyed by id.
+
+    Returns:
+        Tuple of expanded node and edge state lists.
+    """
 
     expanded_nodes = deepcopy(node_states)
     expanded_edges = deepcopy(edge_states)
@@ -122,21 +153,50 @@ def expand_tool_nodes(
 
 
 def build_graph_from_state(
-    payload: dict[str, Any],
+    payload: GraphPayload | dict[str, Any],
     catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> BrickGraph:
-    """Reconstruct a ``BrickGraph`` from a frontend graph payload."""
+    """Reconstruct a ``BrickGraph`` from a frontend graph payload.
 
-    node_states = payload.get("nodes")
-    edge_states = payload.get("edges")
-    if not isinstance(node_states, list) or not isinstance(edge_states, list):
-        raise ValueError("State payload must include node and edge lists.")
+    Args:
+        payload: Frontend graph state as a ``GraphPayload`` container or a raw
+            dict. Raw dicts are parsed into a ``GraphPayload`` automatically.
+        catalog_path: Optional path to an explicit JSON brick catalog file.
+        catalog: Pre-loaded catalog dict. Takes precedence over ``catalog_path``
+            and the database when supplied.
+        brick_db_path: SQLite database used for system bricks when no catalog is
+            supplied directly.
+        user_brick_db_path: SQLite database used for user bricks when no catalog
+            is supplied directly.
 
-    catalog = _resolve_catalog(catalog_path, catalog, brick_db_path)
-    node_states, edge_states = expand_tool_nodes(node_states, edge_states, catalog)
-    _validate_period_marker_pairs(node_states, catalog)
+    Returns:
+        Assembled ``BrickGraph`` ready for SMILES export.
+
+    Raises:
+        ValueError: If the payload is structurally invalid or references unknown
+            brick ids.
+    """
+
+    if isinstance(payload, dict):
+        graph_payload = GraphPayload.from_dict(payload)
+    else:
+        graph_payload = payload
+
+    raw = graph_payload.to_raw()
+    node_states: list[dict[str, Any]] = raw["nodes"]
+    edge_states: list[dict[str, Any]] = raw["edges"]
+
+    resolved_catalog = _resolve_catalog(
+        catalog_path,
+        catalog,
+        brick_db_path,
+        user_brick_db_path,
+    )
+    node_states, edge_states = expand_tool_nodes(node_states, edge_states, resolved_catalog)
+    _validate_period_marker_pairs(node_states, resolved_catalog)
     graph = BrickGraph()
     bricks_by_frontend_id: dict[int, BrickNode] = {}
     port_assignments: dict[int, dict[int, int]] = {}
@@ -144,7 +204,7 @@ def build_graph_from_state(
     for node_state in node_states:
         frontend_node_id = int(node_state["id"])
         node_type_id = _read_node_type_id(node_state)
-        resolved_definition = resolve_node_definition(node_state, catalog)
+        resolved_definition = resolve_node_definition(node_state, resolved_catalog)
         if resolved_definition is None:
             raise ValueError(f"Unknown brick id: {node_type_id}")
 
@@ -186,18 +246,32 @@ def build_graph_from_state(
 
 
 def build_molecule_from_state(
-    payload: dict[str, Any],
+    payload: GraphPayload | dict[str, Any],
     catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> Chem.Mol | None:
-    """Build an RDKit molecule from a frontend graph payload."""
+    """Build an RDKit molecule from a frontend graph payload.
+
+    Args:
+        payload: Frontend graph state as a ``GraphPayload`` or raw dict.
+        catalog_path: Optional path to an explicit JSON brick catalog file.
+        catalog: Pre-loaded catalog dict.
+        brick_db_path: SQLite database used for system bricks.
+        user_brick_db_path: SQLite database used for user bricks.
+
+    Returns:
+        Sanitized RDKit molecule with 2D coordinates, or ``None`` for empty
+        graphs.
+    """
 
     graph = build_graph_from_state(
         payload,
         catalog_path=catalog_path,
         catalog=catalog,
         brick_db_path=brick_db_path,
+        user_brick_db_path=user_brick_db_path,
     )
     smiles = graph.to_smiles()
     if not smiles:
@@ -214,7 +288,15 @@ def build_molecule_from_state(
 
 
 def build_molecule_from_definition(definition: dict[str, Any]) -> Chem.Mol | None:
-    """Build an RDKit molecule from one serialized brick definition."""
+    """Build an RDKit molecule from one serialized brick definition.
+
+    Args:
+        definition: JSON-compatible brick definition dict.
+
+    Returns:
+        Sanitized RDKit molecule with 2D coordinates, or ``None`` for empty
+        definitions.
+    """
 
     node = BrickNode.from_dict(definition)
     smiles = node.to_smiles()
@@ -233,18 +315,31 @@ def build_molecule_from_definition(definition: dict[str, Any]) -> Chem.Mol | Non
 
 
 def render_state_smiles(
-    payload: dict[str, Any],
+    payload: GraphPayload | dict[str, Any],
     catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> str:
-    """Render a frontend graph state payload to a SMILES string."""
+    """Render a frontend graph state payload to a SMILES string.
+
+    Args:
+        payload: Frontend graph state as a ``GraphPayload`` or raw dict.
+        catalog_path: Optional path to an explicit JSON brick catalog file.
+        catalog: Pre-loaded catalog dict.
+        brick_db_path: SQLite database used for system bricks.
+        user_brick_db_path: SQLite database used for user bricks.
+
+    Returns:
+        Canonical SMILES string, or an empty string for an empty graph.
+    """
 
     molecule = build_molecule_from_state(
         payload,
         catalog_path=catalog_path,
         catalog=catalog,
         brick_db_path=brick_db_path,
+        user_brick_db_path=user_brick_db_path,
     )
     if molecule is None:
         return ""
@@ -253,19 +348,33 @@ def render_state_smiles(
 
 
 def render_state_image(
-    payload: dict[str, Any],
+    payload: GraphPayload | dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
     catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> Image.Image:
-    """Render a frontend state payload to a cropped PIL image."""
+    """Render a frontend state payload to a cropped PIL image.
+
+    Args:
+        payload: Frontend graph state as a ``GraphPayload`` or raw dict.
+        image_size: Width and height of the render canvas in pixels.
+        catalog_path: Optional path to an explicit JSON brick catalog file.
+        catalog: Pre-loaded catalog dict.
+        brick_db_path: SQLite database used for system bricks.
+        user_brick_db_path: SQLite database used for user bricks.
+
+    Returns:
+        White-padded-trimmed PIL image of the assembled molecule.
+    """
 
     molecule = build_molecule_from_state(
         payload,
         catalog_path=catalog_path,
         catalog=catalog,
         brick_db_path=brick_db_path,
+        user_brick_db_path=user_brick_db_path,
     )
     if molecule is None:
         return Image.new("RGB", (image_size, image_size), (255, 255, 255))
@@ -274,13 +383,26 @@ def render_state_image(
 
 
 def render_state_image_bytes(
-    payload: dict[str, Any],
+    payload: GraphPayload | dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
     catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> bytes:
-    """Render a frontend state payload into PNG bytes."""
+    """Render a frontend state payload into PNG bytes.
+
+    Args:
+        payload: Frontend graph state as a ``GraphPayload`` or raw dict.
+        image_size: Width and height of the render canvas in pixels.
+        catalog_path: Optional path to an explicit JSON brick catalog file.
+        catalog: Pre-loaded catalog dict.
+        brick_db_path: SQLite database used for system bricks.
+        user_brick_db_path: SQLite database used for user bricks.
+
+    Returns:
+        PNG-encoded image bytes of the assembled molecule.
+    """
 
     image = render_state_image(
         payload,
@@ -288,6 +410,7 @@ def render_state_image_bytes(
         catalog_path=catalog_path,
         catalog=catalog,
         brick_db_path=brick_db_path,
+        user_brick_db_path=user_brick_db_path,
     )
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
@@ -298,7 +421,15 @@ def render_brick_definition_image(
     definition: dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
 ) -> Image.Image:
-    """Render one brick definition payload to a cropped PIL image."""
+    """Render one brick definition payload to a cropped PIL image.
+
+    Args:
+        definition: JSON-compatible brick definition dict.
+        image_size: Width and height of the render canvas in pixels.
+
+    Returns:
+        White-padded-trimmed PIL image of the brick molecule.
+    """
 
     molecule = build_molecule_from_definition(definition)
     if molecule is None:
@@ -311,7 +442,15 @@ def render_brick_definition_image_bytes(
     definition: dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
 ) -> bytes:
-    """Render one brick definition payload into PNG bytes."""
+    """Render one brick definition payload into PNG bytes.
+
+    Args:
+        definition: JSON-compatible brick definition dict.
+        image_size: Width and height of the render canvas in pixels.
+
+    Returns:
+        PNG-encoded image bytes.
+    """
 
     image = render_brick_definition_image(definition, image_size=image_size)
     buffer = io.BytesIO()
@@ -319,63 +458,34 @@ def render_brick_definition_image_bytes(
     return buffer.getvalue()
 
 
-def render_molecule_image(molecule: Chem.Mol, image_size: int) -> Image.Image:
-    """Render one molecule to a cropped PIL image."""
+def render_brick_definition_svg(
+    definition: dict[str, Any],
+    image_size: int = DEFAULT_IMAGE_SIZE,
+) -> str:
+    """Render one brick definition payload into an SVG string.
 
-    drawer = rdMolDraw2D.MolDraw2DCairo(image_size, image_size)
-    draw_options = drawer.drawOptions()
-    draw_options.padding = 0.02
-    drawer.DrawMolecule(molecule)
-    drawer.FinishDrawing()
+    Args:
+        definition: JSON-compatible brick definition dict.
+        image_size: Width and height of the SVG canvas in pixels.
 
-    png_bytes = drawer.GetDrawingText()
-    with Image.open(io.BytesIO(png_bytes)) as rendered_image:
-        return trim_white_padding(rendered_image)
+    Returns:
+        SVG markup string.
+    """
 
+    molecule = build_molecule_from_definition(definition)
+    if molecule is None:
+        return (
+            f'<svg xmlns="http://www.w3.org/2000/svg" '
+            f'width="{image_size}" height="{image_size}" '
+            f'viewBox="0 0 {image_size} {image_size}"></svg>'
+        )
 
-def trim_white_padding(image: Image.Image) -> Image.Image:
-    """Crop away uniform white padding around a rendered image."""
-
-    rgb_image = image.convert("RGB")
-    background = Image.new("RGB", rgb_image.size, (255, 255, 255))
-    diff = ImageChops.difference(rgb_image, background)
-    bounds = diff.getbbox()
-
-    if bounds is None:
-        return rgb_image
-
-    return rgb_image.crop(bounds)
+    return render_molecule_svg_text(molecule, image_size=image_size)
 
 
-def cap_hanging_ports_with_hydrogen(molecule: Chem.Mol) -> Chem.Mol:
-    """Replace dangling dummy port atoms with implicit hydrogens."""
-
-    editable_molecule = Chem.RWMol(molecule)
-    dummy_atom_indices: list[int] = []
-
-    for atom in editable_molecule.GetAtoms():
-        if atom.GetAtomicNum() != 0:
-            continue
-
-        neighbors = list(atom.GetNeighbors())
-        if len(neighbors) > 1:
-            raise ValueError(
-                "Dangling ports must connect to at most one neighboring atom."
-            )
-
-        if len(neighbors) == 1:
-            neighbor = neighbors[0]
-            neighbor.SetNumExplicitHs(neighbor.GetNumExplicitHs() + 1)
-            neighbor.SetNoImplicit(True)
-
-        dummy_atom_indices.append(atom.GetIdx())
-
-    for atom_index in sorted(dummy_atom_indices, reverse=True):
-        editable_molecule.RemoveAtom(atom_index)
-
-    capped_molecule = editable_molecule.GetMol()
-    Chem.SanitizeMol(capped_molecule)
-    return capped_molecule
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
 
 
 def _resolve_port_assignments(node_state: dict[str, Any]) -> dict[int, int]:

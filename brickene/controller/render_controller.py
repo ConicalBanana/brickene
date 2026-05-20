@@ -1,4 +1,4 @@
-"""Serve backend molecule renders for the standalone frontend."""
+"""HTTP request handlers and CLI entry point for the render server."""
 
 from __future__ import annotations
 
@@ -12,11 +12,24 @@ from urllib.parse import urlparse
 import typer
 
 from brickene import get_version
-from brickene.brick_store import DEFAULT_BRICK_DB_PATH, BrickStore
-from brickene.core.node import Atom, BrickNode, BrickType, Port
-from brickene.core.rendering import (
-    DEFAULT_IMAGE_SIZE,
+from brickene.dto.frontend_payload import GraphPayload
+from brickene.model.brick import BrickNode
+from brickene.render.rendering import DEFAULT_IMAGE_SIZE
+from brickene.repository.brick_repository import (
+    DEFAULT_BRICK_DB_PATH,
+    DEFAULT_USER_BRICK_DB_PATH,
+    RuntimeBrickStore,
+)
+from brickene.service.brick_service import (
+    build_runtime_catalog,
+    normalize_aliases,
+    normalize_brick_definition,
+    parse_brick_type,
+    serialize_brick_definition,
+)
+from brickene.service.render_service import (
     render_brick_definition_image_bytes,
+    render_brick_definition_svg,
     render_state_image_bytes,
     render_state_smiles,
 )
@@ -25,173 +38,23 @@ app = typer.Typer(help="Run the Brickene RDKit render server.")
 PACKAGE_VERSION = get_version()
 
 
-def serialize_brick_definition(node: BrickNode) -> dict[str, Any]:
-    """Serialize one brick node and annotate its ports with bonded symbols."""
-
-    validate_brick_node(node)
-    payload = node.to_dict()
-    connected_symbol_by_port = get_connected_symbol_by_port(node)
-
-    for site_payload in payload["nodes"]:
-        if site_payload.get("kind") != "port":
-            continue
-
-        site_payload["connected_symbol"] = connected_symbol_by_port.get(
-            int(site_payload["index"])
-        )
-
-    return payload
-
-
-def get_connected_symbol_by_port(node: BrickNode) -> dict[int, str | None]:
-    """Find the directly bonded atom symbol for each port in one brick."""
-
-    connected_symbol_by_port = {port.index: None for port in node.ports}
-    connection_counts = {port.index: 0 for port in node.ports}
-
-    for edge in node.edges:
-        left_site = edge.left
-        right_site = edge.right
-        port_site: Port | None = None
-        atom_site: Atom | None = None
-
-        if isinstance(left_site, Port) and isinstance(right_site, Atom):
-            port_site = left_site
-            atom_site = right_site
-        elif isinstance(left_site, Atom) and isinstance(right_site, Port):
-            port_site = right_site
-            atom_site = left_site
-
-        if port_site is None and atom_site is None:
-            continue
-
-        if port_site is None or atom_site is None:
-            raise ValueError(
-                "Each port must connect to exactly one atom."
-            )
-
-        if edge.bond_type != "SINGLE":
-            raise ValueError("Each port must connect to an atom by a single bond.")
-
-        if connection_counts[port_site.index] != 0:
-            raise ValueError("Each port must connect to exactly one atom.")
-
-        connected_symbol_by_port[port_site.index] = atom_site.symbol
-        connection_counts[port_site.index] += 1
-
-    missing_port_indices = [
-        port_index
-        for port_index, connection_count in connection_counts.items()
-        if connection_count != 1
-    ]
-    if missing_port_indices:
-        raise ValueError("Each port must connect to exactly one atom.")
-
-    return connected_symbol_by_port
-
-
-def validate_brick_node(node: BrickNode) -> None:
-    """Validate the port contract for one brick node."""
-
-    if not node.ports:
-        raise ValueError("Node definitions must include at least one port.")
-
-    get_connected_symbol_by_port(node)
-
-
-def parse_brick_type(value: Any) -> BrickType:
-    """Normalize one request payload value to a supported BrickType."""
-
-    normalized = str(value or BrickType.SKELETON.name).strip().upper()
-
-    try:
-        return BrickType[normalized]
-    except KeyError as exc:
-        raise ValueError(
-            "brick_type must be one of SKELETON, SIDE_CHAIN, SUBSTITUENT, or BRIDGE."
-        ) from exc
-
-
-def normalize_aliases(value: Any) -> list[str]:
-    """Normalize one alias request value to a clean string list."""
-
-    if value is None:
-        return []
-
-    if not isinstance(value, list):
-        raise ValueError("alias must be an array of strings.")
-
-    aliases = []
-    for alias in value:
-        if not isinstance(alias, str):
-            raise ValueError("alias must be an array of strings.")
-
-        normalized = alias.strip()
-        if normalized:
-            aliases.append(normalized)
-
-    return aliases
-
-
-def normalize_brick_definition(payload: dict[str, Any]) -> dict[str, Any]:
-    """Normalize one posted brick definition payload.
-
-    The request may either be the definition object itself or a wrapper with a
-    top-level ``definition`` key.
-    """
-
-    definition_payload = payload.get("definition", payload)
-    if not isinstance(definition_payload, dict):
-        raise ValueError("definition must be a JSON object.")
-
-    normalized_definition = dict(definition_payload)
-    normalized_definition["brick_type"] = parse_brick_type(
-        definition_payload.get("brick_type")
-    ).name
-
-    try:
-        node = BrickNode.from_dict(normalized_definition)
-    except KeyError as exc:
-        raise ValueError(
-            f"Invalid brick definition: missing {exc.args[0]}."
-        ) from exc
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"Invalid brick definition: {exc}") from exc
-
-    if not node.nodes:
-        raise ValueError("definition must include at least one node.")
-
-    return {
-        "name": str(definition_payload.get("name") or "User defined").strip()
-        or "User defined",
-        "alias": normalize_aliases(definition_payload.get("alias")),
-        **serialize_brick_definition(node),
-    }
-
-
-def build_runtime_catalog(
-    brick_store: BrickStore,
-) -> dict[str, dict[str, Any]]:
-    """Return the runtime catalog stored in SQLite."""
-
-    return brick_store.catalog_entries()
-
-
 def create_handler(
     image_size: int,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> type[BaseHTTPRequestHandler]:
     """Create a request handler bound to one render configuration.
 
     Args:
         image_size: Width and height of returned PNG renders.
-        brick_db_path: Path to the SQLite database for system and user bricks.
+        brick_db_path: Path to the SQLite database for system bricks.
+        user_brick_db_path: Path to the SQLite database for user-defined bricks.
 
     Returns:
         Request handler class for the configured render service.
     """
 
-    brick_store = BrickStore(brick_db_path)
+    brick_store = RuntimeBrickStore(brick_db_path, user_brick_db_path)
 
     class RenderRequestHandler(BaseHTTPRequestHandler):
         """Handle HTTP requests for graph image rendering."""
@@ -217,6 +80,7 @@ def create_handler(
                         "status": "ok",
                         "image_size": image_size,
                         "brick_db_path": str(brick_db_path),
+                        "user_brick_db_path": str(user_brick_db_path),
                         "stored_brick_count": brick_store.count_bricks(),
                         "system_brick_count": brick_store.count_system_bricks(),
                     },
@@ -373,11 +237,24 @@ def create_handler(
             if request_path == "/bricks":
                 try:
                     definition = normalize_brick_definition(payload)
-                    stored_definition = brick_store.save_brick(definition)
+                    svg_text = render_brick_definition_svg(
+                        definition,
+                        image_size=image_size,
+                    )
+                    stored_definition = brick_store.save_brick(
+                        definition,
+                        svg_text=svg_text,
+                    )
                 except (TypeError, ValueError) as exc:
                     self._send_json(
                         HTTPStatus.BAD_REQUEST,
                         {"error": str(exc)},
+                    )
+                    return
+                except Exception as exc:  # pragma: no cover
+                    self._send_json(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        {"error": f"Save failed: {exc}"},
                     )
                     return
 
@@ -418,15 +295,24 @@ def create_handler(
             runtime_catalog = build_runtime_catalog(brick_store)
 
             try:
+                graph_payload = GraphPayload.from_dict(payload)
+            except (TypeError, ValueError) as exc:
+                self._send_json(
+                    HTTPStatus.BAD_REQUEST,
+                    {"error": str(exc)},
+                )
+                return
+
+            try:
                 if request_path == "/render":
                     image_bytes = render_state_image_bytes(
-                        payload,
+                        graph_payload,
                         image_size=image_size,
                         catalog=runtime_catalog,
                     )
                 else:
                     smiles = render_state_smiles(
-                        payload,
+                        graph_payload,
                         catalog=runtime_catalog,
                     )
             except (TypeError, ValueError) as exc:
@@ -510,6 +396,7 @@ def serve(
     port: int = 8765,
     image_size: int = DEFAULT_IMAGE_SIZE,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> None:
     """Run the render server.
 
@@ -517,15 +404,17 @@ def serve(
         host: Host interface to bind.
         port: TCP port to bind.
         image_size: Width and height of returned PNG renders.
-        brick_db_path: Path to the SQLite database for system and user bricks.
+        brick_db_path: Path to the SQLite database for system bricks.
+        user_brick_db_path: Path to the SQLite database for user-defined bricks.
     """
 
     server = ThreadingHTTPServer(
         (host, port),
-        create_handler(image_size, brick_db_path),
+        create_handler(image_size, brick_db_path, user_brick_db_path),
     )
     typer.echo(f"Brickene render server listening on http://{host}:{port}")
-    typer.echo(f"Using brick database {brick_db_path.resolve()}")
+    typer.echo(f"Using system brick database {brick_db_path.resolve()}")
+    typer.echo(f"Using user brick database {user_brick_db_path.resolve()}")
     server.serve_forever()
 
 
@@ -539,6 +428,10 @@ def main(
     ),
     brick_db_path: Path = typer.Option(
         DEFAULT_BRICK_DB_PATH,
+        help="Path to the SQLite database for system bricks.",
+    ),
+    user_brick_db_path: Path = typer.Option(
+        DEFAULT_USER_BRICK_DB_PATH,
         help="Path to the SQLite database for user-defined bricks.",
     ),
 ) -> None:
@@ -549,6 +442,7 @@ def main(
         port=port,
         image_size=image_size,
         brick_db_path=brick_db_path,
+        user_brick_db_path=user_brick_db_path,
     )
 
 

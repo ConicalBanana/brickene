@@ -79,7 +79,6 @@
     }
 
     dom.portConfig.innerHTML = ports.map((port, index) => {
-      const defaultSide = String(port.side || (index === 0 ? "left" : "right")).toLowerCase();
       const defaultPortType = String(port.preferred_brick_type || DEFAULT_PORT_TYPE).toUpperCase();
       const connectedSymbol = port.connected_symbol || "?";
 
@@ -89,12 +88,6 @@
             <p class="node-wizard-port-title">Port ${port.index}</p>
             <p class="node-wizard-port-meta">Connected symbol: ${connectedSymbol}</p>
           </div>
-          <label class="node-wizard-port-field">
-            <span class="node-type-label">Side</span>
-            <select class="node-wizard-port-select wizard-port-side">
-              ${renderPortOptions(["left", "right"], defaultSide)}
-            </select>
-          </label>
           <label class="node-wizard-port-field">
             <span class="node-type-label">Preferred type</span>
             <select class="node-wizard-port-select wizard-port-type">
@@ -111,11 +104,9 @@
 
     dom.portConfig.querySelectorAll(".node-wizard-port-row").forEach((row) => {
       const portIndex = Number(row.dataset.portIndex);
-      const sideSelect = row.querySelector(".wizard-port-side");
       const typeSelect = row.querySelector(".wizard-port-type");
 
       overrides.set(portIndex, {
-        side: sideSelect?.value || "right",
         preferredBrickType: typeSelect?.value || DEFAULT_PORT_TYPE,
       });
     });
@@ -161,7 +152,7 @@
         }
 
         const override = portOverrides.get(Number(nextNode.index));
-        nextNode.side = override?.side || nextNode.side || "right";
+        delete nextNode.side;
         nextNode.preferred_brick_type = (
           override?.preferredBrickType || nextNode.preferred_brick_type || DEFAULT_PORT_TYPE
         ).toUpperCase();
@@ -330,7 +321,7 @@
       }
 
       setStatus(
-        `Saved node definition to the database as ${storedDefinition.id}.`,
+        `Saved node definition to the user database as ${storedDefinition.id}.`,
         { success: true },
       );
       return storedDefinition;
@@ -366,7 +357,7 @@
       },
       window.location.origin,
     );
-    setStatus("Node definition sent to the canvas.", { success: true });
+    setStatus("Temporary node definition sent to the canvas without database registration.", { success: true });
   }
 
   function handleStructureChange() {

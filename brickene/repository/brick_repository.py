@@ -7,7 +7,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-DEFAULT_BRICK_DB_PATH = Path(__file__).resolve().parent.parent / "db.sqlite3"
+DEFAULT_BRICK_DB_PATH = Path(__file__).resolve().parent.parent.parent / "db.sqlite3"
+DEFAULT_USER_BRICK_DB_PATH = Path(__file__).resolve().parent.parent.parent / "user.sqlite3"
 
 
 class BrickStore:
@@ -116,7 +117,7 @@ class BrickStore:
         )
 
     def get_brick_svg_text(self, brick_id: str) -> str | None:
-        """Return one stored SVG asset for a built-in brick id."""
+        """Return one stored SVG asset for a system or user brick id."""
 
         with self._connect() as connection:
             row = connection.execute(
@@ -129,7 +130,22 @@ class BrickStore:
             ).fetchone()
 
         if row is None or row["svg_text"] is None:
-            return None
+            row_id = self._parse_user_brick_id(brick_id)
+            if row_id is None:
+                return None
+
+            with self._connect() as connection:
+                row = connection.execute(
+                    """
+                    SELECT svg_text
+                    FROM user_bricks
+                    WHERE id = ?
+                    """,
+                    (row_id,),
+                ).fetchone()
+
+            if row is None or row["svg_text"] is None:
+                return None
 
         return str(row["svg_text"])
 
@@ -151,29 +167,81 @@ class BrickStore:
 
         return json.loads(row["layout_json"])
 
-    def save_brick(self, definition: dict[str, Any]) -> dict[str, Any]:
+    def save_brick(
+        self,
+        definition: dict[str, Any],
+        *,
+        svg_text: str | None = None,
+    ) -> dict[str, Any]:
         """Insert one normalized brick definition and return the stored record."""
+
+        return self._upsert_user_brick(definition, svg_text=svg_text)
+
+    def upsert_user_brick(
+        self,
+        definition: dict[str, Any],
+        *,
+        public_id: str,
+        svg_text: str | None = None,
+    ) -> dict[str, Any]:
+        """Insert or replace one user brick while preserving its public id."""
+
+        return self._upsert_user_brick(
+            definition,
+            public_id=public_id,
+            svg_text=svg_text,
+        )
+
+    def _upsert_user_brick(
+        self,
+        definition: dict[str, Any],
+        public_id: str | None = None,
+        svg_text: str | None = None,
+    ) -> dict[str, Any]:
+        """Insert or update one normalized user brick definition."""
 
         serialized_definition = json.dumps(
             self._strip_storage_metadata(definition),
             sort_keys=True,
         )
 
+        row_id: int | None = None
+        if public_id is not None:
+            row_id = self._parse_user_brick_id(public_id)
+            if row_id is None:
+                raise ValueError(f"Invalid user brick id: {public_id}")
+
         with self._connect() as connection:
-            cursor = connection.execute(
-                """
-                INSERT INTO user_bricks (definition_json)
-                VALUES (?)
-                """,
-                (serialized_definition,),
-            )
+            if row_id is None:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO user_bricks (definition_json, svg_text)
+                    VALUES (?, ?)
+                    """,
+                    (serialized_definition, svg_text),
+                )
+                persisted_row_id = int(cursor.lastrowid)
+            else:
+                connection.execute(
+                    """
+                    INSERT INTO user_bricks (id, definition_json, svg_text)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        definition_json = excluded.definition_json,
+                        svg_text = excluded.svg_text,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (row_id, serialized_definition, svg_text),
+                )
+                persisted_row_id = row_id
+
             row = connection.execute(
                 """
                 SELECT id, definition_json, created_at, updated_at
                 FROM user_bricks
                 WHERE id = ?
                 """,
-                (int(cursor.lastrowid),),
+                (persisted_row_id,),
             ).fetchone()
 
         if row is None:
@@ -363,11 +431,13 @@ class BrickStore:
                 CREATE TABLE IF NOT EXISTS user_bricks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     definition_json TEXT NOT NULL,
+                    svg_text TEXT,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """
             )
+            self._ensure_column(connection, "user_bricks", "svg_text", "TEXT")
 
     @staticmethod
     def _format_user_brick_id(row_id: int) -> str:
@@ -437,3 +507,137 @@ class BrickStore:
             f"DELETE FROM system_bricks WHERE id NOT IN ({placeholders})",
             tuple(active_ids),
         )
+
+    @staticmethod
+    def _ensure_column(
+        connection: sqlite3.Connection,
+        table_name: str,
+        column_name: str,
+        column_sql: str,
+    ) -> None:
+        """Add one missing SQLite column in place for existing databases."""
+
+        column_names = {
+            str(row["name"])
+            for row in connection.execute(
+                f"PRAGMA table_info({table_name})"
+            ).fetchall()
+        }
+        if column_name in column_names:
+            return
+
+        connection.execute(
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}"
+        )
+
+
+class RuntimeBrickStore:
+    """Expose one merged runtime view across system and user databases."""
+
+    def __init__(
+        self,
+        system_db_path: Path = DEFAULT_BRICK_DB_PATH,
+        user_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
+    ) -> None:
+        """Initialize the system and user stores backing runtime queries.
+
+        Args:
+            system_db_path: SQLite database containing built-in brick rows.
+            user_db_path: SQLite database containing user-defined brick rows.
+        """
+
+        self.system_db_path = Path(system_db_path)
+        self.user_db_path = Path(user_db_path)
+        self._system_store = BrickStore(self.system_db_path)
+        self._user_store = BrickStore(self.user_db_path)
+        self._migrate_legacy_user_bricks()
+
+    def list_bricks(self) -> list[dict[str, Any]]:
+        """Return all runtime brick definitions in frontend order."""
+
+        return self.list_system_bricks() + self.list_user_bricks()
+
+    def list_system_bricks(self) -> list[dict[str, Any]]:
+        """Return all built-in brick definitions in catalog order."""
+
+        return self._system_store.list_system_bricks()
+
+    def list_user_bricks(self) -> list[dict[str, Any]]:
+        """Return all stored user-defined brick definitions in creation order."""
+
+        return self._user_store.list_user_bricks()
+
+    def get_brick(self, brick_id: str) -> dict[str, Any] | None:
+        """Return one brick definition from the correct backing database."""
+
+        normalized_brick_id = str(brick_id).strip()
+        if normalized_brick_id.startswith("user-"):
+            return self._user_store.get_brick(normalized_brick_id)
+
+        return self._system_store.get_brick(normalized_brick_id)
+
+    def get_brick_svg_text(self, brick_id: str) -> str | None:
+        """Return one stored SVG asset for a system or user brick id."""
+
+        normalized_brick_id = str(brick_id).strip()
+        if normalized_brick_id.startswith("user-"):
+            return self._user_store.get_brick_svg_text(normalized_brick_id)
+
+        return self._system_store.get_brick_svg_text(normalized_brick_id)
+
+    def get_brick_layout(self, brick_id: str) -> dict[str, Any] | None:
+        """Return one stored layout JSON payload for a built-in brick id."""
+
+        return self._system_store.get_brick_layout(brick_id)
+
+    def save_brick(
+        self,
+        definition: dict[str, Any],
+        *,
+        svg_text: str | None = None,
+    ) -> dict[str, Any]:
+        """Persist one user-defined brick in the user database."""
+
+        return self._user_store.save_brick(definition, svg_text=svg_text)
+
+    def count_bricks(self) -> int:
+        """Return the number of stored user-defined bricks."""
+
+        return self._user_store.count_bricks()
+
+    def count_system_bricks(self) -> int:
+        """Return the number of stored built-in bricks."""
+
+        return self._system_store.count_system_bricks()
+
+    def catalog_entries(self) -> dict[str, dict[str, Any]]:
+        """Return all runtime brick definitions keyed by public brick id."""
+
+        catalog = {
+            str(definition["id"]): definition
+            for definition in self._system_store.list_system_bricks_without_metadata()
+        }
+        catalog.update(
+            {
+                str(definition["id"]): definition
+                for definition in self._user_store.list_user_bricks_without_metadata()
+            }
+        )
+        return catalog
+
+    def _migrate_legacy_user_bricks(self) -> None:
+        """Copy any user bricks still stored in the system DB into user.sqlite3."""
+
+        for definition in self._system_store.list_user_bricks():
+            public_id = str(definition.get("id") or "").strip()
+            if not public_id.startswith("user-"):
+                continue
+
+            if self._user_store.get_brick(public_id) is not None:
+                continue
+
+            self._user_store.upsert_user_brick(
+                definition,
+                public_id=public_id,
+                svg_text=self._system_store.get_brick_svg_text(public_id),
+            )

@@ -5,9 +5,9 @@ from pathlib import Path
 
 from rdkit import Chem
 
-from brickene.core.network import BrickGraph
-from brickene.core.node import BrickNode, BrickType
-from brickene.core.rendering import render_state_smiles
+from brickene.model.brick import BrickNode, BrickType
+from brickene.model.network import BrickGraph
+from brickene.service.render_service import render_state_smiles
 
 
 def canonical_smiles(smiles: str) -> str:

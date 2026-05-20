@@ -17,8 +17,8 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Geometry import Point2D, Point3D
 
-from brickene.brick_store import DEFAULT_BRICK_DB_PATH, BrickStore
-from brickene.core.node import Atom, BrickNode, BrickType, Edge, Port, Site
+from brickene.model.brick import Atom, BrickNode, BrickType, Edge, Port, Site
+from brickene.repository.brick_repository import DEFAULT_BRICK_DB_PATH, BrickStore
 
 RAW_TYPE_TO_BRICK_TYPE: dict[str, BrickType] = {
     "bridge": BrickType.BRIDGE,

@@ -1586,7 +1586,7 @@
       if (payload.definition) {
         registerBrickDefinition(payload.definition);
         renderNodes();
-        frontend.setCanvasMessage(`Stored brick ${payload.definition.id} is ready to use.`);
+        frontend.setCanvasMessage(`Stored user brick ${payload.definition.id} is ready to use.`);
       }
       return;
     }
@@ -1602,7 +1602,7 @@
         return;
       }
 
-      frontend.setCanvasMessage(`Node ${result.node.id} created from the node wizard.`);
+      frontend.setCanvasMessage(`Temporary user-defined node ${result.node.id} created from the node wizard.`);
     })();
   }
 

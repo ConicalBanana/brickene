@@ -1,6 +1,6 @@
 #!/bin/bash
 # Frontend start
-python -m brickene.render_server &
+python -m brickene &
 # Backend start
 http-server brickene/frontend/ &
 # Recycle

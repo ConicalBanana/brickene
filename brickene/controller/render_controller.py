@@ -1,20 +1,20 @@
-"""HTTP request handlers and CLI entry point for the render server."""
+"""HTTP controller layer for the Brickene render server."""
 
 from __future__ import annotations
 
 import json
-from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 import typer
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, Response
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from brickene import get_version
 from brickene.dto.frontend_payload import GraphPayload
 from brickene.model.brick import BrickNode
-from brickene.service.rendering import DEFAULT_IMAGE_SIZE
 from brickene.repository.brick_repository import (
     DEFAULT_BRICK_DB_PATH,
     DEFAULT_USER_BRICK_DB_PATH,
@@ -28,367 +28,271 @@ from brickene.service.brick_service import (
     serialize_brick_definition,
 )
 from brickene.service.render_service import (
-    render_brick_definition_image_bytes,
     render_brick_definition_svg,
-    render_state_image_bytes,
     render_state_smiles,
+    render_state_svg,
 )
+from brickene.service.rendering import DEFAULT_IMAGE_SIZE
 
 app = typer.Typer(help="Run the Brickene RDKit render server.")
 PACKAGE_VERSION = get_version()
 
+_CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+}
 
-def create_handler(
-    image_size: int,
+
+def _error(message: str, status: int = 400) -> JSONResponse:
+    """Return a standardized JSON error response."""
+
+    return JSONResponse({"error": message}, status_code=status)
+
+
+async def _read_json_body(request: Request) -> dict[str, Any] | JSONResponse:
+    """Parse and validate that the request body is a JSON object."""
+
+    try:
+        body = await request.body()
+        payload = json.loads(body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+        return _error("Request body must be valid JSON.")
+
+    if not isinstance(payload, dict):
+        return _error("Request body must decode to a JSON object.")
+
+    return payload
+
+
+def create_app(
+    image_size: int = DEFAULT_IMAGE_SIZE,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
     user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
-) -> type[BaseHTTPRequestHandler]:
-    """Create a request handler bound to one render configuration.
+) -> FastAPI:
+    """Create a FastAPI application for the Brickene render server.
 
     Args:
-        image_size: Width and height of returned PNG renders.
+        image_size: Width and height of rendered SVG images in pixels.
         brick_db_path: Path to the SQLite database for system bricks.
         user_brick_db_path: Path to the SQLite database for user-defined bricks.
 
     Returns:
-        Request handler class for the configured render service.
+        Configured FastAPI application instance.
     """
 
     brick_store = RuntimeBrickStore(brick_db_path, user_brick_db_path)
+    server = FastAPI(title="Brickene Render Server", version=PACKAGE_VERSION)
 
-    class RenderRequestHandler(BaseHTTPRequestHandler):
-        """Handle HTTP requests for graph image rendering."""
+    # -----------------------------------------------------------------------
+    # CORS — always add headers; handle OPTIONS preflight directly
+    # -----------------------------------------------------------------------
 
-        server_version = f"BrickeneRenderServer/{PACKAGE_VERSION}"
+    @server.middleware("http")
+    async def cors_middleware(request: Request, call_next: Any) -> Response:
+        if request.method == "OPTIONS":
+            return Response(status_code=204, headers=_CORS_HEADERS)
+        response = await call_next(request)
+        for key, value in _CORS_HEADERS.items():
+            response.headers[key] = value
+        return response
 
-        def do_OPTIONS(self) -> None:
-            """Respond to CORS preflight requests."""
+    @server.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(
+        request: Request,
+        exc: StarletteHTTPException,
+    ) -> JSONResponse:
+        if exc.status_code == 404:
+            return _error("Not found.", 404)
+        return _error(str(exc.detail), exc.status_code)
 
-            self.send_response(HTTPStatus.NO_CONTENT)
-            self._send_cors_headers()
-            self.end_headers()
+    # -----------------------------------------------------------------------
+    # GET endpoints
+    # -----------------------------------------------------------------------
 
-        def do_GET(self) -> None:
-            """Serve a basic health endpoint."""
+    @server.get("/health")
+    def health() -> dict[str, Any]:
+        """Report server status and bound configuration."""
 
-            request_path = urlparse(self.path).path.rstrip("/") or "/"
+        return {
+            "status": "ok",
+            "image_size": image_size,
+            "brick_db_path": str(brick_db_path),
+            "user_brick_db_path": str(user_brick_db_path),
+            "stored_brick_count": brick_store.count_bricks(),
+            "system_brick_count": brick_store.count_system_bricks(),
+        }
 
-            if request_path == "/health":
-                self._send_json(
-                    HTTPStatus.OK,
-                    {
-                        "status": "ok",
-                        "image_size": image_size,
-                        "brick_db_path": str(brick_db_path),
-                        "user_brick_db_path": str(user_brick_db_path),
-                        "stored_brick_count": brick_store.count_bricks(),
-                        "system_brick_count": brick_store.count_system_bricks(),
-                    },
-                )
-                return
+    @server.get("/version")
+    def version() -> dict[str, str]:
+        """Return the installed package version."""
 
-            if request_path == "/version":
-                self._send_json(
-                    HTTPStatus.OK,
-                    {"version": PACKAGE_VERSION},
-                )
-                return
+        return {"version": PACKAGE_VERSION}
 
-            if request_path == "/bricks":
-                self._send_json(
-                    HTTPStatus.OK,
-                    {"bricks": brick_store.list_bricks()},
-                )
-                return
+    @server.get("/bricks")
+    def list_bricks() -> dict[str, Any]:
+        """List all available brick definitions."""
 
-            if request_path.startswith("/bricks/"):
-                brick_path = request_path.removeprefix("/bricks/")
+        return {"bricks": brick_store.list_bricks()}
 
-                if brick_path.endswith("/image.svg"):
-                    brick_id = brick_path.removesuffix("/image.svg")
-                    svg_text = brick_store.get_brick_svg_text(brick_id)
-                    if svg_text is None:
-                        self._send_json(
-                            HTTPStatus.NOT_FOUND,
-                            {
-                                "error": (
-                                    f"No stored SVG asset for brick id: {brick_id}."
-                                )
-                            },
-                        )
-                        return
+    @server.get("/bricks/{brick_id}/image")
+    def get_brick_image(brick_id: str) -> Response:
+        """Return the stored SVG image for one brick."""
 
-                    self._send_text(
-                        HTTPStatus.OK,
-                        svg_text,
-                        "image/svg+xml",
-                    )
-                    return
+        svg_text = brick_store.get_brick_svg_text(brick_id)
+        if svg_text is None:
+            return _error(f"No stored SVG asset for brick id: {brick_id}.", 404)
+        return Response(
+            content=svg_text,
+            media_type="image/svg+xml; charset=utf-8",
+        )
 
-                if brick_path.endswith("/layout.json"):
-                    brick_id = brick_path.removesuffix("/layout.json")
-                    layout_payload = brick_store.get_brick_layout(brick_id)
-                    if layout_payload is None:
-                        self._send_json(
-                            HTTPStatus.NOT_FOUND,
-                            {
-                                "error": (
-                                    f"No stored layout asset for brick id: {brick_id}."
-                                )
-                            },
-                        )
-                        return
+    @server.get("/bricks/{brick_id}/layout")
+    def get_brick_layout(brick_id: str) -> Any:
+        """Return the stored layout JSON for one brick."""
 
-                    self._send_json(
-                        HTTPStatus.OK,
-                        layout_payload,
-                    )
-                    return
-
-                brick_id = brick_path
-                definition = brick_store.get_brick(brick_id)
-                if definition is None:
-                    self._send_json(
-                        HTTPStatus.NOT_FOUND,
-                        {"error": f"Unknown brick id: {brick_id}."},
-                    )
-                    return
-
-                self._send_json(
-                    HTTPStatus.OK,
-                    {"definition": definition},
-                )
-                return
-
-            self._send_json(
-                HTTPStatus.NOT_FOUND,
-                {"error": "Not found."},
+        layout = brick_store.get_brick_layout(brick_id)
+        if layout is None:
+            return _error(
+                f"No stored layout asset for brick id: {brick_id}.", 404
             )
-            return
+        return layout
 
-        def do_POST(self) -> None:
-            """Render a posted graph payload into backend representations.
+    @server.get("/bricks/{brick_id}")
+    def get_brick(brick_id: str) -> Any:
+        """Return the definition for one brick by id."""
 
-            The payload may include optional edge bond type metadata via
-            ``bondType`` or ``bond_type`` on individual edges.
-            """
+        definition = brick_store.get_brick(brick_id)
+        if definition is None:
+            return _error(f"Unknown brick id: {brick_id}.", 404)
+        return {"definition": definition}
 
-            request_path = urlparse(self.path).path.rstrip("/") or "/"
-            if request_path not in {
-                "/render",
-                "/smiles",
-                "/brick-config",
-                "/bricks",
-                "/brick-render",
-            }:
-                self._send_json(
-                    HTTPStatus.NOT_FOUND,
-                    {"error": "Not found."},
-                )
-                return
+    # -----------------------------------------------------------------------
+    # POST endpoints — specific paths before parameterised ones
+    # -----------------------------------------------------------------------
 
-            try:
-                content_length = int(self.headers.get("Content-Length", "0"))
-                request_body = self.rfile.read(content_length)
-                payload = json.loads(request_body.decode("utf-8"))
-            except json.JSONDecodeError:
-                self._send_json(
-                    HTTPStatus.BAD_REQUEST,
-                    {"error": "Request body must be valid JSON."},
-                )
-                return
+    @server.post("/bricks/preview")
+    async def preview_brick(request: Request) -> Any:
+        """Parse a SMILES string into a brick definition preview."""
 
-            if not isinstance(payload, dict):
-                self._send_json(
-                    HTTPStatus.BAD_REQUEST,
-                    {"error": "Request body must decode to a JSON object."},
-                )
-                return
+        payload = await _read_json_body(request)
+        if isinstance(payload, JSONResponse):
+            return payload
 
-            if request_path == "/brick-config":
-                try:
-                    smiles = str(payload.get("smiles") or "").strip()
-                    if not smiles:
-                        raise ValueError("smiles must be a non-empty string.")
-
-                    node = BrickNode.from_smiles(
-                        smiles,
-                        brick_type=parse_brick_type(payload.get("brick_type")),
-                    )
-                    definition = {
-                        "name": str(payload.get("name") or "User defined").strip()
-                        or "User defined",
-                        "alias": normalize_aliases(payload.get("alias")),
-                        **serialize_brick_definition(node),
-                    }
-                except (TypeError, ValueError) as exc:
-                    self._send_json(
-                        HTTPStatus.BAD_REQUEST,
-                        {"error": str(exc)},
-                    )
-                    return
-
-                self._send_json(
-                    HTTPStatus.OK,
-                    {"definition": definition},
-                )
-                return
-
-            if request_path == "/bricks":
-                try:
-                    definition = normalize_brick_definition(payload)
-                    svg_text = render_brick_definition_svg(
-                        definition,
-                        image_size=image_size,
-                    )
-                    stored_definition = brick_store.save_brick(
-                        definition,
-                        svg_text=svg_text,
-                    )
-                except (TypeError, ValueError) as exc:
-                    self._send_json(
-                        HTTPStatus.BAD_REQUEST,
-                        {"error": str(exc)},
-                    )
-                    return
-                except Exception as exc:  # pragma: no cover
-                    self._send_json(
-                        HTTPStatus.INTERNAL_SERVER_ERROR,
-                        {"error": f"Save failed: {exc}"},
-                    )
-                    return
-
-                self._send_json(
-                    HTTPStatus.CREATED,
-                    {"definition": stored_definition},
-                )
-                return
-
-            if request_path == "/brick-render":
-                try:
-                    definition = normalize_brick_definition(payload)
-                    image_bytes = render_brick_definition_image_bytes(
-                        definition,
-                        image_size=image_size,
-                    )
-                except (TypeError, ValueError) as exc:
-                    self._send_json(
-                        HTTPStatus.BAD_REQUEST,
-                        {"error": str(exc)},
-                    )
-                    return
-                except Exception as exc:  # pragma: no cover
-                    self._send_json(
-                        HTTPStatus.INTERNAL_SERVER_ERROR,
-                        {"error": f"Render failed: {exc}"},
-                    )
-                    return
-
-                self.send_response(HTTPStatus.OK)
-                self._send_cors_headers()
-                self.send_header("Content-Type", "image/png")
-                self.send_header("Content-Length", str(len(image_bytes)))
-                self.end_headers()
-                self.wfile.write(image_bytes)
-                return
-
-            runtime_catalog = build_runtime_catalog(brick_store)
-
-            try:
-                graph_payload = GraphPayload.from_dict(payload)
-            except (TypeError, ValueError) as exc:
-                self._send_json(
-                    HTTPStatus.BAD_REQUEST,
-                    {"error": str(exc)},
-                )
-                return
-
-            try:
-                if request_path == "/render":
-                    image_bytes = render_state_image_bytes(
-                        graph_payload,
-                        image_size=image_size,
-                        catalog=runtime_catalog,
-                    )
-                else:
-                    smiles = render_state_smiles(
-                        graph_payload,
-                        catalog=runtime_catalog,
-                    )
-            except (TypeError, ValueError) as exc:
-                self._send_json(
-                    HTTPStatus.BAD_REQUEST,
-                    {"error": str(exc)},
-                )
-                return
-            except Exception as exc:  # pragma: no cover
-                self._send_json(
-                    HTTPStatus.INTERNAL_SERVER_ERROR,
-                    {"error": f"Render failed: {exc}"},
-                )
-                return
-
-            if request_path == "/smiles":
-                self._send_json(
-                    HTTPStatus.OK,
-                    {"smiles": smiles},
-                )
-                return
-
-            self.send_response(HTTPStatus.OK)
-            self._send_cors_headers()
-            self.send_header("Content-Type", "image/png")
-            self.send_header("Content-Length", str(len(image_bytes)))
-            self.end_headers()
-            self.wfile.write(image_bytes)
-
-        def log_message(self, format: str, *args: Any) -> None:
-            """Write concise request logs to stdout."""
-
-            typer.echo(
-                "%s - - [%s] %s"
-                % (
-                    self.address_string(),
-                    self.log_date_time_string(),
-                    format % args,
-                )
+        try:
+            smiles = str(payload.get("smiles") or "").strip()
+            if not smiles:
+                raise ValueError("smiles must be a non-empty string.")
+            node = BrickNode.from_smiles(
+                smiles,
+                brick_type=parse_brick_type(payload.get("brick_type")),
             )
+            definition = {
+                "name": (
+                    str(payload.get("name") or "User defined").strip()
+                    or "User defined"
+                ),
+                "alias": normalize_aliases(payload.get("alias")),
+                **serialize_brick_definition(node),
+            }
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
 
-        def _send_cors_headers(self) -> None:
-            """Write the standard CORS headers for frontend access."""
+        return {"definition": definition}
 
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+    @server.post("/bricks/render")
+    async def render_brick(request: Request) -> Any:
+        """Render a brick definition payload to an SVG image."""
 
-        def _send_json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
-            """Write a JSON response with CORS headers."""
+        payload = await _read_json_body(request)
+        if isinstance(payload, JSONResponse):
+            return payload
 
-            response = json.dumps(payload).encode("utf-8")
-            self.send_response(status)
-            self._send_cors_headers()
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(response)))
-            self.end_headers()
-            self.wfile.write(response)
+        try:
+            definition = normalize_brick_definition(payload)
+            svg_text = render_brick_definition_svg(
+                definition, image_size=image_size
+            )
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
 
-        def _send_text(
-            self,
-            status: HTTPStatus,
-            payload: str,
-            content_type: str,
-        ) -> None:
-            """Write a UTF-8 text response with CORS headers."""
+        return Response(
+            content=svg_text, media_type="image/svg+xml; charset=utf-8"
+        )
 
-            response = payload.encode("utf-8")
-            self.send_response(status)
-            self._send_cors_headers()
-            self.send_header("Content-Type", f"{content_type}; charset=utf-8")
-            self.send_header("Content-Length", str(len(response)))
-            self.end_headers()
-            self.wfile.write(response)
+    @server.post("/bricks", status_code=201)
+    async def save_brick(request: Request) -> Any:
+        """Save a user-defined brick and return its stored definition."""
 
-    return RenderRequestHandler
+        payload = await _read_json_body(request)
+        if isinstance(payload, JSONResponse):
+            return payload
+
+        try:
+            definition = normalize_brick_definition(payload)
+            svg_text = render_brick_definition_svg(
+                definition, image_size=image_size
+            )
+            stored_definition = brick_store.save_brick(
+                definition, svg_text=svg_text
+            )
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
+        except Exception as exc:  # pragma: no cover
+            return _error(f"Save failed: {exc}", 500)
+
+        return JSONResponse({"definition": stored_definition}, status_code=201)
+
+    @server.post("/graph/render")
+    async def render_graph(request: Request) -> Any:
+        """Render a frontend graph state to an SVG image."""
+
+        payload = await _read_json_body(request)
+        if isinstance(payload, JSONResponse):
+            return payload
+
+        runtime_catalog = build_runtime_catalog(brick_store)
+
+        try:
+            graph_payload = GraphPayload.from_dict(payload)
+            svg_text = render_state_svg(
+                graph_payload,
+                image_size=image_size,
+                catalog=runtime_catalog,
+            )
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
+        except Exception as exc:  # pragma: no cover
+            return _error(f"Render failed: {exc}", 500)
+
+        return Response(
+            content=svg_text, media_type="image/svg+xml; charset=utf-8"
+        )
+
+    @server.post("/graph/smiles")
+    async def graph_smiles(request: Request) -> Any:
+        """Convert a frontend graph state to a SMILES string."""
+
+        payload = await _read_json_body(request)
+        if isinstance(payload, JSONResponse):
+            return payload
+
+        runtime_catalog = build_runtime_catalog(brick_store)
+
+        try:
+            graph_payload = GraphPayload.from_dict(payload)
+            smiles = render_state_smiles(
+                graph_payload,
+                catalog=runtime_catalog,
+            )
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
+        except Exception as exc:  # pragma: no cover
+            return _error(f"Render failed: {exc}", 500)
+
+        return {"smiles": smiles}
+
+    return server
 
 
 def serve(
@@ -398,24 +302,21 @@ def serve(
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
     user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
 ) -> None:
-    """Run the render server.
+    """Run the render server with uvicorn.
 
     Args:
         host: Host interface to bind.
         port: TCP port to bind.
-        image_size: Width and height of returned PNG renders.
+        image_size: Width and height of rendered SVG images in pixels.
         brick_db_path: Path to the SQLite database for system bricks.
         user_brick_db_path: Path to the SQLite database for user-defined bricks.
     """
 
-    server = ThreadingHTTPServer(
-        (host, port),
-        create_handler(image_size, brick_db_path, user_brick_db_path),
-    )
+    fastapi_app = create_app(image_size, brick_db_path, user_brick_db_path)
     typer.echo(f"Brickene render server listening on http://{host}:{port}")
     typer.echo(f"Using system brick database {brick_db_path.resolve()}")
     typer.echo(f"Using user brick database {user_brick_db_path.resolve()}")
-    server.serve_forever()
+    uvicorn.run(fastapi_app, host=host, port=port, log_level="warning")
 
 
 @app.command()
@@ -424,7 +325,7 @@ def main(
     port: int = typer.Option(8765, help="TCP port to bind."),
     image_size: int = typer.Option(
         DEFAULT_IMAGE_SIZE,
-        help="Width and height of the rendered PNG.",
+        help="Width and height of the rendered SVG.",
     ),
     brick_db_path: Path = typer.Option(
         DEFAULT_BRICK_DB_PATH,
@@ -444,7 +345,3 @@ def main(
         brick_db_path=brick_db_path,
         user_brick_db_path=user_brick_db_path,
     )
-
-
-if __name__ == "__main__":
-    app()

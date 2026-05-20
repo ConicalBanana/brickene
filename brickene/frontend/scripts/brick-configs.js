@@ -2,11 +2,11 @@
   const frontend = window.BrickeneFrontend = window.BrickeneFrontend || {};
   const brickApiUrl = frontend.config?.brickApiUrl || (() => {
     const runtimeUrl = new URL(window.location.href);
-    const renderApiUrl = runtimeUrl.searchParams.get("renderApiUrl") || "http://127.0.0.1:8765/render";
+    const renderApiUrl = runtimeUrl.searchParams.get("renderApiUrl") || "http://127.0.0.1:8765/graph/render";
 
     return runtimeUrl.searchParams.get("brickApiUrl")
-      || (/\/render\/?$/.test(renderApiUrl)
-        ? renderApiUrl.replace(/\/render\/?$/, "/bricks")
+      || (/\/graph\/render\/?$/.test(renderApiUrl)
+        ? renderApiUrl.replace(/\/graph\/render\/?$/, "/bricks")
         : "http://127.0.0.1:8765/bricks");
   })();
 

@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import json
-import threading
-from http.client import HTTPConnection
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +11,7 @@ from PIL import Image
 from rdkit import Chem
 
 from brickene import get_version
-from brickene.controller.render_controller import create_handler
+from brickene.controller.render_controller import create_app
 from brickene.repository.brick_repository import BrickStore, RuntimeBrickStore
 from brickene.service.render_service import (
     build_graph_from_state,
@@ -25,6 +22,11 @@ from brickene.service.render_service import (
     render_state_image_bytes,
     render_state_smiles,
 )
+
+try:
+    from fastapi.testclient import TestClient
+except ImportError:
+    from starlette.testclient import TestClient
 
 
 def build_simple_payload() -> dict[str, Any]:
@@ -253,8 +255,7 @@ def build_user_defined_definition() -> dict[str, Any]:
 
 
 def perform_request(
-    host: str,
-    port: int,
+    client: TestClient,
     method: str,
     path: str,
     body: str | bytes | None = None,
@@ -262,18 +263,15 @@ def perform_request(
 ) -> tuple[int, dict[str, str], bytes]:
     """Execute one HTTP request against the in-process render server."""
 
-    connection = HTTPConnection(host, port, timeout=5)
-    try:
-        connection.request(method, path, body=body, headers=headers or {})
-        response = connection.getresponse()
-        payload = response.read()
-        response_headers = {
-            key.lower(): value
-            for key, value in response.getheaders()
-        }
-        return response.status, response_headers, payload
-    finally:
-        connection.close()
+    content = body.encode("utf-8") if isinstance(body, str) else body
+    response = client.request(
+        method, path, content=content, headers=headers or {}
+    )
+    return (
+        response.status_code,
+        {k.lower(): v for k, v in response.headers.items()},
+        response.content,
+    )
 
 
 @pytest.fixture()
@@ -294,8 +292,8 @@ def catalog_path(tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
-def render_server_address(catalog_path: Path) -> tuple[str, int, Path, Path]:
-    """Start one temporary render server and yield its listening address."""
+def render_server_address(catalog_path: Path) -> tuple[TestClient, Path, Path]:
+    """Yield a TestClient bound to one isolated server configuration."""
 
     brick_db_path = catalog_path.parent / "brick-store.sqlite3"
     user_brick_db_path = catalog_path.parent / "user.sqlite3"
@@ -311,28 +309,13 @@ def render_server_address(catalog_path: Path) -> tuple[str, int, Path, Path]:
             source_store.get_brick_layout(brick_id),
         )
 
-    server = ThreadingHTTPServer(
-        ("127.0.0.1", 0),
-        create_handler(
-            image_size=256,
-            brick_db_path=brick_db_path,
-            user_brick_db_path=user_brick_db_path,
-        ),
+    fastapi_app = create_app(
+        image_size=256,
+        brick_db_path=brick_db_path,
+        user_brick_db_path=user_brick_db_path,
     )
-    worker = threading.Thread(target=server.serve_forever, daemon=True)
-    worker.start()
-
-    try:
-        yield (
-            server.server_address[0],
-            server.server_address[1],
-            brick_db_path,
-            user_brick_db_path,
-        )
-    finally:
-        server.shutdown()
-        server.server_close()
-        worker.join(timeout=5)
+    with TestClient(fastapi_app) as client:
+        yield (client, brick_db_path, user_brick_db_path)
 
 
 def test_load_brick_catalog_reads_tool_definition(catalog_path: Path) -> None:
@@ -492,13 +475,12 @@ def test_render_state_image_and_bytes_return_png_output(catalog_path: Path) -> N
 
 
 def test_render_server_health_endpoint_reports_configuration(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The health endpoint should report the bound backend configuration."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
         "/health",
     )
@@ -515,13 +497,12 @@ def test_render_server_health_endpoint_reports_configuration(
 
 
 def test_render_server_version_endpoint_returns_package_version(
-    render_server_address: tuple[str, int],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The version endpoint should return the installed package version."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
         "/version",
     )
@@ -534,13 +515,12 @@ def test_render_server_version_endpoint_returns_package_version(
 
 
 def test_render_server_bricks_endpoint_lists_seeded_system_definitions(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The bricks endpoint should expose the seeded system definitions."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
         "/bricks",
     )
@@ -559,21 +539,19 @@ def test_render_server_bricks_endpoint_lists_seeded_system_definitions(
 
 
 def test_render_server_system_brick_asset_endpoints_return_stored_payloads(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """Built-in SVG and layout JSON should be served from SQLite."""
 
     svg_status, svg_headers, svg_payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
-        "/bricks/4/image.svg",
+        "/bricks/4/image",
     )
     layout_status, layout_headers, layout_payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
-        "/bricks/4/layout.json",
+        "/bricks/4/layout",
     )
     layout_body = json.loads(layout_payload)
 
@@ -588,15 +566,14 @@ def test_render_server_system_brick_asset_endpoints_return_stored_payloads(
 
 
 def test_render_server_system_brick_asset_endpoint_reports_missing_tool_asset(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """Tool bricks without stored SVG assets should report a clear 404."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
-        "/bricks/900/image.svg",
+        "/bricks/900/image",
     )
     body = json.loads(payload)
 
@@ -606,15 +583,14 @@ def test_render_server_system_brick_asset_endpoint_reports_missing_tool_asset(
 
 
 def test_render_server_options_returns_cors_headers(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The HTTP interface should answer CORS preflight requests."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "OPTIONS",
-        "/render",
+        "/graph/render",
     )
 
     assert status == 204
@@ -624,15 +600,14 @@ def test_render_server_options_returns_cors_headers(
 
 
 def test_render_server_smiles_endpoint_returns_smiles(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The SMILES endpoint should return JSON for a valid graph payload."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/smiles",
+        "/graph/smiles",
         body=json.dumps(build_simple_payload()),
         headers={"Content-Type": "application/json"},
     )
@@ -644,15 +619,14 @@ def test_render_server_smiles_endpoint_returns_smiles(
 
 
 def test_render_server_brick_config_endpoint_returns_serialized_definition(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
-    """The brick-config endpoint should convert one SMILES string to node JSON."""
+    """The bricks/preview endpoint should convert one SMILES string to node JSON."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/brick-config",
+        "/bricks/preview",
         body=json.dumps(
             {
                 "smiles": "[*:1]C=C([*:2])O",
@@ -677,15 +651,14 @@ def test_render_server_brick_config_endpoint_returns_serialized_definition(
 
 
 def test_render_server_brick_config_endpoint_requires_at_least_one_port(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
-    """The brick-config endpoint should reject structures without any ports."""
+    """The bricks/preview endpoint should reject structures without any ports."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/brick-config",
+        "/bricks/preview",
         body=json.dumps({"smiles": "CC", "brick_type": "BRIDGE"}),
         headers={"Content-Type": "application/json"},
     )
@@ -697,15 +670,14 @@ def test_render_server_brick_config_endpoint_requires_at_least_one_port(
 
 
 def test_render_server_brick_config_endpoint_requires_single_atom_per_port(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
-    """The brick-config endpoint should reject ports attached to multiple atoms."""
+    """The bricks/preview endpoint should reject ports attached to multiple atoms."""
 
     status, _headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/brick-config",
+        "/bricks/preview",
         body=json.dumps({"smiles": "[*:1](C)C", "brick_type": "BRIDGE"}),
         headers={"Content-Type": "application/json"},
     )
@@ -716,15 +688,14 @@ def test_render_server_brick_config_endpoint_requires_single_atom_per_port(
 
 
 def test_render_server_brick_config_endpoint_requires_single_port_bonds(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
-    """The brick-config endpoint should reject non-single bonds on ports."""
+    """The bricks/preview endpoint should reject non-single bonds on ports."""
 
     status, _headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/brick-config",
+        "/bricks/preview",
         body=json.dumps({"smiles": "[*:1]=C", "brick_type": "BRIDGE"}),
         headers={"Content-Type": "application/json"},
     )
@@ -734,25 +705,22 @@ def test_render_server_brick_config_endpoint_requires_single_port_bonds(
     assert body["error"] == "Each port must connect to an atom by a single bond."
 
 
-
-
-def test_render_server_render_endpoint_returns_png(
-    render_server_address: tuple[str, int, Path, Path],
+def test_render_server_render_endpoint_returns_svg(
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
-    """The render endpoint should return PNG bytes for a valid graph payload."""
+    """The graph render endpoint should return SVG for a valid graph payload."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/render",
+        "/graph/render",
         body=json.dumps(build_simple_payload()),
         headers={"Content-Type": "application/json"},
     )
 
     assert status == 200
-    assert headers["content-type"] == "image/png"
-    assert payload.startswith(b"\x89PNG\r\n\x1a\n")
+    assert headers["content-type"].startswith("image/svg+xml")
+    assert b"<svg" in payload
 
 
 def test_runtime_store_migrates_legacy_user_bricks_to_user_database(
@@ -782,7 +750,7 @@ def test_runtime_store_migrates_legacy_user_bricks_to_user_database(
 
 
 def test_render_server_bricks_endpoint_stores_and_lists_definitions(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The bricks endpoints should persist user definitions alongside system rows."""
 
@@ -790,7 +758,6 @@ def test_render_server_bricks_endpoint_stores_and_lists_definitions(
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
         "/bricks",
         body=json.dumps({"definition": definition}),
@@ -804,9 +771,9 @@ def test_render_server_bricks_endpoint_stores_and_lists_definitions(
     assert stored_definition["id"].startswith("user-")
     assert stored_definition["name"] == definition["name"]
     assert stored_definition["alias"] == definition["alias"]
-    assert BrickStore(render_server_address[2]).count_bricks() == 0
-    assert BrickStore(render_server_address[3]).count_bricks() == 1
-    stored_svg_text = BrickStore(render_server_address[3]).get_brick_svg_text(
+    assert BrickStore(render_server_address[1]).count_bricks() == 0
+    assert BrickStore(render_server_address[2]).count_bricks() == 1
+    stored_svg_text = BrickStore(render_server_address[2]).get_brick_svg_text(
         stored_definition["id"]
     )
     assert stored_svg_text is not None
@@ -814,9 +781,8 @@ def test_render_server_bricks_endpoint_stores_and_lists_definitions(
 
     image_status, image_headers, image_payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
-        f"/bricks/{stored_definition['id']}/image.svg",
+        f"/bricks/{stored_definition['id']}/image",
     )
     assert image_status == 200
     assert image_headers["content-type"].startswith("image/svg+xml")
@@ -824,7 +790,6 @@ def test_render_server_bricks_endpoint_stores_and_lists_definitions(
 
     list_status, list_headers, list_payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
         "/bricks",
     )
@@ -844,7 +809,6 @@ def test_render_server_bricks_endpoint_stores_and_lists_definitions(
 
     get_status, _get_headers, get_payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
         f"/bricks/{stored_definition['id']}",
     )
@@ -856,14 +820,13 @@ def test_render_server_bricks_endpoint_stores_and_lists_definitions(
 
 
 def test_render_server_smiles_endpoint_supports_stored_user_defined_bricks(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """Stored user-defined bricks should be usable by id in render payloads."""
 
     definition = build_user_defined_definition()
     create_status, _create_headers, create_payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
         "/bricks",
         body=json.dumps(definition),
@@ -874,9 +837,8 @@ def test_render_server_smiles_endpoint_supports_stored_user_defined_bricks(
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/smiles",
+        "/graph/smiles",
         body=json.dumps(
             {
                 "nodes": [
@@ -902,33 +864,31 @@ def test_render_server_smiles_endpoint_supports_stored_user_defined_bricks(
     assert body["smiles"] == "C=O"
 
 
-def test_render_server_brick_render_endpoint_returns_png(
-    render_server_address: tuple[str, int, Path, Path],
+def test_render_server_brick_render_endpoint_returns_svg(
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
-    """The brick-render endpoint should render one posted brick definition."""
+    """The bricks/render endpoint should render one posted brick definition."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/brick-render",
+        "/bricks/render",
         body=json.dumps(build_user_defined_definition()),
         headers={"Content-Type": "application/json"},
     )
 
     assert status == 200
-    assert headers["content-type"] == "image/png"
-    assert payload.startswith(b"\x89PNG\r\n\x1a\n")
+    assert headers["content-type"].startswith("image/svg+xml")
+    assert b"<svg" in payload
 
 
 def test_render_server_bricks_endpoint_rejects_invalid_definition_payload(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The bricks endpoint should reject malformed definition payloads."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
         "/bricks",
         body=json.dumps({"definition": []}),
@@ -942,13 +902,12 @@ def test_render_server_bricks_endpoint_rejects_invalid_definition_payload(
 
 
 def test_render_server_get_brick_endpoint_returns_not_found_for_unknown_id(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The stored brick query endpoint should report unknown brick ids."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
         "/bricks/user-999",
     )
@@ -960,15 +919,14 @@ def test_render_server_get_brick_endpoint_returns_not_found_for_unknown_id(
 
 
 def test_render_server_rejects_invalid_json(
-    render_server_address: tuple[str, int, Path, Path],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The render server should reject invalid JSON request bodies."""
 
     status, headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/smiles",
+        "/graph/smiles",
         body="{not-json}",
         headers={"Content-Type": "application/json"},
     )
@@ -980,15 +938,14 @@ def test_render_server_rejects_invalid_json(
 
 
 def test_render_server_rejects_non_object_json(
-    render_server_address: tuple[str, int],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The render server should reject JSON values that are not objects."""
 
     status, _headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "POST",
-        "/smiles",
+        "/graph/smiles",
         body=json.dumps(["not", "an", "object"]),
         headers={"Content-Type": "application/json"},
     )
@@ -999,13 +956,12 @@ def test_render_server_rejects_non_object_json(
 
 
 def test_render_server_returns_not_found_for_unknown_paths(
-    render_server_address: tuple[str, int],
+    render_server_address: tuple[TestClient, Path, Path],
 ) -> None:
     """The HTTP interface should return not found for unsupported paths."""
 
     status, _headers, payload = perform_request(
         render_server_address[0],
-        render_server_address[1],
         "GET",
         "/missing",
     )

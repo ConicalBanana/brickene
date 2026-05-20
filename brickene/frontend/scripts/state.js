@@ -3,18 +3,18 @@
   const GRAPH_CHANGE_EVENT = "brickene:graphchange";
   const isMacOS = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);
   const runtimeUrl = new URL(window.location.href);
-  const renderApiUrl = runtimeUrl.searchParams.get("renderApiUrl") || "http://127.0.0.1:8765/render";
+  const renderApiUrl = runtimeUrl.searchParams.get("renderApiUrl") || "http://127.0.0.1:8765/graph/render";
   const brickApiUrl = runtimeUrl.searchParams.get("brickApiUrl")
-    || (/\/render\/?$/.test(renderApiUrl)
-      ? renderApiUrl.replace(/\/render\/?$/, "/bricks")
+    || (/\/graph\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/graph\/render\/?$/, "/bricks")
       : "http://127.0.0.1:8765/bricks");
   const brickRenderApiUrl = runtimeUrl.searchParams.get("brickRenderApiUrl")
-    || (/\/render\/?$/.test(renderApiUrl)
-      ? renderApiUrl.replace(/\/render\/?$/, "/brick-render")
-      : "http://127.0.0.1:8765/brick-render");
+    || (/\/graph\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/graph\/render\/?$/, "/bricks/render")
+      : "http://127.0.0.1:8765/bricks/render");
   const versionApiUrl = runtimeUrl.searchParams.get("versionApiUrl")
-    || (/\/render\/?$/.test(renderApiUrl)
-      ? renderApiUrl.replace(/\/render\/?$/, "/version")
+    || (/\/graph\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/graph\/render\/?$/, "/version")
       : "http://127.0.0.1:8765/version");
   const marvinPort = runtimeUrl.searchParams.get("marvinPort");
   const marvinWebUrl = (
@@ -22,13 +22,13 @@
     || (marvinPort ? `http://127.0.0.1:${marvinPort}` : "http://127.0.0.1:8080")
   ).replace(/\/$/, "");
   const brickConfigApiUrl = runtimeUrl.searchParams.get("brickConfigApiUrl")
-    || (/\/render\/?$/.test(renderApiUrl)
-      ? renderApiUrl.replace(/\/render\/?$/, "/brick-config")
-      : "http://127.0.0.1:8765/brick-config");
+    || (/\/graph\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/graph\/render\/?$/, "/bricks/preview")
+      : "http://127.0.0.1:8765/bricks/preview");
   const smilesApiUrl = runtimeUrl.searchParams.get("smilesApiUrl")
-    || (/\/render\/?$/.test(renderApiUrl)
-      ? renderApiUrl.replace(/\/render\/?$/, "/smiles")
-      : "http://127.0.0.1:8765/smiles");
+    || (/\/graph\/render\/?$/.test(renderApiUrl)
+      ? renderApiUrl.replace(/\/graph\/render\/?$/, "/graph/smiles")
+      : "http://127.0.0.1:8765/graph/smiles");
   const nodeWizardUrl = (() => {
     const wizardUrl = new URL("./node_wizard.html", runtimeUrl);
 

@@ -15,16 +15,16 @@ from rdkit.Chem import AllChem
 from brickene.dto.frontend_payload import GraphPayload
 from brickene.model.brick import BrickNode
 from brickene.model.network import BrickGraph
+from brickene.repository.brick_repository import (
+    DEFAULT_BRICK_DB_PATH,
+    DEFAULT_USER_BRICK_DB_PATH,
+    RuntimeBrickStore,
+)
 from brickene.service.rendering import (
     DEFAULT_IMAGE_SIZE,
     cap_hanging_ports_with_hydrogen,
     render_molecule_image,
     render_molecule_svg_text,
-)
-from brickene.repository.brick_repository import (
-    DEFAULT_BRICK_DB_PATH,
-    DEFAULT_USER_BRICK_DB_PATH,
-    RuntimeBrickStore,
 )
 
 TOOL_BRICK_TYPE = "TOOL"
@@ -195,7 +195,9 @@ def build_graph_from_state(
         brick_db_path,
         user_brick_db_path,
     )
-    node_states, edge_states = expand_tool_nodes(node_states, edge_states, resolved_catalog)
+    node_states, edge_states = expand_tool_nodes(
+        node_states, edge_states, resolved_catalog
+    )
     _validate_period_marker_pairs(node_states, resolved_catalog)
     graph = BrickGraph()
     bricks_by_frontend_id: dict[int, BrickNode] = {}
@@ -415,6 +417,44 @@ def render_state_image_bytes(
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
+
+
+def render_state_svg(
+    payload: GraphPayload | dict[str, Any],
+    image_size: int = DEFAULT_IMAGE_SIZE,
+    catalog_path: Path | None = None,
+    catalog: dict[str, dict[str, Any]] | None = None,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
+    user_brick_db_path: Path = DEFAULT_USER_BRICK_DB_PATH,
+) -> str:
+    """Render a frontend state payload to an SVG string.
+
+    Args:
+        payload: Frontend graph state as a ``GraphPayload`` or raw dict.
+        image_size: Width and height of the SVG canvas in pixels.
+        catalog_path: Optional path to an explicit JSON brick catalog file.
+        catalog: Pre-loaded catalog dict.
+        brick_db_path: SQLite database used for system bricks.
+        user_brick_db_path: SQLite database used for user bricks.
+
+    Returns:
+        SVG markup string of the assembled molecule.
+    """
+
+    molecule = build_molecule_from_state(
+        payload,
+        catalog_path=catalog_path,
+        catalog=catalog,
+        brick_db_path=brick_db_path,
+        user_brick_db_path=user_brick_db_path,
+    )
+    if molecule is None:
+        return (
+            f'<svg xmlns="http://www.w3.org/2000/svg" '
+            f'width="{image_size}" height="{image_size}" '
+            f'viewBox="0 0 {image_size} {image_size}"></svg>'
+        )
+    return render_molecule_svg_text(molecule, image_size=image_size)
 
 
 def render_brick_definition_image(

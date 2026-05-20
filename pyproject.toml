@@ -48,6 +48,8 @@ rdkit = "2022.9.5"
 networkx = ">=3.4.2,<3.5"
 numpy = "<2"
 cairosvg = "^2.8.2"
+fastapi = ">=0.100.0"
+uvicorn = ">=0.20.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"

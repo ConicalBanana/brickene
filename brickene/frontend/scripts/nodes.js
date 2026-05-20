@@ -137,12 +137,12 @@
       id,
       name: definition.name || configKey,
       imageSrc: hasStaticImage
-        ? buildBrickAssetUrl(id, "image.svg")
+        ? buildBrickAssetUrl(id, "image")
         : isDuplicator
           ? DUPLICATOR_IMAGE_SRC
           : "",
       imageLayoutSrc: hasStaticImage
-        ? buildBrickAssetUrl(id, "layout.json")
+        ? buildBrickAssetUrl(id, "layout")
         : "",
       hideStructurePreview: (isToolNode && !isCompactTool) || supportsInlineConfiguration || (!hasStaticImage && !isCompactTool),
       lockPortAssignments: isToolNode || supportsInlineConfiguration,

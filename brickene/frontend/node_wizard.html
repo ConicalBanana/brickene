@@ -16,10 +16,10 @@
         ).replace(/\/$/, "");
         const marvinUrl = `${marvinAssetUrl}/`;
         const brickConfigApiUrl = runtimeUrl.searchParams.get("brickConfigApiUrl")
-          || "http://127.0.0.1:8765/brick-config";
+          || "http://127.0.0.1:8765/bricks/preview";
         const brickApiUrl = runtimeUrl.searchParams.get("brickApiUrl")
-          || (/\/brick-config\/?$/.test(brickConfigApiUrl)
-            ? brickConfigApiUrl.replace(/\/brick-config\/?$/, "/bricks")
+          || (/\/bricks\/preview\/?$/.test(brickConfigApiUrl)
+            ? brickConfigApiUrl.replace(/\/bricks\/preview\/?$/, "/bricks")
             : "http://127.0.0.1:8765/bricks");
         const marvinScriptUrls = [
           `${marvinAssetUrl}/libs/react.production.min.js`,

@@ -57,6 +57,16 @@
     return { bucket: 2, value: Number.POSITIVE_INFINITY };
   }
 
+  function buildBrickAssetUrl(brickId, assetName) {
+    const brickApiBaseUrl = String(
+      config?.brickApiUrl || "http://127.0.0.1:8765/bricks",
+    ).replace(/\/?$/, "/");
+    return new URL(
+      `${encodeURIComponent(String(brickId))}/${assetName}`,
+      brickApiBaseUrl,
+    ).toString();
+  }
+
   function compareBrickDefinitions(left, right) {
     const leftKey = getBrickSortKey(left.id);
     const rightKey = getBrickSortKey(right.id);
@@ -127,12 +137,12 @@
       id,
       name: definition.name || configKey,
       imageSrc: hasStaticImage
-        ? `../assets/brick_images/${encodeURIComponent(id)}.svg`
+        ? buildBrickAssetUrl(id, "image.svg")
         : isDuplicator
           ? DUPLICATOR_IMAGE_SRC
           : "",
       imageLayoutSrc: hasStaticImage
-        ? `../assets/brick_images/${encodeURIComponent(id)}.json`
+        ? buildBrickAssetUrl(id, "layout.json")
         : "",
       hideStructurePreview: (isToolNode && !isCompactTool) || supportsInlineConfiguration || (!hasStaticImage && !isCompactTool),
       lockPortAssignments: isToolNode || supportsInlineConfiguration,

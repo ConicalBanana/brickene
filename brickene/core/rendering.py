@@ -13,15 +13,10 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
 
+from brickene.brick_store import DEFAULT_BRICK_DB_PATH, BrickStore
+
 from .network import BrickGraph
 from .node import BrickNode
-
-DEFAULT_CATALOG_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "frontend"
-    / "assets"
-    / "brick_configs.json"
-)
 DEFAULT_IMAGE_SIZE = 1024
 TOOL_BRICK_TYPE = "TOOL"
 DUPLICATOR_TOOL_ACTION = "duplicate"
@@ -29,30 +24,36 @@ PERIOD_TOOL_KIND = "period"
 
 
 def load_brick_catalog(
-    catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog_path: Path | None = None,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> dict[str, dict[str, Any]]:
     """Load the configured brick catalog.
 
     Args:
-        catalog_path: Path to the JSON brick configuration catalog.
+        catalog_path: Optional path to an explicit JSON brick catalog.
+        brick_db_path: SQLite database used when no catalog file is supplied.
 
     Returns:
         Catalog keyed by brick id.
     """
 
-    return json.loads(catalog_path.read_text(encoding="utf-8"))
+    if catalog_path is None:
+        return BrickStore(brick_db_path).catalog_entries()
+
+    return json.loads(Path(catalog_path).read_text(encoding="utf-8"))
 
 
 def _resolve_catalog(
-    catalog_path: Path,
+    catalog_path: Path | None,
     catalog: dict[str, dict[str, Any]] | None,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> dict[str, dict[str, Any]]:
     """Return one catalog payload from either memory or disk."""
 
     if catalog is not None:
         return catalog
 
-    return load_brick_catalog(catalog_path)
+    return load_brick_catalog(catalog_path, brick_db_path)
 
 
 def resolve_node_definition(
@@ -122,8 +123,9 @@ def expand_tool_nodes(
 
 def build_graph_from_state(
     payload: dict[str, Any],
-    catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> BrickGraph:
     """Reconstruct a ``BrickGraph`` from a frontend graph payload."""
 
@@ -132,7 +134,7 @@ def build_graph_from_state(
     if not isinstance(node_states, list) or not isinstance(edge_states, list):
         raise ValueError("State payload must include node and edge lists.")
 
-    catalog = _resolve_catalog(catalog_path, catalog)
+    catalog = _resolve_catalog(catalog_path, catalog, brick_db_path)
     node_states, edge_states = expand_tool_nodes(node_states, edge_states, catalog)
     _validate_period_marker_pairs(node_states, catalog)
     graph = BrickGraph()
@@ -185,8 +187,9 @@ def build_graph_from_state(
 
 def build_molecule_from_state(
     payload: dict[str, Any],
-    catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> Chem.Mol | None:
     """Build an RDKit molecule from a frontend graph payload."""
 
@@ -194,6 +197,7 @@ def build_molecule_from_state(
         payload,
         catalog_path=catalog_path,
         catalog=catalog,
+        brick_db_path=brick_db_path,
     )
     smiles = graph.to_smiles()
     if not smiles:
@@ -230,8 +234,9 @@ def build_molecule_from_definition(definition: dict[str, Any]) -> Chem.Mol | Non
 
 def render_state_smiles(
     payload: dict[str, Any],
-    catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> str:
     """Render a frontend graph state payload to a SMILES string."""
 
@@ -239,6 +244,7 @@ def render_state_smiles(
         payload,
         catalog_path=catalog_path,
         catalog=catalog,
+        brick_db_path=brick_db_path,
     )
     if molecule is None:
         return ""
@@ -249,8 +255,9 @@ def render_state_smiles(
 def render_state_image(
     payload: dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
-    catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> Image.Image:
     """Render a frontend state payload to a cropped PIL image."""
 
@@ -258,6 +265,7 @@ def render_state_image(
         payload,
         catalog_path=catalog_path,
         catalog=catalog,
+        brick_db_path=brick_db_path,
     )
     if molecule is None:
         return Image.new("RGB", (image_size, image_size), (255, 255, 255))
@@ -268,8 +276,9 @@ def render_state_image(
 def render_state_image_bytes(
     payload: dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
-    catalog_path: Path = DEFAULT_CATALOG_PATH,
+    catalog_path: Path | None = None,
     catalog: dict[str, dict[str, Any]] | None = None,
+    brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> bytes:
     """Render a frontend state payload into PNG bytes."""
 
@@ -278,6 +287,7 @@ def render_state_image_bytes(
         image_size=image_size,
         catalog_path=catalog_path,
         catalog=catalog,
+        brick_db_path=brick_db_path,
     )
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")

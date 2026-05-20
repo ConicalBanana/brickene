@@ -1,6 +1,5 @@
 (() => {
   const frontend = window.BrickeneFrontend = window.BrickeneFrontend || {};
-  const catalogUrl = new URL("../assets/brick_configs.json", window.location.href);
   const brickApiUrl = frontend.config?.brickApiUrl || (() => {
     const runtimeUrl = new URL(window.location.href);
     const renderApiUrl = runtimeUrl.searchParams.get("renderApiUrl") || "http://127.0.0.1:8765/render";
@@ -24,11 +23,7 @@
     return JSON.parse(request.responseText);
   }
 
-  function loadBuiltInBrickDefinitions() {
-    return readJsonSync(catalogUrl.href);
-  }
-
-  function normalizeStoredBrickPayload(payload) {
+  function normalizeBrickPayload(payload) {
     if (!payload || typeof payload !== "object" || !Array.isArray(payload.bricks)) {
       return [];
     }
@@ -36,27 +31,21 @@
     return payload.bricks.filter((definition) => definition && typeof definition === "object");
   }
 
-  function mergeBrickDefinitions(builtInDefinitions, storedDefinitions) {
-    const mergedDefinitions = { ...builtInDefinitions };
-
-    storedDefinitions.forEach((definition) => {
-      mergedDefinitions[String(definition.id)] = definition;
-    });
-
-    return mergedDefinitions;
+  function indexBrickDefinitions(definitions) {
+    return definitions.reduce((indexedDefinitions, definition) => {
+      indexedDefinitions[String(definition.id)] = definition;
+      return indexedDefinitions;
+    }, {});
   }
 
   function loadBrickDefinitions() {
-    const builtInDefinitions = loadBuiltInBrickDefinitions();
-
     try {
-      const storedDefinitions = normalizeStoredBrickPayload(readJsonSync(brickApiUrl));
-      return mergeBrickDefinitions(builtInDefinitions, storedDefinitions);
+      return indexBrickDefinitions(normalizeBrickPayload(readJsonSync(brickApiUrl)));
     } catch (error) {
       frontend.brickDefinitionsError = error instanceof Error
         ? error.message
-        : "Failed to load stored brick definitions.";
-      return builtInDefinitions;
+        : "Failed to load brick definitions.";
+      return {};
     }
   }
 
@@ -70,13 +59,10 @@
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(payload.error || "Failed to load stored brick definitions.");
+      throw new Error(payload.error || "Failed to load brick definitions.");
     }
 
-    const definitions = mergeBrickDefinitions(
-      loadBuiltInBrickDefinitions(),
-      normalizeStoredBrickPayload(payload),
-    );
+    const definitions = indexBrickDefinitions(normalizeBrickPayload(payload));
     frontend.brickDefinitions = definitions;
     return definitions;
   }

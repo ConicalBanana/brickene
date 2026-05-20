@@ -15,9 +15,7 @@ from brickene import get_version
 from brickene.brick_store import DEFAULT_BRICK_DB_PATH, BrickStore
 from brickene.core.node import Atom, BrickNode, BrickType, Port
 from brickene.core.rendering import (
-    DEFAULT_CATALOG_PATH,
     DEFAULT_IMAGE_SIZE,
-    load_brick_catalog,
     render_brick_definition_image_bytes,
     render_state_image_bytes,
     render_state_smiles,
@@ -172,27 +170,22 @@ def normalize_brick_definition(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_runtime_catalog(
-    catalog_path: Path,
     brick_store: BrickStore,
 ) -> dict[str, dict[str, Any]]:
-    """Load the built-in catalog and merge stored user-defined bricks."""
+    """Return the runtime catalog stored in SQLite."""
 
-    catalog = load_brick_catalog(catalog_path)
-    catalog.update(brick_store.catalog_entries())
-    return catalog
+    return brick_store.catalog_entries()
 
 
 def create_handler(
-    catalog_path: Path,
     image_size: int,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> type[BaseHTTPRequestHandler]:
     """Create a request handler bound to one render configuration.
 
     Args:
-        catalog_path: Path to the brick catalog JSON.
         image_size: Width and height of returned PNG renders.
-        brick_db_path: Path to the SQLite database for user-defined bricks.
+        brick_db_path: Path to the SQLite database for system and user bricks.
 
     Returns:
         Request handler class for the configured render service.
@@ -222,10 +215,10 @@ def create_handler(
                     HTTPStatus.OK,
                     {
                         "status": "ok",
-                        "catalog_path": str(catalog_path),
                         "image_size": image_size,
                         "brick_db_path": str(brick_db_path),
                         "stored_brick_count": brick_store.count_bricks(),
+                        "system_brick_count": brick_store.count_system_bricks(),
                     },
                 )
                 return
@@ -245,12 +238,55 @@ def create_handler(
                 return
 
             if request_path.startswith("/bricks/"):
-                brick_id = request_path.removeprefix("/bricks/")
+                brick_path = request_path.removeprefix("/bricks/")
+
+                if brick_path.endswith("/image.svg"):
+                    brick_id = brick_path.removesuffix("/image.svg")
+                    svg_text = brick_store.get_brick_svg_text(brick_id)
+                    if svg_text is None:
+                        self._send_json(
+                            HTTPStatus.NOT_FOUND,
+                            {
+                                "error": (
+                                    f"No stored SVG asset for brick id: {brick_id}."
+                                )
+                            },
+                        )
+                        return
+
+                    self._send_text(
+                        HTTPStatus.OK,
+                        svg_text,
+                        "image/svg+xml",
+                    )
+                    return
+
+                if brick_path.endswith("/layout.json"):
+                    brick_id = brick_path.removesuffix("/layout.json")
+                    layout_payload = brick_store.get_brick_layout(brick_id)
+                    if layout_payload is None:
+                        self._send_json(
+                            HTTPStatus.NOT_FOUND,
+                            {
+                                "error": (
+                                    f"No stored layout asset for brick id: {brick_id}."
+                                )
+                            },
+                        )
+                        return
+
+                    self._send_json(
+                        HTTPStatus.OK,
+                        layout_payload,
+                    )
+                    return
+
+                brick_id = brick_path
                 definition = brick_store.get_brick(brick_id)
                 if definition is None:
                     self._send_json(
                         HTTPStatus.NOT_FOUND,
-                        {"error": f"Unknown stored brick id: {brick_id}."},
+                        {"error": f"Unknown brick id: {brick_id}."},
                     )
                     return
 
@@ -379,20 +415,18 @@ def create_handler(
                 self.wfile.write(image_bytes)
                 return
 
-            runtime_catalog = build_runtime_catalog(catalog_path, brick_store)
+            runtime_catalog = build_runtime_catalog(brick_store)
 
             try:
                 if request_path == "/render":
                     image_bytes = render_state_image_bytes(
                         payload,
                         image_size=image_size,
-                        catalog_path=catalog_path,
                         catalog=runtime_catalog,
                     )
                 else:
                     smiles = render_state_smiles(
                         payload,
-                        catalog_path=catalog_path,
                         catalog=runtime_catalog,
                     )
             except (TypeError, ValueError) as exc:
@@ -452,13 +486,28 @@ def create_handler(
             self.end_headers()
             self.wfile.write(response)
 
+        def _send_text(
+            self,
+            status: HTTPStatus,
+            payload: str,
+            content_type: str,
+        ) -> None:
+            """Write a UTF-8 text response with CORS headers."""
+
+            response = payload.encode("utf-8")
+            self.send_response(status)
+            self._send_cors_headers()
+            self.send_header("Content-Type", f"{content_type}; charset=utf-8")
+            self.send_header("Content-Length", str(len(response)))
+            self.end_headers()
+            self.wfile.write(response)
+
     return RenderRequestHandler
 
 
 def serve(
     host: str = "127.0.0.1",
     port: int = 8765,
-    catalog_path: Path = DEFAULT_CATALOG_PATH,
     image_size: int = DEFAULT_IMAGE_SIZE,
     brick_db_path: Path = DEFAULT_BRICK_DB_PATH,
 ) -> None:
@@ -467,17 +516,15 @@ def serve(
     Args:
         host: Host interface to bind.
         port: TCP port to bind.
-        catalog_path: Path to the brick catalog JSON.
         image_size: Width and height of returned PNG renders.
-        brick_db_path: Path to the SQLite database for user-defined bricks.
+        brick_db_path: Path to the SQLite database for system and user bricks.
     """
 
     server = ThreadingHTTPServer(
         (host, port),
-        create_handler(catalog_path, image_size, brick_db_path),
+        create_handler(image_size, brick_db_path),
     )
     typer.echo(f"Brickene render server listening on http://{host}:{port}")
-    typer.echo(f"Using catalog {catalog_path.resolve()}")
     typer.echo(f"Using brick database {brick_db_path.resolve()}")
     server.serve_forever()
 
@@ -486,10 +533,6 @@ def serve(
 def main(
     host: str = typer.Option("127.0.0.1", help="Host interface to bind."),
     port: int = typer.Option(8765, help="TCP port to bind."),
-    catalog_path: Path = typer.Option(
-        DEFAULT_CATALOG_PATH,
-        help="Path to the brick catalog JSON.",
-    ),
     image_size: int = typer.Option(
         DEFAULT_IMAGE_SIZE,
         help="Width and height of the rendered PNG.",
@@ -504,7 +547,6 @@ def main(
     serve(
         host=host,
         port=port,
-        catalog_path=catalog_path,
         image_size=image_size,
         brick_db_path=brick_db_path,
     )

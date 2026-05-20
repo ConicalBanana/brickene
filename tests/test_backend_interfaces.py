@@ -14,6 +14,7 @@ from PIL import Image
 from rdkit import Chem
 
 from brickene import get_version
+from brickene.brick_store import BrickStore
 from brickene.core.rendering import (
     build_graph_from_state,
     build_molecule_from_state,
@@ -297,11 +298,21 @@ def render_server_address(catalog_path: Path) -> tuple[str, int]:
     """Start one temporary render server and yield its listening address."""
 
     brick_db_path = catalog_path.parent / "brick-store.sqlite3"
+    seeded_catalog = load_brick_catalog(catalog_path)
+    source_store = BrickStore()
+    test_store = BrickStore(brick_db_path)
+
+    test_store.sync_system_bricks(seeded_catalog)
+    for brick_id in seeded_catalog:
+        test_store.save_system_brick_assets(
+            brick_id,
+            source_store.get_brick_svg_text(brick_id),
+            source_store.get_brick_layout(brick_id),
+        )
 
     server = ThreadingHTTPServer(
         ("127.0.0.1", 0),
         create_handler(
-            catalog_path=catalog_path,
             image_size=256,
             brick_db_path=brick_db_path,
         ),
@@ -475,7 +486,6 @@ def test_render_state_image_and_bytes_return_png_output(catalog_path: Path) -> N
 
 def test_render_server_health_endpoint_reports_configuration(
     render_server_address: tuple[str, int],
-    catalog_path: Path,
 ) -> None:
     """The health endpoint should report the bound backend configuration."""
 
@@ -491,8 +501,8 @@ def test_render_server_health_endpoint_reports_configuration(
     assert headers["content-type"] == "application/json"
     assert headers["access-control-allow-origin"] == "*"
     assert body["status"] == "ok"
-    assert body["catalog_path"] == str(catalog_path)
     assert body["stored_brick_count"] == 0
+    assert body["system_brick_count"] == 6
     assert body["brick_db_path"].endswith("brick-store.sqlite3")
 
 
@@ -513,6 +523,78 @@ def test_render_server_version_endpoint_returns_package_version(
     assert headers["content-type"] == "application/json"
     assert headers["access-control-allow-origin"] == "*"
     assert body["version"] == get_version()
+
+
+def test_render_server_bricks_endpoint_lists_seeded_system_definitions(
+    render_server_address: tuple[str, int],
+) -> None:
+    """The bricks endpoint should expose the seeded system definitions."""
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "GET",
+        "/bricks",
+    )
+    body = json.loads(payload)
+
+    assert status == 200
+    assert headers["content-type"] == "application/json"
+    assert [brick["id"] for brick in body["bricks"]] == [
+        "2",
+        "4",
+        "5",
+        "900",
+        "901",
+        "902",
+    ]
+
+
+def test_render_server_system_brick_asset_endpoints_return_stored_payloads(
+    render_server_address: tuple[str, int],
+) -> None:
+    """Built-in SVG and layout JSON should be served from SQLite."""
+
+    svg_status, svg_headers, svg_payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "GET",
+        "/bricks/4/image.svg",
+    )
+    layout_status, layout_headers, layout_payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "GET",
+        "/bricks/4/layout.json",
+    )
+    layout_body = json.loads(layout_payload)
+
+    assert svg_status == 200
+    assert svg_headers["content-type"].startswith("image/svg+xml")
+    assert b"<svg" in svg_payload
+    assert layout_status == 200
+    assert layout_headers["content-type"] == "application/json"
+    assert layout_body["image_width"] > 0
+    assert layout_body["image_height"] > 0
+    assert layout_body["ports"]
+
+
+def test_render_server_system_brick_asset_endpoint_reports_missing_tool_asset(
+    render_server_address: tuple[str, int],
+) -> None:
+    """Tool bricks without stored SVG assets should report a clear 404."""
+
+    status, headers, payload = perform_request(
+        render_server_address[0],
+        render_server_address[1],
+        "GET",
+        "/bricks/900/image.svg",
+    )
+    body = json.loads(payload)
+
+    assert status == 404
+    assert headers["content-type"] == "application/json"
+    assert body["error"] == "No stored SVG asset for brick id: 900."
 
 
 def test_render_server_options_returns_cors_headers(
@@ -668,7 +750,7 @@ def test_render_server_render_endpoint_returns_png(
 def test_render_server_bricks_endpoint_stores_and_lists_definitions(
     render_server_address: tuple[str, int],
 ) -> None:
-    """The bricks endpoints should persist and return stored definitions."""
+    """The bricks endpoints should persist user definitions alongside system rows."""
 
     definition = build_user_defined_definition()
 
@@ -699,7 +781,15 @@ def test_render_server_bricks_endpoint_stores_and_lists_definitions(
 
     assert list_status == 200
     assert list_headers["content-type"] == "application/json"
-    assert [brick["id"] for brick in list_body["bricks"]] == [stored_definition["id"]]
+    assert [brick["id"] for brick in list_body["bricks"]] == [
+        "2",
+        "4",
+        "5",
+        "900",
+        "901",
+        "902",
+        stored_definition["id"],
+    ]
 
     get_status, _get_headers, get_payload = perform_request(
         render_server_address[0],
@@ -815,7 +905,7 @@ def test_render_server_get_brick_endpoint_returns_not_found_for_unknown_id(
 
     assert status == 404
     assert headers["content-type"] == "application/json"
-    assert body["error"] == "Unknown stored brick id: user-999."
+    assert body["error"] == "Unknown brick id: user-999."
 
 
 def test_render_server_rejects_invalid_json(

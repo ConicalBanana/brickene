@@ -14,7 +14,7 @@ import typer
 from brickene import get_version
 from brickene.dto.frontend_payload import GraphPayload
 from brickene.model.brick import BrickNode
-from brickene.render.rendering import DEFAULT_IMAGE_SIZE
+from brickene.service.rendering import DEFAULT_IMAGE_SIZE
 from brickene.repository.brick_repository import (
     DEFAULT_BRICK_DB_PATH,
     DEFAULT_USER_BRICK_DB_PATH,

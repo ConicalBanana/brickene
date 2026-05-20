@@ -15,7 +15,7 @@ from rdkit.Chem import AllChem
 from brickene.dto.frontend_payload import GraphPayload
 from brickene.model.brick import BrickNode
 from brickene.model.network import BrickGraph
-from brickene.render.rendering import (
+from brickene.service.rendering import (
     DEFAULT_IMAGE_SIZE,
     cap_hanging_ports_with_hydrogen,
     render_molecule_image,

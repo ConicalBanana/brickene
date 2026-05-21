@@ -25,6 +25,7 @@ from brickene.service.rendering import (
     cap_hanging_ports_with_hydrogen,
     render_molecule_image,
     render_molecule_svg_text,
+    render_molecule_svg_with_layout,
 )
 
 TOOL_BRICK_TYPE = "TOOL"
@@ -498,6 +499,38 @@ def render_brick_definition_image_bytes(
     return buffer.getvalue()
 
 
+def _build_uncapped_molecule_from_definition(
+    definition: dict[str, Any],
+) -> Chem.Mol | None:
+    """Build an RDKit molecule retaining port dummy atoms.
+
+    Unlike :func:`build_molecule_from_definition`, this helper preserves the
+    port atoms so that their draw coordinates can be used for layout
+    computation and SVG-based structure previews.
+
+    Args:
+        definition: JSON-compatible brick definition dict.
+
+    Returns:
+        Sanitized RDKit molecule with 2D coordinates and port dummy atoms
+        intact, or ``None`` for empty definitions.
+    """
+
+    node = BrickNode.from_dict(definition)
+    smiles = node.to_smiles()
+    if not smiles:
+        return None
+
+    molecule = Chem.MolFromSmiles(smiles)
+    if molecule is None:
+        raise ValueError(
+            "Failed to construct an RDKit molecule from the brick definition."
+        )
+
+    AllChem.Compute2DCoords(molecule)
+    return molecule
+
+
 def render_brick_definition_svg(
     definition: dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
@@ -509,18 +542,73 @@ def render_brick_definition_svg(
         image_size: Width and height of the SVG canvas in pixels.
 
     Returns:
-        SVG markup string.
+        SVG markup string with port atoms stripped and the image cropped to
+        the molecule bounds.
     """
 
-    molecule = build_molecule_from_definition(definition)
-    if molecule is None:
-        return (
-            f'<svg xmlns="http://www.w3.org/2000/svg" '
-            f'width="{image_size}" height="{image_size}" '
-            f'viewBox="0 0 {image_size} {image_size}"></svg>'
-        )
+    svg_text, _layout = render_brick_definition_svg_and_layout(
+        definition, image_size=image_size
+    )
+    return svg_text
 
-    return render_molecule_svg_text(molecule, image_size=image_size)
+
+def render_brick_definition_layout(
+    definition: dict[str, Any],
+    image_size: int = DEFAULT_IMAGE_SIZE,
+) -> dict[str, Any] | None:
+    """Compute port layout geometry for one brick definition.
+
+    Args:
+        definition: JSON-compatible brick definition dict.
+        image_size: Width and height of the render canvas in pixels.
+
+    Returns:
+        Layout dict with ``image_width``, ``image_height``, and ``ports``,
+        or ``None`` if the definition cannot be built into a molecule.
+    """
+
+    _svg_text, layout = render_brick_definition_svg_and_layout(
+        definition, image_size=image_size
+    )
+    return layout
+
+
+def render_brick_definition_svg_and_layout(
+    definition: dict[str, Any],
+    image_size: int = DEFAULT_IMAGE_SIZE,
+) -> tuple[str, dict[str, Any]]:
+    """Render one brick definition to a cropped SVG and its layout geometry.
+
+    This is the canonical rendering path for user-defined brick assets.  It
+    uses the same pipeline as system-brick asset generation: port atoms are
+    stripped from the SVG, the image is cropped to the non-port content, and
+    port coordinates are expressed in the cropped viewport.
+
+    Args:
+        definition: JSON-compatible brick definition dict.
+        image_size: Width and height of the render canvas in pixels.
+
+    Returns:
+        ``(svg_text, layout_dict)`` — the cropped SVG markup and the layout
+        dict with ``image_width``, ``image_height``, and ``ports``.
+    """
+
+    empty_svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'width="{image_size}" height="{image_size}" '
+        f'viewBox="0 0 {image_size} {image_size}"></svg>'
+    )
+    empty_layout: dict[str, Any] = {
+        "image_width": image_size,
+        "image_height": image_size,
+        "ports": {},
+    }
+
+    molecule = _build_uncapped_molecule_from_definition(definition)
+    if molecule is None:
+        return empty_svg, empty_layout
+
+    return render_molecule_svg_with_layout(molecule, image_size=image_size)
 
 
 # ---------------------------------------------------------------------------

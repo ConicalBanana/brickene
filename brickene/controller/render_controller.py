@@ -29,6 +29,7 @@ from brickene.service.brick_service import (
 )
 from brickene.service.render_service import (
     render_brick_definition_svg,
+    render_brick_definition_svg_and_layout,
     render_state_smiles,
     render_state_svg,
 )
@@ -230,11 +231,11 @@ def create_app(
 
         try:
             definition = normalize_brick_definition(payload)
-            svg_text = render_brick_definition_svg(
+            svg_text, layout = render_brick_definition_svg_and_layout(
                 definition, image_size=image_size
             )
             stored_definition = brick_store.save_brick(
-                definition, svg_text=svg_text
+                definition, svg_text=svg_text, layout_payload=layout
             )
         except (TypeError, ValueError) as exc:
             return _error(str(exc))

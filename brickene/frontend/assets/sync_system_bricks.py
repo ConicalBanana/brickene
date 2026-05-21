@@ -4,21 +4,16 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import io
 import json
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-import cairosvg
-from PIL import Image, ImageChops
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from rdkit.Chem.Draw import rdMolDraw2D
-from rdkit.Geometry import Point2D, Point3D
 
 from brickene.model.brick import Atom, BrickNode, BrickType, Edge, Port, Site
 from brickene.repository.brick_repository import DEFAULT_BRICK_DB_PATH, BrickStore
+from brickene.service.rendering import render_molecule_svg_with_layout
 
 RAW_TYPE_TO_BRICK_TYPE: dict[str, BrickType] = {
     "bridge": BrickType.BRIDGE,
@@ -33,13 +28,6 @@ SOURCE_FILE_NAMES = (
 )
 DEFAULT_IMAGE_SIZE = 512
 DEFAULT_PORT_BRICK_TYPE = BrickType.SKELETON
-SVG_NAMESPACE = "http://www.w3.org/2000/svg"
-FONT_CANDIDATES = (
-    Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
-    Path("/System/Library/Fonts/SFNS.ttf"),
-)
-WHITE_RGB = (255, 255, 255)
-Point = tuple[float, float]
 CoordinateBounds = tuple[float, float, float, float]
 RenderedAsset = tuple[str, str, dict[str, Any]]
 TOOL_BRICK_PAYLOADS: dict[str, dict[str, Any]] = {
@@ -289,48 +277,8 @@ def build_molecule(smiles: str) -> Chem.Mol:
         raise ValueError(f"Invalid SMILES string: {smiles}")
 
     prepared = Chem.Mol(molecule)
-    for atom in prepared.GetAtoms():
-        if atom.GetAtomicNum() != 0:
-            continue
-
-        atom_map_number = atom.GetAtomMapNum()
-        if atom_map_number > 0:
-            atom.SetProp("atomLabel", str(atom_map_number))
-
     AllChem.Compute2DCoords(prepared)
     return prepared
-
-
-def get_bold_font_file() -> str | None:
-    """Return a usable bold font file for RDKit text rendering."""
-
-    for font_path in FONT_CANDIDATES:
-        if font_path.exists():
-            return str(font_path)
-    return None
-
-
-def find_ports(molecule: Chem.Mol) -> dict[int, tuple[int, tuple[int, ...]]]:
-    """Collect mapped dummy atoms and their attached atom indices."""
-
-    ports: dict[int, tuple[int, tuple[int, ...]]] = {}
-    for atom in molecule.GetAtoms():
-        if atom.GetAtomicNum() != 0:
-            continue
-
-        port_number = atom.GetAtomMapNum()
-        if port_number <= 0:
-            continue
-
-        neighbors = tuple(neighbor.GetIdx() for neighbor in atom.GetNeighbors())
-        if not neighbors:
-            raise ValueError(
-                f"Port {port_number} must be connected to at least one atom."
-            )
-
-        ports[port_number] = (atom.GetIdx(), neighbors)
-
-    return ports
 
 
 def get_molecule_coordinate_bounds(molecule: Chem.Mol) -> CoordinateBounds:
@@ -346,254 +294,6 @@ def get_molecule_coordinate_bounds(molecule: Chem.Mol) -> CoordinateBounds:
         for index in range(molecule.GetNumAtoms())
     ]
     return (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
-
-
-def translate_molecule_to_origin(
-    molecule: Chem.Mol,
-    bounds: CoordinateBounds,
-) -> Chem.Mol:
-    """Shift molecule coordinates so the bounding box starts at the origin."""
-
-    translated = Chem.Mol(molecule)
-    conformer = translated.GetConformer()
-    min_x, min_y, _, _ = bounds
-
-    for index in range(translated.GetNumAtoms()):
-        position = conformer.GetAtomPosition(index)
-        conformer.SetAtomPosition(
-            index,
-            Point3D(position.x - min_x, position.y - min_y, position.z),
-        )
-
-    return translated
-
-
-def round_point(point: Any) -> Point:
-    """Round one RDKit draw point into a JSON-friendly coordinate pair."""
-
-    return (round(point.x, 2), round(point.y, 2))
-
-
-def build_port_geometry(
-    drawer: Any,
-    ports: dict[int, tuple[int, tuple[int, ...]]],
-    offset: Point = (0.0, 0.0),
-) -> dict[str, dict[str, Point]]:
-    """Build trimmed image-space geometry for every mapped port."""
-
-    port_geometry: dict[str, dict[str, Point]] = {}
-    offset_x, offset_y = offset
-
-    for port_number, (port_atom_idx, attached_atom_indices) in sorted(ports.items()):
-        port_pos = round_point(drawer.GetDrawCoords(port_atom_idx))
-        attached_positions = [
-            round_point(drawer.GetDrawCoords(attached_atom_idx))
-            for attached_atom_idx in attached_atom_indices
-        ]
-        port_start_pos = (
-            round(
-                sum(position[0] for position in attached_positions)
-                / len(attached_positions),
-                2,
-            ),
-            round(
-                sum(position[1] for position in attached_positions)
-                / len(attached_positions),
-                2,
-            ),
-        )
-        trimmed_port_pos = (
-            round(port_pos[0] - offset_x, 2),
-            round(port_pos[1] - offset_y, 2),
-        )
-        trimmed_start_pos = (
-            round(port_start_pos[0] - offset_x, 2),
-            round(port_start_pos[1] - offset_y, 2),
-        )
-
-        port_geometry[str(port_number)] = {
-            "port_start_pos": trimmed_start_pos,
-            "port_vec": (
-                round(trimmed_port_pos[0] - trimmed_start_pos[0], 2),
-                round(trimmed_port_pos[1] - trimmed_start_pos[1], 2),
-            ),
-        }
-
-    return port_geometry
-
-
-def configure_draw_options(
-    draw_options: rdMolDraw2D.MolDrawOptions,
-) -> None:
-    """Apply the shared draw configuration used by all asset render passes."""
-
-    draw_options.padding = 0.0
-
-    bold_font_file = get_bold_font_file()
-    if bold_font_file is not None:
-        draw_options.fontFile = bold_font_file
-
-
-def render_svg_layer(
-    molecule: Chem.Mol,
-    image_size: int,
-    *,
-    show_port_labels: bool,
-    shared_coordinate_size: Point | None = None,
-) -> tuple[str, Any]:
-    """Render one molecule to an RDKit SVG string."""
-
-    draw_molecule = rdMolDraw2D.PrepareMolForDrawing(Chem.Mol(molecule), kekulize=False)
-    if shared_coordinate_size is not None:
-        draw_molecule = translate_molecule_to_origin(
-            draw_molecule,
-            get_molecule_coordinate_bounds(draw_molecule),
-        )
-
-    drawer = rdMolDraw2D.MolDraw2DSVG(image_size, image_size)
-    draw_options = drawer.drawOptions()
-    configure_draw_options(draw_options)
-
-    for atom in draw_molecule.GetAtoms():
-        if atom.GetAtomicNum() != 0 or atom.GetAtomMapNum() <= 0:
-            continue
-
-        draw_options.atomLabels[atom.GetIdx()] = (
-            str(atom.GetAtomMapNum()) if show_port_labels else ""
-        )
-
-    if shared_coordinate_size is not None:
-        drawer.SetScale(
-            image_size,
-            image_size,
-            Point2D(0.0, 0.0),
-            Point2D(shared_coordinate_size[0], shared_coordinate_size[1]),
-        )
-
-    drawer.DrawMolecule(draw_molecule)
-    drawer.FinishDrawing()
-    return drawer.GetDrawingText(), drawer
-
-
-def remove_port_elements_from_svg(
-    svg_text: str,
-    port_atom_indices: set[int],
-) -> str:
-    """Remove mapped port atoms and their bond segments from an RDKit SVG."""
-
-    ET.register_namespace("", SVG_NAMESPACE)
-    xml_declaration = ""
-    stripped_text = svg_text.lstrip()
-    if stripped_text.startswith("<?xml"):
-        xml_declaration = stripped_text.splitlines()[0]
-
-    root = ET.fromstring(svg_text)
-    port_atom_classes = {f"atom-{atom_idx}" for atom_idx in port_atom_indices}
-
-    for parent in root.iter():
-        for child in list(parent):
-            class_tokens = set(child.attrib.get("class", "").split())
-            if class_tokens & port_atom_classes:
-                parent.remove(child)
-
-    cleaned_svg = ET.tostring(root, encoding="unicode")
-    return f"{xml_declaration}\n{cleaned_svg}" if xml_declaration else cleaned_svg
-
-
-def rasterize_svg(svg_text: str, image_size: int) -> Image.Image:
-    """Rasterize one SVG string into a white-background PIL image."""
-
-    png_bytes = cairosvg.svg2png(
-        bytestring=svg_text.encode("utf-8"),
-        output_width=image_size,
-        output_height=image_size,
-        background_color="white",
-    )
-    with Image.open(io.BytesIO(png_bytes)) as rasterized_image:
-        return rasterized_image.convert("RGB")
-
-
-def get_trim_bounds(image: Image.Image) -> tuple[int, int, int, int] | None:
-    """Return the non-white bounding box for one rendered image."""
-
-    background = Image.new("RGB", image.size, WHITE_RGB)
-    diff = ImageChops.difference(image, background)
-    return diff.getbbox()
-
-
-def crop_svg_to_bounds(
-    svg_text: str,
-    bounds: tuple[int, int, int, int] | None,
-    image_size: int,
-) -> tuple[str, int, int]:
-    """Crop one SVG to the requested bounds by adjusting its viewBox."""
-
-    ET.register_namespace("", SVG_NAMESPACE)
-    xml_declaration = ""
-    stripped_text = svg_text.lstrip()
-    if stripped_text.startswith("<?xml"):
-        xml_declaration = stripped_text.splitlines()[0]
-
-    root = ET.fromstring(svg_text)
-
-    if bounds is None:
-        left, top, right, bottom = 0, 0, image_size, image_size
-    else:
-        left, top, right, bottom = bounds
-
-    width = max(1, right - left)
-    height = max(1, bottom - top)
-    root.set("viewBox", f"{left} {top} {width} {height}")
-    root.set("width", str(width))
-    root.set("height", str(height))
-
-    cropped_svg = ET.tostring(root, encoding="unicode")
-    return (
-        f"{xml_declaration}\n{cropped_svg}" if xml_declaration else cropped_svg,
-        width,
-        height,
-    )
-
-
-def render_molecule_svg(
-    molecule: Chem.Mol,
-    image_size: int,
-    *,
-    shared_coordinate_size: Point | None = None,
-) -> tuple[str, int, int, dict[str, dict[str, Point]]]:
-    """Render one molecule to a cropped SVG asset and port geometry."""
-
-    ports = find_ports(molecule)
-    labeled_svg, svg_drawer = render_svg_layer(
-        molecule,
-        image_size,
-        show_port_labels=True,
-        shared_coordinate_size=shared_coordinate_size,
-    )
-    stripped_svg = remove_port_elements_from_svg(
-        labeled_svg,
-        {port_atom_idx for port_atom_idx, _ in ports.values()},
-    )
-    trim_bounds = get_trim_bounds(rasterize_svg(stripped_svg, image_size))
-
-    cropped_svg, cropped_width, cropped_height = crop_svg_to_bounds(
-        stripped_svg,
-        trim_bounds,
-        image_size,
-    )
-
-    if trim_bounds is None:
-        return cropped_svg, cropped_width, cropped_height, build_port_geometry(
-            svg_drawer,
-            ports,
-        )
-
-    port_geometry = build_port_geometry(
-        svg_drawer,
-        ports,
-        offset=(float(trim_bounds[0]), float(trim_bounds[1])),
-    )
-    return cropped_svg, cropped_width, cropped_height, port_geometry
 
 
 def render_asset_payloads(
@@ -617,22 +317,12 @@ def render_asset_payloads(
     rendered_assets: list[RenderedAsset] = []
 
     for brick_name, raw_entry in payload.items():
-        rendered_svg, rendered_width, rendered_height, port_geometry = render_molecule_svg(
+        svg_text, layout = render_molecule_svg_with_layout(
             molecules_by_name[brick_name],
             image_size,
             shared_coordinate_size=shared_coordinate_size,
         )
-        rendered_assets.append(
-            (
-                str(raw_entry["id"]),
-                rendered_svg,
-                {
-                    "image_width": rendered_width,
-                    "image_height": rendered_height,
-                    "ports": port_geometry,
-                },
-            )
-        )
+        rendered_assets.append((str(raw_entry["id"]), svg_text, layout))
 
     return rendered_assets
 

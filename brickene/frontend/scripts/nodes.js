@@ -127,7 +127,7 @@
     const id = String(definition.id ?? configKey);
     const isToolNode = definition.brick_type === "TOOL";
     const supportsInlineConfiguration = Boolean(definition.inline_configuration);
-    const hasStaticImage = /^\d+$/.test(id) && !isToolNode && !supportsInlineConfiguration;
+    const hasStaticImage = (/^\d+$/.test(id) || /^user-\d+$/i.test(id)) && !isToolNode && !supportsInlineConfiguration;
     const isDuplicator = id === "900";
     const isPeriodNode = id === PERIOD_BRICK_ID;
     const isCompactTool = isDuplicator || isPeriodNode;

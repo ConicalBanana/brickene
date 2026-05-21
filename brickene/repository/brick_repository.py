@@ -150,7 +150,7 @@ class BrickStore:
         return str(row["svg_text"])
 
     def get_brick_layout(self, brick_id: str) -> dict[str, Any] | None:
-        """Return one stored layout JSON payload for a built-in brick id."""
+        """Return one stored layout JSON payload for a system or user brick id."""
 
         with self._connect() as connection:
             row = connection.execute(
@@ -160,6 +160,19 @@ class BrickStore:
                 WHERE id = ?
                 """,
                 (str(brick_id).strip(),),
+            ).fetchone()
+
+        if row is not None and row["layout_json"] is not None:
+            return json.loads(row["layout_json"])
+
+        row_id = self._parse_user_brick_id(brick_id)
+        if row_id is None:
+            return None
+
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT layout_json FROM user_bricks WHERE id = ?",
+                (row_id,),
             ).fetchone()
 
         if row is None or row["layout_json"] is None:
@@ -172,10 +185,18 @@ class BrickStore:
         definition: dict[str, Any],
         *,
         svg_text: str | None = None,
+        layout_payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Insert one normalized brick definition and return the stored record."""
 
-        return self._upsert_user_brick(definition, svg_text=svg_text)
+        layout_json = (
+            json.dumps(layout_payload, sort_keys=True)
+            if layout_payload is not None
+            else None
+        )
+        return self._upsert_user_brick(
+            definition, svg_text=svg_text, layout_json=layout_json
+        )
 
     def upsert_user_brick(
         self,
@@ -183,13 +204,20 @@ class BrickStore:
         *,
         public_id: str,
         svg_text: str | None = None,
+        layout_payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Insert or replace one user brick while preserving its public id."""
 
+        layout_json = (
+            json.dumps(layout_payload, sort_keys=True)
+            if layout_payload is not None
+            else None
+        )
         return self._upsert_user_brick(
             definition,
             public_id=public_id,
             svg_text=svg_text,
+            layout_json=layout_json,
         )
 
     def _upsert_user_brick(
@@ -197,6 +225,7 @@ class BrickStore:
         definition: dict[str, Any],
         public_id: str | None = None,
         svg_text: str | None = None,
+        layout_json: str | None = None,
     ) -> dict[str, Any]:
         """Insert or update one normalized user brick definition."""
 
@@ -215,23 +244,24 @@ class BrickStore:
             if row_id is None:
                 cursor = connection.execute(
                     """
-                    INSERT INTO user_bricks (definition_json, svg_text)
-                    VALUES (?, ?)
+                    INSERT INTO user_bricks (definition_json, svg_text, layout_json)
+                    VALUES (?, ?, ?)
                     """,
-                    (serialized_definition, svg_text),
+                    (serialized_definition, svg_text, layout_json),
                 )
                 persisted_row_id = int(cursor.lastrowid)
             else:
                 connection.execute(
                     """
-                    INSERT INTO user_bricks (id, definition_json, svg_text)
-                    VALUES (?, ?, ?)
+                    INSERT INTO user_bricks (id, definition_json, svg_text, layout_json)
+                    VALUES (?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                         definition_json = excluded.definition_json,
                         svg_text = excluded.svg_text,
+                        layout_json = excluded.layout_json,
                         updated_at = CURRENT_TIMESTAMP
                     """,
-                    (row_id, serialized_definition, svg_text),
+                    (row_id, serialized_definition, svg_text, layout_json),
                 )
                 persisted_row_id = row_id
 
@@ -438,6 +468,7 @@ class BrickStore:
                 """
             )
             self._ensure_column(connection, "user_bricks", "svg_text", "TEXT")
+            self._ensure_column(connection, "user_bricks", "layout_json", "TEXT")
 
     @staticmethod
     def _format_user_brick_id(row_id: int) -> str:
@@ -586,19 +617,25 @@ class RuntimeBrickStore:
         return self._system_store.get_brick_svg_text(normalized_brick_id)
 
     def get_brick_layout(self, brick_id: str) -> dict[str, Any] | None:
-        """Return one stored layout JSON payload for a built-in brick id."""
+        """Return one stored layout JSON payload for a system or user brick id."""
 
-        return self._system_store.get_brick_layout(brick_id)
+        normalized_brick_id = str(brick_id).strip()
+        if normalized_brick_id.startswith("user-"):
+            return self._user_store.get_brick_layout(normalized_brick_id)
+        return self._system_store.get_brick_layout(normalized_brick_id)
 
     def save_brick(
         self,
         definition: dict[str, Any],
         *,
         svg_text: str | None = None,
+        layout_payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Persist one user-defined brick in the user database."""
 
-        return self._user_store.save_brick(definition, svg_text=svg_text)
+        return self._user_store.save_brick(
+            definition, svg_text=svg_text, layout_payload=layout_payload
+        )
 
     def count_bricks(self) -> int:
         """Return the number of stored user-defined bricks."""

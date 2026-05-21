@@ -819,6 +819,44 @@ def test_render_server_bricks_endpoint_stores_and_lists_definitions(
     assert get_body["definition"]["name"] == definition["name"]
 
 
+def test_render_server_bricks_endpoint_stores_layout_for_user_bricks(
+    render_server_address: tuple[TestClient, Path, Path],
+) -> None:
+    """POST /bricks should persist layout geometry so GET /bricks/{id}/layout works."""
+
+    definition = build_user_defined_definition()
+    create_status, _headers, create_payload = perform_request(
+        render_server_address[0],
+        "POST",
+        "/bricks",
+        body=json.dumps({"definition": definition}),
+        headers={"Content-Type": "application/json"},
+    )
+    assert create_status == 201
+    stored_id = json.loads(create_payload)["definition"]["id"]
+    assert stored_id.startswith("user-")
+
+    layout_status, layout_headers, layout_payload = perform_request(
+        render_server_address[0],
+        "GET",
+        f"/bricks/{stored_id}/layout",
+    )
+    layout_body = json.loads(layout_payload)
+
+    assert layout_status == 200
+    assert layout_headers["content-type"] == "application/json"
+    assert isinstance(layout_body.get("image_width"), (int, float))
+    assert isinstance(layout_body.get("image_height"), (int, float))
+    assert isinstance(layout_body.get("ports"), dict)
+    # The test definition has SMILES with two port atoms; both should appear.
+    assert len(layout_body["ports"]) >= 1
+    for port_data in layout_body["ports"].values():
+        assert "port_start_pos" in port_data
+        assert "port_vec" in port_data
+        assert len(port_data["port_start_pos"]) == 2
+        assert len(port_data["port_vec"]) == 2
+
+
 def test_render_server_smiles_endpoint_supports_stored_user_defined_bricks(
     render_server_address: tuple[TestClient, Path, Path],
 ) -> None:

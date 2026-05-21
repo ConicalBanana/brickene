@@ -731,6 +731,7 @@
   frontend.save = save;
   frontend.open = open;
   frontend.copySelection = copySelection;
+  frontend.fetchGraphSmilesText = fetchGraphSmilesText;
   frontend.copyGraphAsSmiles = copyGraphAsSmiles;
   frontend.pasteSelection = pasteSelection;
   frontend.pasteSelectionSnapshot = pasteSelectionSnapshot;

@@ -1774,6 +1774,7 @@
     bindMenuEvents();
     bindKeyboardEvents();
     bindViewportEvents();
+    bindMessageBridge();
   }
 
   frontend.syncPanShortcutState = syncPanShortcutState;
@@ -1789,5 +1790,75 @@
   frontend.setInteractionGuard = setInteractionGuard;
   frontend.prepareCanvasContextMenu = prepareCanvasContextMenu;
   frontend.resetContextMenuPortals = resetContextMenuPortals;
+
+  // ---------------------------------------------------------------------------
+  // iframe postMessage communication bridge
+  //
+  // Protocol:
+  //   Request  → { type: "brickene:requestGraphState" }
+  //   Response ← { type: "brickene:graphState", graph: { version, nodes, edges } }
+  //
+  //   Request  → { type: "brickene:requestSmiles" }
+  //   Response ← { type: "brickene:smiles", smiles: "<SMILES string>" }
+  //            ← { type: "brickene:error", request: "brickene:requestSmiles", message: "..." } on failure
+  //
+  // All responses carry the original request `type` in `requestType` and a
+  // monotonic `timestamp` (ms since epoch) for correlation.
+  // ---------------------------------------------------------------------------
+
+  const BRIDGE_ORIGIN_ANY = "*";
+
+  function sendBridgeMessage(target, origin, payload) {
+    try {
+      target.postMessage(payload, origin);
+    } catch (_err) {
+      // Target may have closed; ignore silently.
+    }
+  }
+
+  function bindMessageBridge() {
+    window.addEventListener("message", async (event) => {
+      const data = event.data;
+      if (!data || typeof data !== "object" || typeof data.type !== "string") {
+        return;
+      }
+
+      const replyTarget = event.source;
+      const replyOrigin = event.origin || BRIDGE_ORIGIN_ANY;
+      const ts = Date.now();
+
+      if (data.type === "brickene:requestGraphState") {
+        sendBridgeMessage(replyTarget, replyOrigin, {
+          type: "brickene:graphState",
+          requestType: data.type,
+          timestamp: ts,
+          graph: frontend.exportGraphState(),
+        });
+        return;
+      }
+
+      if (data.type === "brickene:requestSmiles") {
+        try {
+          const smiles = (await frontend.fetchGraphSmilesText()).trim();
+          sendBridgeMessage(replyTarget, replyOrigin, {
+            type: "brickene:smiles",
+            requestType: data.type,
+            timestamp: ts,
+            smiles,
+          });
+        } catch (err) {
+          sendBridgeMessage(replyTarget, replyOrigin, {
+            type: "brickene:error",
+            requestType: data.type,
+            timestamp: ts,
+            message: err instanceof Error ? err.message : "Failed to export SMILES.",
+          });
+        }
+        return;
+      }
+    });
+  }
+
+  frontend.bindMessageBridge = bindMessageBridge;
   frontend.bootstrap = bootstrap;
 })();

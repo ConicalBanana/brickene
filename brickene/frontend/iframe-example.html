@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brickene Embedding Example</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #1a1a2e;
+        color: #e0e0e0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        gap: 0;
+      }
+
+      .host-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: #16213e;
+        border-bottom: 1px solid #0f3460;
+        flex-shrink: 0;
+      }
+
+      .host-toolbar h1 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: #e94560;
+      }
+
+      .host-toolbar button {
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid #0f3460;
+        border-radius: 4px;
+        background: #0f3460;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .host-toolbar button:hover {
+        background: #1a4a80;
+      }
+
+      .main-area {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      iframe#brickene-frame {
+        flex: 1;
+        border: none;
+        border-right: 1px solid #0f3460;
+        min-width: 0;
+      }
+
+      .result-panel {
+        width: 340px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        background: #16213e;
+        overflow: hidden;
+      }
+
+      .result-panel h2 {
+        margin: 0;
+        padding: 12px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #8888aa;
+        border-bottom: 1px solid #0f3460;
+        flex-shrink: 0;
+      }
+
+      .result-block {
+        padding: 12px 16px;
+        border-bottom: 1px solid #0f3460;
+        flex-shrink: 0;
+      }
+
+      .result-block label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #8888aa;
+        margin-bottom: 6px;
+      }
+
+      .result-block pre {
+        margin: 0;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-family: "Menlo", "Consolas", monospace;
+        background: #0f1929;
+        border: 1px solid #0f3460;
+        border-radius: 4px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 200px;
+        overflow-y: auto;
+        color: #b0ffd0;
+      }
+
+      #smiles-output {
+        color: #ffd0b0;
+      }
+
+      .status-bar {
+        margin-top: auto;
+        padding: 8px 16px;
+        font-size: 11px;
+        color: #8888aa;
+        border-top: 1px solid #0f3460;
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      HOST TOOLBAR
+      Buttons here live in the outer (host) page.
+      They use postMessage to communicate with the Brickene editor inside the iframe.
+    -->
+    <header class="host-toolbar">
+      <h1>Host Page</h1>
+      <button id="btn-get-graph">Get graph state</button>
+      <button id="btn-get-smiles">Get SMILES</button>
+    </header>
+
+    <div class="main-area">
+      <!--
+        BRICKENE EDITOR
+        Serve the brickene/frontend/ directory with a static HTTP server, then set
+        this src to point at index.html.  The renderApiUrl search parameter tells
+        the editor where the Python backend is listening.
+
+        Example (http-server or python -m http.server):
+          src="http://localhost:8080/index.html?renderApiUrl=http://127.0.0.1:8765/graph/render"
+      -->
+      <iframe
+        id="brickene-frame"
+        src="./index.html"
+        title="Brickene molecule editor"
+        allow="clipboard-write"
+      ></iframe>
+
+      <!-- RESULT PANEL — shows responses from the editor -->
+      <aside class="result-panel">
+        <h2>Responses</h2>
+
+        <div class="result-block">
+          <label>Graph state</label>
+          <pre id="graph-output">— waiting for request —</pre>
+        </div>
+
+        <div class="result-block">
+          <label>SMILES</label>
+          <pre id="smiles-output">— waiting for request —</pre>
+        </div>
+
+        <p class="status-bar" id="status-bar">Ready.</p>
+      </aside>
+    </div>
+
+    <script>
+      /**
+       * Brickene iframe communication protocol
+       *
+       * REQUEST TYPES (host → editor):
+       *   { type: "brickene:requestGraphState" }
+       *   { type: "brickene:requestSmiles" }
+       *
+       * RESPONSE TYPES (editor → host):
+       *   { type: "brickene:graphState",  requestType, timestamp, graph: { version, nodes, edges } }
+       *   { type: "brickene:smiles",      requestType, timestamp, smiles }
+       *   { type: "brickene:error",       requestType, timestamp, message }
+       */
+
+      const BRICKENE_ORIGIN = "*"; // tighten to the editor's exact origin in production
+      const frame = document.getElementById("brickene-frame");
+      const graphOutput = document.getElementById("graph-output");
+      const smilesOutput = document.getElementById("smiles-output");
+      const statusBar = document.getElementById("status-bar");
+
+      function setStatus(text) {
+        statusBar.textContent = text;
+      }
+
+      // -----------------------------------------------------------------------
+      // Listen for messages from the editor
+      // -----------------------------------------------------------------------
+      window.addEventListener("message", (event) => {
+        // In production, guard the origin:
+        // if (event.origin !== "http://localhost:8080") return;
+
+        const data = event.data;
+        if (!data || typeof data.type !== "string" || !data.type.startsWith("brickene:")) {
+          return;
+        }
+
+        const ts = new Date(data.timestamp).toLocaleTimeString();
+
+        if (data.type === "brickene:graphState") {
+          graphOutput.textContent = JSON.stringify(data.graph, null, 2);
+          setStatus(`Graph state received at ${ts}.`);
+          return;
+        }
+
+        if (data.type === "brickene:smiles") {
+          smilesOutput.textContent = data.smiles || "(empty)";
+          setStatus(`SMILES received at ${ts}: ${data.smiles}`);
+          return;
+        }
+
+        if (data.type === "brickene:error") {
+          const target = data.requestType === "brickene:requestSmiles" ? smilesOutput : graphOutput;
+          target.textContent = `Error: ${data.message}`;
+          setStatus(`Error at ${ts}: ${data.message}`);
+        }
+      });
+
+      // -----------------------------------------------------------------------
+      // Send requests to the editor
+      // -----------------------------------------------------------------------
+      document.getElementById("btn-get-graph").addEventListener("click", () => {
+        frame.contentWindow.postMessage({ type: "brickene:requestGraphState" }, BRICKENE_ORIGIN);
+        setStatus("Requesting graph state…");
+      });
+
+      document.getElementById("btn-get-smiles").addEventListener("click", () => {
+        frame.contentWindow.postMessage({ type: "brickene:requestSmiles" }, BRICKENE_ORIGIN);
+        setStatus("Requesting SMILES…");
+      });
+    </script>
+  </body>
+</html>

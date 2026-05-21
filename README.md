@@ -1,6 +1,7 @@
 # brickene
 
 <div align="center">
+
 [![Build status](https://github.com/ConicalBanana/brickene/workflows/build/badge.svg?branch=main&event=push)](https://github.com/ConicalBanana/brickene/actions?query=workflow%3Abuild)
 [![Python Version](https://img.shields.io/pypi/pyversions/brickene.svg)](https://pypi.org/project/brickene/)
 [![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/ConicalBanana/brickene/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)

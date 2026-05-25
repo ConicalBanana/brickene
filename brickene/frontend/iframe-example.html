@@ -134,6 +134,12 @@
         border-top: 1px solid #0f3460;
         flex-shrink: 0;
       }
+
+      /* Applied dynamically by the ?scale= URL parameter. */
+      body.is-scaled {
+        transform-origin: top left;
+        overflow: hidden;
+      }
     </style>
   </head>
   <body>
@@ -252,6 +258,30 @@
         frame.contentWindow.postMessage({ type: "brickene:requestSmiles" }, BRICKENE_ORIGIN);
         setStatus("Requesting SMILES…");
       });
+    </script>
+
+    <!--
+      SCALE PARAMETER
+      Append ?scale=<ratio> to the page URL to resize all components proportionally.
+      Example: iframe-example.html?scale=0.5  → renders at 50 % of normal size.
+
+      Technique: CSS transform: scale() shrinks the visual rendering while keeping the
+      layout box unchanged.  We compensate by expanding the body's logical dimensions to
+      100%/scale so the scaled content still fills the visible viewport area.
+    -->
+    <script>
+      (function applyScaleParam() {
+        const raw = new URLSearchParams(location.search).get("scale");
+        const scale = parseFloat(raw);
+        if (!raw || isNaN(scale) || scale <= 0 || scale === 1) return;
+
+        const body = document.body;
+        body.classList.add("is-scaled");
+        body.style.transform = `scale(${scale})`;
+        // Expand logical dimensions so the scaled box fills the viewport.
+        body.style.width = `${100 / scale}%`;
+        body.style.height = `${100 / scale}vh`;
+      })();
     </script>
   </body>
 </html>

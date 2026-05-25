@@ -148,5 +148,28 @@
     <script src="./scripts/render-layer.js"></script>
     <script src="./scripts/canvas.js"></script>
     <script src="./app.js"></script>
+
+    <!--
+      SCALE PARAMETER
+      Append ?scale=<ratio> to the page URL to resize all UI components
+      proportionally.  Example: index.html?scale=0.5
+
+      The same parameter is forwarded from iframe-example-small.html so the
+      editor can be embedded at a reduced size inside a narrower host frame.
+    -->
+    <script>
+      (function applyScaleParam() {
+        const raw = new URLSearchParams(location.search).get("scale");
+        const scale = parseFloat(raw);
+        if (!raw || isNaN(scale) || scale <= 0 || scale === 1) return;
+
+        const body = document.body;
+        body.style.transformOrigin = "top left";
+        body.style.transform = `scale(${scale})`;
+        body.style.width = `${100 / scale}%`;
+        body.style.height = `${100 / scale}vh`;
+        body.style.overflow = "hidden";
+      })();
+    </script>
   </body>
 </html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brickene Embedding Example — Small</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #0d0d1a;
+        color: #e0e0e0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      /* -----------------------------------------------------------------------
+         Outer page chrome — intentionally compact to demonstrate a half-width
+         embedding.  The editor iframe is ~50 vw wide; the result panel takes
+         the remaining space.
+      ----------------------------------------------------------------------- */
+      .host-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        background: #16213e;
+        border-bottom: 1px solid #0f3460;
+        flex-shrink: 0;
+      }
+
+      .host-toolbar h1 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: #e94560;
+      }
+
+      .host-toolbar .scale-badge {
+        font-size: 10px;
+        padding: 2px 7px;
+        border: 1px solid #e94560;
+        border-radius: 10px;
+        color: #e94560;
+        letter-spacing: 0.04em;
+      }
+
+      .host-toolbar button {
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 500;
+        border: 1px solid #0f3460;
+        border-radius: 4px;
+        background: #0f3460;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .host-toolbar button:hover {
+        background: #1a4a80;
+      }
+
+      .main-area {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /*
+        The editor iframe is constrained to approximately half the viewport
+        width so this page acts as a compact / low-resolution embedding example.
+        Adjust --editor-width below or pass ?editorWidth=<px> in the URL.
+      */
+      :root {
+        --editor-width: 50vw;
+      }
+
+      .editor-container {
+        width: var(--editor-width);
+        flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+        border-right: 1px solid #0f3460;
+      }
+
+      /*
+        The iframe is rendered at its natural size (100 % × 100 %) but the
+        editor itself is scaled down via the ?scale= URL parameter so its
+        internal UI fits the narrower container.
+      */
+      iframe#brickene-frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+      }
+
+      .result-panel {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: #16213e;
+        overflow: hidden;
+      }
+
+      .result-panel h2 {
+        margin: 0;
+        padding: 10px 14px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #8888aa;
+        border-bottom: 1px solid #0f3460;
+        flex-shrink: 0;
+      }
+
+      .result-block {
+        padding: 10px 14px;
+        border-bottom: 1px solid #0f3460;
+        flex-shrink: 0;
+      }
+
+      .result-block label {
+        display: block;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #8888aa;
+        margin-bottom: 5px;
+      }
+
+      .result-block pre {
+        margin: 0;
+        padding: 6px 8px;
+        font-size: 11px;
+        font-family: "Menlo", "Consolas", monospace;
+        background: #0f1929;
+        border: 1px solid #0f3460;
+        border-radius: 4px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 160px;
+        overflow-y: auto;
+        color: #b0ffd0;
+      }
+
+      #smiles-output {
+        color: #ffd0b0;
+      }
+
+      .status-bar {
+        margin-top: auto;
+        padding: 6px 14px;
+        font-size: 10px;
+        color: #8888aa;
+        border-top: 1px solid #0f3460;
+        flex-shrink: 0;
+      }
+
+      /* Applied dynamically by the ?scale= URL parameter. */
+      body.is-scaled {
+        transform-origin: top left;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      HOST TOOLBAR
+    -->
+    <header class="host-toolbar">
+      <h1>Host Page — Small</h1>
+      <span class="scale-badge" id="scale-badge">scale: 1×</span>
+      <button id="btn-get-graph">Get graph state</button>
+      <button id="btn-get-smiles">Get SMILES</button>
+    </header>
+
+    <div class="main-area">
+      <!--
+        BRICKENE EDITOR — embedded at ~50 vw width.
+
+        The editor iframe src is set dynamically so that it forwards the active
+        ?scale= ratio into the Brickene editor (index.html also honours the
+        same parameter).  Without a scale override the editor renders at full
+        resolution inside the narrower container, which clips it; passing
+        scale=0.5 (default for this page) shrinks the internal UI to fit.
+
+        Customise at load time:
+          iframe-example-small.html                  → default scale 0.5
+          iframe-example-small.html?scale=0.4        → 40 % scale
+          iframe-example-small.html?editorWidth=700  → 700 px editor column
+      -->
+      <div class="editor-container" id="editor-container">
+        <iframe
+          id="brickene-frame"
+          title="Brickene molecule editor (small)"
+          allow="clipboard-write"
+        ></iframe>
+      </div>
+
+      <aside class="result-panel">
+        <h2>Responses</h2>
+
+        <div class="result-block">
+          <label>Graph state</label>
+          <pre id="graph-output">— waiting for request —</pre>
+        </div>
+
+        <div class="result-block">
+          <label>SMILES</label>
+          <pre id="smiles-output">— waiting for request —</pre>
+        </div>
+
+        <p class="status-bar" id="status-bar">Ready.</p>
+      </aside>
+    </div>
+
+    <script>
+      /**
+       * Brickene iframe communication protocol
+       *
+       * REQUEST TYPES (host → editor):
+       *   { type: "brickene:requestGraphState" }
+       *   { type: "brickene:requestSmiles" }
+       *
+       * RESPONSE TYPES (editor → host):
+       *   { type: "brickene:graphState",  requestType, timestamp, graph }
+       *   { type: "brickene:smiles",      requestType, timestamp, smiles }
+       *   { type: "brickene:error",       requestType, timestamp, message }
+       */
+
+      // -----------------------------------------------------------------------
+      // Parse URL parameters
+      // -----------------------------------------------------------------------
+      const params = new URLSearchParams(location.search);
+
+      /**
+       * scale — shrink ratio applied to the entire host page AND forwarded
+       * into the embedded Brickene editor.  Defaults to 0.5 (half size).
+       */
+      const scale = (() => {
+        const raw = params.get("scale");
+        const v = parseFloat(raw);
+        return raw && !isNaN(v) && v > 0 ? v : 0.5;
+      })();
+
+      /**
+       * editorWidth — optional override for the editor column width (px).
+       * If omitted the CSS --editor-width variable (50 vw) is used.
+       */
+      const editorWidthPx = (() => {
+        const raw = params.get("editorWidth");
+        const v = parseInt(raw, 10);
+        return raw && !isNaN(v) && v > 0 ? v : null;
+      })();
+
+      // -----------------------------------------------------------------------
+      // Apply host-page scale transform
+      // -----------------------------------------------------------------------
+      (function applyPageScale() {
+        if (scale === 1) return;
+        const body = document.body;
+        body.classList.add("is-scaled");
+        body.style.transform = `scale(${scale})`;
+        body.style.width = `${100 / scale}%`;
+        body.style.height = `${100 / scale}vh`;
+      })();
+
+      // -----------------------------------------------------------------------
+      // Apply optional editor column width override
+      // -----------------------------------------------------------------------
+      if (editorWidthPx !== null) {
+        document.getElementById("editor-container").style.width = `${editorWidthPx}px`;
+      }
+
+      // -----------------------------------------------------------------------
+      // Build the iframe src, forwarding the scale into the editor
+      // -----------------------------------------------------------------------
+      (function initFrame() {
+        const frame = document.getElementById("brickene-frame");
+        const editorParams = new URLSearchParams();
+        editorParams.set("scale", scale);
+        frame.src = `./index.html?${editorParams.toString()}`;
+      })();
+
+      // Update badge
+      document.getElementById("scale-badge").textContent = `scale: ${scale}×`;
+
+      // -----------------------------------------------------------------------
+      // Communication
+      // -----------------------------------------------------------------------
+      const BRICKENE_ORIGIN = "*";
+      const frame = document.getElementById("brickene-frame");
+      const graphOutput = document.getElementById("graph-output");
+      const smilesOutput = document.getElementById("smiles-output");
+      const statusBar = document.getElementById("status-bar");
+
+      function setStatus(text) {
+        statusBar.textContent = text;
+      }
+
+      window.addEventListener("message", (event) => {
+        const data = event.data;
+        if (!data || typeof data.type !== "string" || !data.type.startsWith("brickene:")) {
+          return;
+        }
+
+        const ts = new Date(data.timestamp).toLocaleTimeString();
+
+        if (data.type === "brickene:graphState") {
+          graphOutput.textContent = JSON.stringify(data.graph, null, 2);
+          setStatus(`Graph state received at ${ts}.`);
+          return;
+        }
+
+        if (data.type === "brickene:smiles") {
+          smilesOutput.textContent = data.smiles || "(empty)";
+          setStatus(`SMILES received at ${ts}: ${data.smiles}`);
+          return;
+        }
+
+        if (data.type === "brickene:error") {
+          const target =
+            data.requestType === "brickene:requestSmiles" ? smilesOutput : graphOutput;
+          target.textContent = `Error: ${data.message}`;
+          setStatus(`Error at ${ts}: ${data.message}`);
+        }
+      });
+
+      document.getElementById("btn-get-graph").addEventListener("click", () => {
+        frame.contentWindow.postMessage(
+          { type: "brickene:requestGraphState" },
+          BRICKENE_ORIGIN
+        );
+        setStatus("Requesting graph state…");
+      });
+
+      document.getElementById("btn-get-smiles").addEventListener("click", () => {
+        frame.contentWindow.postMessage(
+          { type: "brickene:requestSmiles" },
+          BRICKENE_ORIGIN
+        );
+        setStatus("Requesting SMILES…");
+      });
+    </script>
+  </body>
+</html>

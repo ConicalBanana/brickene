@@ -24,6 +24,7 @@ export default withPwa(
           items: [
             { text: "Getting Started", link: "/guide/" },
             { text: "Installation", link: "/guide/installation" },
+            { text: "Embedding & Scaling", link: "/guide/embedding" },
           ],
         },
         {

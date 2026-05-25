@@ -24,7 +24,7 @@ classifiers = [  #! Update me
   "Topic :: Software Development :: Libraries :: Python Modules",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11.15",
+  "Programming Language :: Python :: 3.11",
 ]
 
 [tool.poetry.scripts]
@@ -40,7 +40,7 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 priority = "primary"
 
 [tool.poetry.dependencies]
-python = "3.11.15"
+python = "~3.11"
 
 typer = {extras = ["all"], version = "^0.4.0"}
 rich = "^10.13.0"

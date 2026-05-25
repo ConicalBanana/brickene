@@ -44,6 +44,15 @@ You could open frontend+backend using the quick-start script:
 ./start.sh
 ```
 
+### Keyboard shortcut
+
+- `Q` when cursor is on a port: Create a new node from a port.
+- `Delete`: Delete a selected node/edge.
+- `shift + Q`: Create a new node on the canvas.
+- `CMD/Ctrl + A`: Select all node.
+- `CMD/Ctrl + C`: Copy selected node(s) and edge(s).
+- `CMD/Ctrl + V`: Paste selected node(s) and edge(s).
+
 ### Makefile usage
 
 [`Makefile`](https://github.com/ConicalBanana/brickene/blob/main/Makefile) contains a lot of functions for faster development.
@@ -201,15 +210,6 @@ make cleanup
 </p>
 </details>
 
-### Keyboard shortcut
-
-- `Q` when cursor is on a port: Create a new node from a port.
-- `Delete`: Delete a selected node/edge.
-- `shift + Q`: Create a new node on the canvas.
-- `CMD/Ctrl + A`: Select all node.
-- `CMD/Ctrl + C`: Copy selected node(s) and edge(s).
-- `CMD/Ctrl + V`: Paste selected node(s) and edge(s).
-
 ## 🛡 License
 
 [![License](https://img.shields.io/github/license/ConicalBanana/brickene)](https://github.com/ConicalBanana/brickene/blob/main/LICENSE)
@@ -235,4 +235,4 @@ This project is licensed under the terms of the `MIT` license. See [LICENSE](htt
 
 - This project was generated with [P3G](https://github.com/Undertone0809/P3G)
 
-- Some vectors and icons are shared by <a href="https://www.svgrepo.com" target="_blank">SVG Repo</a>
+- Some vectors and icons are shared by [SVG Repo](https://www.svgrepo.com)

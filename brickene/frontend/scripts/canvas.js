@@ -1856,6 +1856,36 @@
         }
         return;
       }
+
+      if (data.type === "brickene:loadGraphState") {
+        try {
+          if (data.graph) {
+            frontend.importGraphState(data.graph);
+          }
+        } catch (_err) {
+          // Ignore invalid graph state silently.
+        }
+        return;
+      }
+    });
+
+    // Push SMILES to parent whenever the graph changes (debounced).
+    let _pushDebounceTimer = null;
+    frontend.dom.canvasViewport.addEventListener(frontend.GRAPH_CHANGE_EVENT, () => {
+      clearTimeout(_pushDebounceTimer);
+      _pushDebounceTimer = setTimeout(async () => {
+        try {
+          const smiles = (await frontend.fetchGraphSmilesText()).trim();
+          sendBridgeMessage(window.parent, BRIDGE_ORIGIN_ANY, {
+            type: "brickene:graphStateChanged",
+            timestamp: Date.now(),
+            smiles,
+            graph: frontend.exportGraphState(),
+          });
+        } catch (_err) {
+          // Ignore fetch errors during auto-push.
+        }
+      }, 600);
     });
   }
 

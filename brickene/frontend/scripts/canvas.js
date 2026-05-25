@@ -1370,6 +1370,67 @@
     return true;
   }
 
+  // Natural menu widths, measured once before any compact class is applied.
+  let naturalMenuWidths = null;
+
+  function syncMenuCompactState() {
+    const menuRegion = dom.menuRegion;
+    if (!menuRegion) {
+      return;
+    }
+
+    // Measure natural widths on first call (before any compact class is set).
+    if (!naturalMenuWidths) {
+      naturalMenuWidths = {
+        nav: dom.menuActionsWrap?.offsetWidth || 0,
+        brand: dom.brandBlock?.offsetWidth || 0,
+        meta: dom.menuMeta?.offsetWidth || 0,
+      };
+    }
+
+    const { nav, brand, meta } = naturalMenuWidths;
+    // editorRoot.offsetWidth is the CSS layout width (scale-independent).
+    const availableWidth = dom.editorRoot.offsetWidth;
+    const GAP = 8;
+
+    // Hide version badge first: when nav + brand + meta no longer fit side-by-side.
+    // (brand is centred; each side needs space for nav/meta + half-brand.)
+    const hideVersion = availableWidth < 2 * nav + brand + meta + 2 * GAP;
+    // Hide title next: when nav alone crowds the centred brand.
+    const hideTitle = availableWidth < 2 * nav + brand + 2 * GAP;
+
+    menuRegion.classList.toggle("menu--compact", hideVersion);
+    menuRegion.classList.toggle("menu--minimal", hideTitle);
+  }
+
+  function clampOpenMenusToBounds() {
+    const vpWidth = dom.canvasViewport.offsetWidth;
+    const vpHeight = dom.canvasViewport.offsetHeight;
+
+    function clampMenu(el, defaultWidth, defaultHeight) {
+      const menuWidth = el.offsetWidth || defaultWidth;
+      const menuHeight = el.offsetHeight || defaultHeight;
+      const left = parseFloat(el.style.left) || 8;
+      const top = parseFloat(el.style.top) || 8;
+
+      el.style.left = `${Math.min(Math.max(8, left), vpWidth - menuWidth - 8)}px`;
+      el.style.top = `${Math.min(Math.max(8, top), vpHeight - menuHeight - 8)}px`;
+    }
+
+    if (dom.canvasContextMenu?.classList.contains("is-open")) {
+      clampMenu(dom.canvasContextMenu, 192, 152);
+    }
+    if (dom.nodeContextMenu?.classList.contains("is-open")) {
+      clampMenu(dom.nodeContextMenu, 160, 120);
+    }
+    if (dom.edgeContextMenu?.classList.contains("is-open")) {
+      clampMenu(dom.edgeContextMenu, 160, 120);
+    }
+    if (dom.portCommandPanel?.offsetParent) {
+      clampMenu(dom.portCommandPanel, 320, 220);
+    }
+  }
+
   function endComponentInteraction(event) {
     const ui = frontend.getUiState();
     if (!ui.componentInteraction || event.pointerId !== ui.componentInteraction.pointerId) {
@@ -1418,6 +1479,8 @@
       resizeFrameId = window.requestAnimationFrame(() => {
         resizeFrameId = null;
         frontend.renderEdges();
+        syncMenuCompactState();
+        clampOpenMenusToBounds();
       });
     }
 
@@ -1480,6 +1543,12 @@
     });
 
     window.visualViewport?.addEventListener("resize", refreshLayoutAfterResize);
+
+    // Also watch the editor container itself so embedded iframes react when
+    // the host page resizes the editor column without triggering window.resize.
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(() => refreshLayoutAfterResize()).observe(dom.editorRoot);
+    }
   }
 
   function bindKeyboardEvents() {
@@ -1782,6 +1851,7 @@
     bindKeyboardEvents();
     bindViewportEvents();
     bindMessageBridge();
+    syncMenuCompactState();
   }
 
   frontend.syncPanShortcutState = syncPanShortcutState;

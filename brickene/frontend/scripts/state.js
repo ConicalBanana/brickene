@@ -87,6 +87,10 @@
 
   frontend.dom = {
     editorRoot: document.getElementById("editor-root"),
+    menuRegion: document.querySelector(".menu-region"),
+    menuActionsWrap: document.querySelector(".menu-actions-wrap"),
+    brandBlock: document.querySelector(".brand-block"),
+    menuMeta: document.querySelector(".menu-meta"),
     submenuDropdown: document.getElementById("submenu-dropdown"),
     submenuContent: document.getElementById("submenu-content"),
     menuVersion: document.getElementById("menu-version"),

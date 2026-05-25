@@ -27,7 +27,6 @@ body {
 }
 
 body {
-  min-width: 1200px;
   background: var(--page-bg);
   color: var(--text);
   font-family: Consolas, "Liberation Mono", Menlo, Monaco, monospace;
@@ -68,6 +67,15 @@ textarea {
 .brand-block,
 .menu-meta {
   min-width: 0;
+}
+
+/* Responsive menu: hide version badge first, then title, as width narrows. */
+.menu-region.menu--compact .menu-meta {
+  display: none;
+}
+
+.menu-region.menu--minimal .brand-block {
+  display: none;
 }
 
 .brand-label,

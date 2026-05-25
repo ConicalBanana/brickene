@@ -5,12 +5,25 @@
   const MAX_CANVAS_SCALE = 2.5;
   const CANVAS_SCALE_STEP = 0.1;
 
+  function getContainerScale() {
+    const rect = dom.editorRoot.getBoundingClientRect();
+    if (!rect.width) return 1;
+    return rect.width / dom.editorRoot.offsetWidth;
+  }
+
   function positionFloatingMenu(menuElement, clientX, clientY) {
     const viewportRect = dom.canvasViewport.getBoundingClientRect();
     const menuWidth = menuElement.offsetWidth || 192;
     const menuHeight = menuElement.offsetHeight || 152;
-    const left = Math.min(clientX - viewportRect.left, viewportRect.width - menuWidth - 8);
-    const top = Math.min(clientY - viewportRect.top, viewportRect.height - menuHeight - 8);
+    const cs = getContainerScale();
+    const left = Math.min(
+      (clientX - viewportRect.left) / cs,
+      dom.canvasViewport.offsetWidth - menuWidth - 8,
+    );
+    const top = Math.min(
+      (clientY - viewportRect.top) / cs,
+      dom.canvasViewport.offsetHeight - menuHeight - 8,
+    );
 
     menuElement.style.left = `${Math.max(8, left)}px`;
     menuElement.style.top = `${Math.max(8, top)}px`;
@@ -33,19 +46,21 @@
   function clientToWorldPoint(clientX, clientY) {
     const rect = dom.componentLayer.getBoundingClientRect();
     const { canvasOffset, canvasScale } = frontend.getUiState();
+    const cs = getContainerScale();
 
     return {
-      x: (clientX - rect.left - canvasOffset.x) / canvasScale,
-      y: (clientY - rect.top - canvasOffset.y) / canvasScale,
+      x: ((clientX - rect.left) / cs - canvasOffset.x) / canvasScale,
+      y: ((clientY - rect.top) / cs - canvasOffset.y) / canvasScale,
     };
   }
 
   function clientToLayerPoint(clientX, clientY) {
     const rect = dom.componentLayer.getBoundingClientRect();
+    const cs = getContainerScale();
 
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: (clientX - rect.left) / cs,
+      y: (clientY - rect.top) / cs,
     };
   }
 
@@ -124,8 +139,9 @@
     }
 
     const rect = dom.componentLayer.getBoundingClientRect();
-    const anchorLayerX = anchorClientX - rect.left;
-    const anchorLayerY = anchorClientY - rect.top;
+    const cs = getContainerScale();
+    const anchorLayerX = (anchorClientX - rect.left) / cs;
+    const anchorLayerY = (anchorClientY - rect.top) / cs;
     const worldX = (anchorLayerX - ui.canvasOffset.x) / ui.canvasScale;
     const worldY = (anchorLayerY - ui.canvasOffset.y) / ui.canvasScale;
 
@@ -145,6 +161,7 @@
     return setCanvasScale(ui.canvasScale * factor, anchorClientX, anchorClientY);
   }
 
+  frontend.getContainerScale = getContainerScale;
   frontend.positionFloatingMenu = positionFloatingMenu;
   frontend.applyViewportOffset = applyViewportOffset;
   frontend.clientToWorldPoint = clientToWorldPoint;

@@ -127,9 +127,10 @@
     }
 
     const ui = frontend.getUiState();
+    const cs = frontend.getContainerScale();
     ui.canvasOffset = {
-      x: ui.canvasOffset.x + deltaX,
-      y: ui.canvasOffset.y + deltaY,
+      x: ui.canvasOffset.x + deltaX / cs,
+      y: ui.canvasOffset.y + deltaY / cs,
     };
     frontend.applyViewportOffset();
     return { x: deltaX, y: deltaY };
@@ -218,7 +219,8 @@
 
     event.preventDefault();
     frontend.closeAllContextMenus();
-    applyCanvasOffset(-wheelDeltaX, -wheelDeltaY);
+    const cs = frontend.getContainerScale();
+    applyCanvasOffset(-wheelDeltaX / cs, -wheelDeltaY / cs);
   }
 
   function syncPanShortcutState() {
@@ -274,9 +276,10 @@
       return;
     }
 
+    const cs = frontend.getContainerScale();
     ui.canvasOffset = {
-      x: ui.canvasPanState.originX + event.clientX - ui.canvasPanState.startX,
-      y: ui.canvasPanState.originY + event.clientY - ui.canvasPanState.startY,
+      x: ui.canvasPanState.originX + (event.clientX - ui.canvasPanState.startX) / cs,
+      y: ui.canvasPanState.originY + (event.clientY - ui.canvasPanState.startY) / cs,
     };
     frontend.applyViewportOffset();
     frontend.setCanvasMessage(`Canvas translated to x ${ui.canvasOffset.x}, y ${ui.canvasOffset.y}.`);
@@ -699,13 +702,14 @@
     const portRect = portElement.getBoundingClientRect();
     const panelWidth = dom.portCommandPanel.offsetWidth || 320;
     const panelHeight = dom.portCommandPanel.offsetHeight || 220;
-    const preferredLeft = portRect.right - viewportRect.left + 12;
-    const fallbackLeft = portRect.left - viewportRect.left - panelWidth - 12;
-    const maxLeft = viewportRect.width - panelWidth - 8;
+    const cs = frontend.getContainerScale();
+    const preferredLeft = (portRect.right - viewportRect.left) / cs + 12;
+    const fallbackLeft = (portRect.left - viewportRect.left) / cs - panelWidth - 12;
+    const maxLeft = dom.canvasViewport.offsetWidth - panelWidth - 8;
     const left = preferredLeft <= maxLeft ? preferredLeft : Math.max(8, fallbackLeft);
     const top = Math.min(
-      Math.max(8, portRect.top - viewportRect.top),
-      viewportRect.height - panelHeight - 8,
+      Math.max(8, (portRect.top - viewportRect.top) / cs),
+      dom.canvasViewport.offsetHeight - panelHeight - 8,
     );
 
     dom.portCommandPanel.style.left = `${left}px`;
@@ -724,13 +728,14 @@
 
     const panelWidth = dom.portCommandPanel.offsetWidth || 320;
     const panelHeight = dom.portCommandPanel.offsetHeight || 220;
+    const cs = frontend.getContainerScale();
     const left = Math.min(
-      Math.max(8, clientX - viewportRect.left - panelWidth / 2),
-      viewportRect.width - panelWidth - 8,
+      Math.max(8, (clientX - viewportRect.left) / cs - panelWidth / 2),
+      dom.canvasViewport.offsetWidth - panelWidth - 8,
     );
     const top = Math.min(
-      Math.max(8, clientY - viewportRect.top - panelHeight / 2),
-      viewportRect.height - panelHeight - 8,
+      Math.max(8, (clientY - viewportRect.top) / cs - panelHeight / 2),
+      dom.canvasViewport.offsetHeight - panelHeight - 8,
     );
 
     dom.portCommandPanel.style.left = `${left}px`;
@@ -1632,6 +1637,8 @@
       ) {
         return;
       }
+
+      dom.canvasViewport.focus({ preventScroll: true });
 
       const edgeId = frontend.findEdgeAtClientPoint(event.clientX, event.clientY);
 

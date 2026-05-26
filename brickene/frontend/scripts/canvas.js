@@ -780,6 +780,29 @@
       return false;
     }
 
+    // ── TEMPLATE bricks: paste the full stored graph instead of a single node ──
+    if (candidate.definition?.brick_type === "TEMPLATE") {
+      const templateGraph = candidate.definition?.template_graph;
+      if (templateGraph) {
+        try {
+          const targetWorld = activePortCommand.targetWorld || null;
+          const result = frontend.pasteSelectionSnapshot(
+            templateGraph,
+            targetWorld ? { atPoint: targetWorld } : {},
+          );
+          frontend.setCanvasMessage(
+            `Template "${candidate.definition.name}" pasted (${result.nodeCount} nodes, ${result.edgeCount} edges).`,
+          );
+        } catch (_err) {
+          frontend.setCanvasMessage("Failed to paste template graph.");
+        }
+      } else {
+        frontend.setCanvasMessage("Template has no graph to paste.");
+      }
+      closePortCommandPanel();
+      return true;
+    }
+
     const sourcePort = activePortCommand.sourcePort;
 
     if (!sourcePort) {

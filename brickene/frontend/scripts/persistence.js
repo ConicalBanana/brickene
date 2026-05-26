@@ -266,7 +266,7 @@
     return snapshot;
   }
 
-  function pasteSelectionSnapshot(snapshot) {
+  function pasteSelectionSnapshot(snapshot, options = {}) {
     const graph = frontend.getGraphState();
     const ui = frontend.getUiState();
     const normalizedSnapshot = normalizeSnapshotPayload(snapshot);
@@ -278,7 +278,7 @@
       throw new Error("Clipboard selection does not contain any nodes to paste.");
     }
 
-    const viewportCenter = getCanvasViewportCenter();
+    const anchorPoint = options.atPoint || getCanvasViewportCenter();
     const importedBounds = buildNodePositionBounds(importedNodes);
     const importedCenter = importedBounds
       ? {
@@ -286,11 +286,11 @@
         y: (importedBounds.top + importedBounds.bottom) / 2,
       }
       : { x: 0, y: 0 };
-    const pasteNudge = PASTE_NUDGE_PX / Math.max(ui.canvasScale || 1, 0.01);
-    const offset = viewportCenter
+    const pasteNudge = options.atPoint ? 0 : PASTE_NUDGE_PX / Math.max(ui.canvasScale || 1, 0.01);
+    const offset = anchorPoint
       ? {
-        x: viewportCenter.x - importedCenter.x + pasteNudge,
-        y: viewportCenter.y - importedCenter.y + pasteNudge,
+        x: anchorPoint.x - importedCenter.x + pasteNudge,
+        y: anchorPoint.y - importedCenter.y + pasteNudge,
       }
       : { x: pasteNudge, y: pasteNudge };
     const nodeIdMap = new Map();

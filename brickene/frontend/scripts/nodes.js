@@ -1575,10 +1575,36 @@
     }
 
     const payload = event.data;
-    if (
-      !payload
-      || payload.source !== "brickene-node-wizard"
-    ) {
+    if (!payload) {
+      return;
+    }
+
+    // ── Template wizard messages ─────────────────────────────────
+    if (payload.source === "brickene-template-wizard") {
+      if (
+        (payload.type === "template-definition-saved" || payload.type === "template-definition-updated")
+        && payload.definition
+      ) {
+        registerBrickDefinition(payload.definition);
+        renderNodes();
+        frontend.setCanvasMessage(`Template ${payload.definition.id} saved and ready to use.`);
+      } else if (
+        payload.type === "apply-template-definition"
+        && payload.definition?.template_graph
+      ) {
+        try {
+          frontend.pasteSelectionSnapshot?.(payload.definition.template_graph);
+          frontend.setCanvasMessage("Template graph pasted onto the canvas.");
+        } catch (_err) {
+          frontend.setCanvasMessage("Failed to paste template graph.");
+        }
+      }
+
+      return;
+    }
+
+    // ── Node wizard messages ─────────────────────────────────────
+    if (payload.source !== "brickene-node-wizard") {
       return;
     }
 

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brickene Template Wizard</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./template_wizard.css" />
+  </head>
+  <body class="template-wizard-page">
+    <div class="app-shell template-wizard-shell" id="editor-root">
+      <header class="menu-region" aria-label="Template wizard menu">
+        <div class="menu-row">
+          <div class="menu-actions-wrap">
+            <nav class="menu-actions" aria-label="Primary navigation">
+              <button type="button" class="menu-button is-active" data-menu="file">File</button>
+              <button type="button" class="menu-button" data-menu="edit">Edit</button>
+              <button type="button" class="menu-button" data-menu="view">View</button>
+            </nav>
+            <div id="submenu-dropdown" class="submenu-dropdown" aria-label="Sub-menu">
+              <div id="submenu-content" class="submenu-content" role="menu"></div>
+            </div>
+          </div>
+
+          <div class="brand-block">
+            <p class="brand-label">Brickene</p>
+            <h1>Template Wizard</h1>
+          </div>
+
+          <div class="menu-meta">
+            <p id="menu-version" class="menu-version">v...</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="template-wizard-controls" role="toolbar" aria-label="Template wizard controls">
+        <div class="template-wizard-metadata">
+          <label class="template-wizard-field">
+            <span class="template-wizard-field-label">Name</span>
+            <input
+              id="template-name"
+              class="template-wizard-text-input"
+              type="text"
+              value="New Template"
+              autocomplete="off"
+            />
+          </label>
+          <label class="template-wizard-field">
+            <span class="template-wizard-field-label">Aliases</span>
+            <input
+              id="template-alias"
+              class="template-wizard-text-input"
+              type="text"
+              placeholder="Comma-separated aliases"
+              autocomplete="off"
+            />
+          </label>
+        </div>
+
+        <div class="template-wizard-actions">
+          <button type="button" id="template-wizard-save" class="template-wizard-action-button">
+            Save to database
+          </button>
+          <button type="button" id="template-wizard-send" class="template-wizard-action-button template-wizard-action-button-primary">
+            Send to canvas
+          </button>
+        </div>
+
+        <p id="template-wizard-status" class="template-wizard-status" aria-live="polite">
+          Build a graph, then save or send to canvas.
+        </p>
+      </div>
+
+      <main class="canvas-region" aria-label="Canvas workspace">
+        <input id="graph-file-input" type="file" accept=".brickene,application/json" hidden />
+        <div id="canvas-viewport" class="canvas-viewport" tabindex="-1">
+          <div class="canvas-zoom-controls" aria-label="Canvas zoom controls">
+            <button id="canvas-zoom-in" type="button" class="canvas-zoom-button" aria-label="Zoom in">+</button>
+            <button id="canvas-zoom-out" type="button" class="canvas-zoom-button" aria-label="Zoom out">-</button>
+            <button
+              id="canvas-zoom-reset"
+              type="button"
+              class="canvas-zoom-button canvas-zoom-button-reset"
+              aria-label="Reset zoom"
+            >
+              <img
+                class="canvas-zoom-button-icon"
+                src="./assets/images/reset.svg"
+                alt=""
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+          <p id="menu-state-copy" class="menu-status-copy" aria-live="polite">
+            Build a graph with nodes and edges.
+          </p>
+          <div id="canvas-layer" class="canvas-layer" aria-label="Canvas layer">
+            <div class="canvas-grid" aria-hidden="true"></div>
+            <div class="canvas-plane" aria-hidden="true">
+              <div class="canvas-origin-marker"></div>
+              <div class="canvas-axis canvas-axis-horizontal"></div>
+              <div class="canvas-axis canvas-axis-vertical"></div>
+            </div>
+          </div>
+
+          <section id="component-layer" class="component-layer" aria-label="Component layer">
+            <div id="component-world" class="component-world">
+              <svg id="edge-layer" class="edge-layer" aria-hidden="true"></svg>
+              <div id="node-container" class="node-container" aria-live="polite"></div>
+            </div>
+            <div id="selection-rect" class="selection-rect" aria-hidden="true"></div>
+          </section>
+
+          <section id="render-layer" class="render-layer" aria-label="Render layer">
+            <div id="render-preview-window" class="render-preview-window">
+              <p class="render-preview-label">Render preview</p>
+              <div class="render-preview-frame" aria-hidden="true">
+                <img id="render-preview-image" class="render-preview-image" alt="Rendered graph preview" hidden />
+              </div>
+              <p id="render-preview-meta" class="render-preview-meta">Awaiting preview refresh.</p>
+            </div>
+          </section>
+
+          <div id="canvas-context-menu" class="canvas-context-menu" role="menu" aria-label="Canvas context menu">
+            <div
+              id="canvas-node-portal"
+              class="context-menu-portal"
+              data-portal-key="canvas-node-categories"
+            >
+              <button
+                id="canvas-node-portal-trigger"
+                type="button"
+                class="context-menu-item context-menu-portal-trigger"
+                aria-haspopup="true"
+                aria-expanded="false"
+              >
+                Create new node
+              </button>
+              <div
+                id="canvas-node-category-menu"
+                class="context-portal-menu context-portal-menu-secondary"
+                role="menu"
+                aria-label="Node categories"
+              ></div>
+            </div>
+            <button type="button" class="context-menu-item" data-action="center">Center canvas</button>
+            <div class="menu-separator context-menu-separator" role="separator"></div>
+            <button type="button" class="context-menu-item" data-action="close">Close menu</button>
+          </div>
+
+          <div id="node-context-menu" class="node-context-menu" role="menu" aria-label="Node context menu">
+            <button type="button" class="context-menu-item node-context-item" data-action="delete">Delete node</button>
+            <div class="menu-separator context-menu-separator" role="separator"></div>
+            <button type="button" class="context-menu-item node-context-item" data-action="close">Close menu</button>
+          </div>
+
+          <div id="edge-context-menu" class="edge-context-menu" role="menu" aria-label="Edge context menu">
+            <button type="button" class="context-menu-item edge-context-item" data-action="delete">Delete edge</button>
+            <div class="menu-separator context-menu-separator" role="separator"></div>
+            <button type="button" class="context-menu-item edge-context-item" data-action="close">Close menu</button>
+          </div>
+
+          <div id="port-command-panel" class="port-command-panel" hidden>
+            <label class="port-command-label" for="port-command-input">Port command</label>
+            <input
+              id="port-command-input"
+              class="port-command-input"
+              type="text"
+              placeholder="Search nodes by name or alias"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <div id="port-command-list" class="port-command-list" role="listbox" aria-label="Port command matches"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="./scripts/state.js"></script>
+    <script src="./scripts/brick-configs.js"></script>
+    <script src="./scripts/menu.js"></script>
+    <script src="./scripts/geometry.js"></script>
+    <script src="./scripts/nodes.js"></script>
+    <script src="./scripts/edges.js"></script>
+    <script src="./scripts/persistence.js"></script>
+    <script src="./scripts/render-layer.js"></script>
+    <script src="./scripts/canvas.js"></script>
+    <script src="./template_wizard.js"></script>
+  </body>
+</html>

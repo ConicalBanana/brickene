@@ -19,6 +19,7 @@ class BrickType(enum.Enum):
     SUBSTITUENT = 2
     BRIDGE = 3
     TOOL = 4
+    TEMPLATE = 5
 
 
 @dataclasses.dataclass(frozen=True)

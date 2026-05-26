@@ -47,6 +47,14 @@
     return managerUrl.toString();
   })();
 
+  const templateWizardUrl = (() => {
+    const wizardUrl = new URL("./template_wizard.html", runtimeUrl);
+
+    wizardUrl.searchParams.set("renderApiUrl", renderApiUrl);
+    wizardUrl.searchParams.set("brickApiUrl", brickApiUrl);
+    return wizardUrl.toString();
+  })();
+
   frontend.config = {
     appVersion: "",
     submenuMap: {
@@ -72,7 +80,7 @@
         },
       ],
       edit: ["Undo", "Redo", "|", "Copy", "Paste", "Delete"],
-      node: ["Create node", "Open node wizard", "Node manager"],
+      node: ["Create node", "Open node wizard", "|", "Template wizard", "Node manager"],
       view: ["Center canvas", "Grid", "Reset zoom", "Zoom in", "Zoom out"],
     },
     stateMap: {
@@ -90,6 +98,7 @@
     marvinWebUrl,
     nodeWizardUrl,
     nodeManagerUrl,
+    templateWizardUrl,
     nodeSize: { width: 340, height: 188 },
     defaultPortCount: 3,
     initialNodeConfigs: [],

@@ -1,0 +1,126 @@
+:root {
+  --template-wizard-controls-height: 3rem;
+}
+
+html,
+body.template-wizard-page {
+  min-width: 0;
+  overflow: hidden;
+}
+
+body.template-wizard-page .app-shell.template-wizard-shell {
+  grid-template-rows: var(--menu-height) var(--template-wizard-controls-height) minmax(0, 1fr);
+}
+
+/* ── Controls band ────────────────────────────────────────────── */
+
+.template-wizard-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.template-wizard-metadata {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.template-wizard-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.template-wizard-field-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.template-wizard-text-input {
+  height: 1.75rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  min-width: 140px;
+}
+
+.template-wizard-text-input:focus {
+  outline: 2px solid var(--text);
+  outline-offset: -1px;
+}
+
+/* ── Action buttons ────────────────────────────────────────────── */
+
+.template-wizard-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.template-wizard-action-button {
+  height: 1.75rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.template-wizard-action-button:hover,
+.template-wizard-action-button:focus-visible {
+  background: var(--border);
+  color: var(--surface);
+  outline: none;
+}
+
+.template-wizard-action-button-primary {
+  background: var(--border);
+  color: var(--surface);
+}
+
+.template-wizard-action-button-primary:hover,
+.template-wizard-action-button-primary:focus-visible {
+  background: var(--text);
+}
+
+.template-wizard-action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Status line ───────────────────────────────────────────────── */
+
+.template-wizard-status {
+  flex: 1;
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.template-wizard-status.is-success {
+  color: #145a14;
+}
+
+.template-wizard-status.is-error {
+  color: #7a1010;
+}

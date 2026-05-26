@@ -184,9 +184,28 @@ def normalize_brick_definition(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("definition must be a JSON object.")
 
     normalized_definition = dict(definition_payload)
-    normalized_definition["brick_type"] = parse_brick_type(
+    brick_type_name = parse_brick_type(
         definition_payload.get("brick_type")
     ).name
+    normalized_definition["brick_type"] = brick_type_name
+
+    # TEMPLATE bricks store the full canvas graph in ``template_graph`` and
+    # carry no molecular nodes/edges, so skip the chemistry validation path.
+    if brick_type_name == "TEMPLATE":
+        template_graph = definition_payload.get("template_graph")
+        if not isinstance(template_graph, dict):
+            raise ValueError(
+                "TEMPLATE definition must include a template_graph object."
+            )
+        return {
+            "name": str(definition_payload.get("name") or "New Template").strip()
+            or "New Template",
+            "alias": normalize_aliases(definition_payload.get("alias")),
+            "brick_type": "TEMPLATE",
+            "nodes": [],
+            "edges": [],
+            "template_graph": template_graph,
+        }
 
     try:
         node = BrickNode.from_dict(normalized_definition)

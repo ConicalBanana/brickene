@@ -247,12 +247,15 @@ def create_app(
 
         try:
             definition = normalize_brick_definition(payload)
-            shared_coordinate_size = brick_store.get_catalog_shared_coordinate_size()
-            svg_text, layout = render_brick_definition_svg_and_layout(
-                definition,
-                image_size=image_size,
-                shared_coordinate_size=shared_coordinate_size,
-            )
+            if definition.get("brick_type") == "TEMPLATE":
+                svg_text, layout = None, None
+            else:
+                shared_coordinate_size = brick_store.get_catalog_shared_coordinate_size()
+                svg_text, layout = render_brick_definition_svg_and_layout(
+                    definition,
+                    image_size=image_size,
+                    shared_coordinate_size=shared_coordinate_size,
+                )
             stored_definition = brick_store.save_brick(
                 definition, svg_text=svg_text, layout_payload=layout
             )
@@ -306,12 +309,15 @@ def create_app(
 
         try:
             definition = normalize_brick_definition(payload)
-            shared_coordinate_size = brick_store.get_catalog_shared_coordinate_size()
-            svg_text, layout = render_brick_definition_svg_and_layout(
-                definition,
-                image_size=image_size,
-                shared_coordinate_size=shared_coordinate_size,
-            )
+            if definition.get("brick_type") == "TEMPLATE":
+                svg_text, layout = None, None
+            else:
+                shared_coordinate_size = brick_store.get_catalog_shared_coordinate_size()
+                svg_text, layout = render_brick_definition_svg_and_layout(
+                    definition,
+                    image_size=image_size,
+                    shared_coordinate_size=shared_coordinate_size,
+                )
             stored_definition = brick_store.update_brick(
                 brick_id, definition, svg_text=svg_text, layout_payload=layout
             )

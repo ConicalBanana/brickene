@@ -577,6 +577,22 @@
     return true;
   }
 
+  function openTemplateWizard() {
+    const wizardWindow = window.open(
+      frontend.config.templateWizardUrl,
+      "brickene-template-wizard",
+      "popup=yes,width=1520,height=960",
+    );
+
+    if (!wizardWindow) {
+      frontend.setCanvasMessage("Allow pop-ups to open the template wizard.");
+      return true;
+    }
+
+    frontend.setCanvasMessage("Template wizard opened in a separate window.");
+    return true;
+  }
+
   async function handleMenuAction(menuKey, actionKey) {
     if (menuKey === "file") {
       if (actionKey === "new") {
@@ -674,6 +690,10 @@
 
       if (actionKey === "open-node-wizard") {
         return openNodeWizard();
+      }
+
+      if (actionKey === "template-wizard") {
+        return openTemplateWizard();
       }
 
       if (actionKey === "node-manager") {

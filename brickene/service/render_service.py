@@ -576,6 +576,8 @@ def render_brick_definition_layout(
 def render_brick_definition_svg_and_layout(
     definition: dict[str, Any],
     image_size: int = DEFAULT_IMAGE_SIZE,
+    *,
+    shared_coordinate_size: tuple[float, float] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Render one brick definition to a cropped SVG and its layout geometry.
 
@@ -587,6 +589,9 @@ def render_brick_definition_svg_and_layout(
     Args:
         definition: JSON-compatible brick definition dict.
         image_size: Width and height of the render canvas in pixels.
+        shared_coordinate_size: When given, forces the molecule to the same
+            visual scale as the system catalog so user bricks appear at a
+            consistent size alongside catalog bricks.
 
     Returns:
         ``(svg_text, layout_dict)`` — the cropped SVG markup and the layout
@@ -608,7 +613,11 @@ def render_brick_definition_svg_and_layout(
     if molecule is None:
         return empty_svg, empty_layout
 
-    return render_molecule_svg_with_layout(molecule, image_size=image_size)
+    return render_molecule_svg_with_layout(
+        molecule,
+        image_size=image_size,
+        shared_coordinate_size=shared_coordinate_size,
+    )
 
 
 # ---------------------------------------------------------------------------

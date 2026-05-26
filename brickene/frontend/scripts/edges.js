@@ -295,14 +295,34 @@
 
   function findHoveredPort(clientX, clientY) {
     const port = document.elementFromPoint(clientX, clientY)?.closest(".node-port");
-    if (!port) {
+    if (port) {
+      return {
+        nodeId: Number(port.dataset.nodeId),
+        slotId: Number(port.dataset.slotId),
+      };
+    }
+
+    // Fallback: if the pointer is over a node body, pick its first idle port.
+    const nodeEl = document.elementFromPoint(clientX, clientY)?.closest(".node-component");
+    if (!nodeEl) {
       return null;
     }
 
-    return {
-      nodeId: Number(port.dataset.nodeId),
-      slotId: Number(port.dataset.slotId),
-    };
+    const nodeId = Number(nodeEl.dataset.nodeId);
+    const node = frontend.findNode(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    const { leftSlots, neutralSlots, rightSlots } = frontend.getPortSlotGroups(node);
+    const idleSlot = [...leftSlots, ...neutralSlots, ...rightSlots].find(
+      (slot) => slot.edgeId === null,
+    );
+    if (!idleSlot) {
+      return null;
+    }
+
+    return { nodeId, slotId: idleSlot.id };
   }
 
   function renderEdges() {

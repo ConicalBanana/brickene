@@ -296,24 +296,38 @@ def get_molecule_coordinate_bounds(molecule: Chem.Mol) -> CoordinateBounds:
     return (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
 
 
-def render_asset_payloads(
+def compute_catalog_shared_coordinate_size(
     payload: dict[str, Any],
-    image_size: int,
-) -> list[RenderedAsset]:
-    """Render the SVG and layout payload for each raw brick entry."""
+) -> tuple[float, float]:
+    """Compute the max molecule coordinate bounds across all raw catalog entries."""
 
-    molecules_by_name: dict[str, Chem.Mol] = {}
     max_coordinate_width = 0.0
     max_coordinate_height = 0.0
 
-    for brick_name, raw_entry in payload.items():
+    for raw_entry in payload.values():
         molecule = build_molecule(raw_entry["smiles"])
-        molecules_by_name[brick_name] = molecule
         min_x, min_y, max_x, max_y = get_molecule_coordinate_bounds(molecule)
         max_coordinate_width = max(max_coordinate_width, max_x - min_x)
         max_coordinate_height = max(max_coordinate_height, max_y - min_y)
 
-    shared_coordinate_size = (max_coordinate_width, max_coordinate_height)
+    return (max_coordinate_width, max_coordinate_height)
+
+
+def render_asset_payloads(
+    payload: dict[str, Any],
+    image_size: int,
+    shared_coordinate_size: tuple[float, float] | None = None,
+) -> list[RenderedAsset]:
+    """Render the SVG and layout payload for each raw brick entry."""
+
+    molecules_by_name: dict[str, Chem.Mol] = {}
+
+    for brick_name, raw_entry in payload.items():
+        molecules_by_name[brick_name] = build_molecule(raw_entry["smiles"])
+
+    if shared_coordinate_size is None:
+        shared_coordinate_size = compute_catalog_shared_coordinate_size(payload)
+
     rendered_assets: list[RenderedAsset] = []
 
     for brick_name, raw_entry in payload.items():
@@ -340,13 +354,17 @@ def sync_system_database(
         encoding="utf-8",
     )
 
+    shared_coordinate_size = compute_catalog_shared_coordinate_size(payload)
     definition_payload = build_system_definition_payload(payload)
-    rendered_assets = render_asset_payloads(payload, image_size)
+    rendered_assets = render_asset_payloads(
+        payload, image_size, shared_coordinate_size=shared_coordinate_size
+    )
 
     brick_store = BrickStore(brick_db_path)
     definition_count = brick_store.sync_system_bricks(definition_payload)
     for brick_id, svg_text, layout_payload in rendered_assets:
         brick_store.save_system_brick_assets(brick_id, svg_text, layout_payload)
+    brick_store.save_catalog_shared_coordinate_size(shared_coordinate_size)
 
     return definition_count, len(rendered_assets)
 

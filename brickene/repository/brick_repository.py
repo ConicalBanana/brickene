@@ -440,6 +440,39 @@ class BrickStore:
         connection.row_factory = sqlite3.Row
         return connection
 
+    def save_catalog_shared_coordinate_size(
+        self,
+        coordinate_size: tuple[float, float],
+    ) -> None:
+        """Persist the catalog-wide shared coordinate size for user-brick rendering."""
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO metadata (key, value)
+                VALUES ('catalog_shared_coordinate_size', ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """,
+                (json.dumps(list(coordinate_size)),),
+            )
+
+    def get_catalog_shared_coordinate_size(
+        self,
+    ) -> tuple[float, float] | None:
+        """Return the stored catalog shared coordinate size, or None if absent."""
+
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT value FROM metadata WHERE key = ?",
+                ("catalog_shared_coordinate_size",),
+            ).fetchone()
+
+        if row is None:
+            return None
+
+        parsed = json.loads(row["value"])
+        return (float(parsed[0]), float(parsed[1]))
+
     def _initialize(self) -> None:
         """Create the SQLite schema when it does not already exist."""
 
@@ -464,6 +497,14 @@ class BrickStore:
                     svg_text TEXT,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
                 )
                 """
             )
@@ -615,6 +656,13 @@ class RuntimeBrickStore:
             return self._user_store.get_brick_svg_text(normalized_brick_id)
 
         return self._system_store.get_brick_svg_text(normalized_brick_id)
+
+    def get_catalog_shared_coordinate_size(
+        self,
+    ) -> tuple[float, float] | None:
+        """Return the catalog shared coordinate size stored in the system database."""
+
+        return self._system_store.get_catalog_shared_coordinate_size()
 
     def get_brick_layout(self, brick_id: str) -> dict[str, Any] | None:
         """Return one stored layout JSON payload for a system or user brick id."""

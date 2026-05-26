@@ -283,6 +283,105 @@ class BrickStore:
             is_user_defined=True,
         )
 
+    def delete_user_brick(self, brick_id: str) -> bool:
+        """Delete one user-defined brick. Returns True if the row was removed.
+
+        Args:
+            brick_id: Public user brick id (e.g. ``user-3``).
+
+        Returns:
+            ``True`` when a row was deleted; ``False`` when none matched.
+        """
+
+        row_id = self._parse_user_brick_id(brick_id)
+        if row_id is None:
+            return False
+
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "DELETE FROM user_bricks WHERE id = ?",
+                (row_id,),
+            )
+
+        return cursor.rowcount > 0
+
+    def save_system_brick(
+        self,
+        brick_id: str,
+        definition: dict[str, Any],
+        *,
+        svg_text: str | None = None,
+        layout_payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Insert or replace one system brick and return the stored record.
+
+        Args:
+            brick_id: Numeric string id for the system brick.
+            definition: Brick definition payload (storage metadata is stripped).
+            svg_text: Pre-rendered SVG asset, or ``None``.
+            layout_payload: Pre-computed layout object, or ``None``.
+
+        Returns:
+            The stored brick definition including storage metadata.
+        """
+
+        clean_definition = self._strip_storage_metadata(definition)
+        clean_definition["id"] = brick_id
+        serialized_definition = json.dumps(clean_definition, sort_keys=True)
+        layout_json = (
+            json.dumps(layout_payload, sort_keys=True)
+            if layout_payload is not None
+            else None
+        )
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO system_bricks (id, definition_json, svg_text, layout_json)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    definition_json = excluded.definition_json,
+                    svg_text = excluded.svg_text,
+                    layout_json = excluded.layout_json,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (brick_id, serialized_definition, svg_text, layout_json),
+            )
+            row = connection.execute(
+                """
+                SELECT id, definition_json, created_at, updated_at
+                FROM system_bricks
+                WHERE id = ?
+                """,
+                (brick_id,),
+            ).fetchone()
+
+        if row is None:
+            raise RuntimeError("Failed to read stored system brick definition.")
+
+        return self._row_to_definition(
+            row, include_metadata=True, is_user_defined=False
+        )
+
+    def get_next_system_brick_id(self) -> str:
+        """Return the next available numeric system brick id (min 1000).
+
+        Scans existing system brick ids, interprets any that are pure
+        integers, and returns ``str(max(current_max, 999) + 1)``.
+        """
+
+        with self._connect() as connection:
+            rows = connection.execute("SELECT id FROM system_bricks").fetchall()
+
+        max_id = 999
+        for row in rows:
+            try:
+                max_id = max(max_id, int(str(row["id"])))
+            except (ValueError, TypeError):
+                pass
+
+        return str(max_id + 1)
+
     def count_bricks(self) -> int:
         """Return the number of stored user-defined bricks."""
 
@@ -683,6 +782,94 @@ class RuntimeBrickStore:
 
         return self._user_store.save_brick(
             definition, svg_text=svg_text, layout_payload=layout_payload
+        )
+
+    def delete_brick(self, brick_id: str) -> bool:
+        """Delete one user-defined brick from the user database.
+
+        Args:
+            brick_id: Public user brick id (e.g. ``user-3``).
+
+        Returns:
+            ``True`` when a row was deleted; ``False`` when the brick was not
+            found or is a system brick (which cannot be removed via this path).
+        """
+
+        normalized = str(brick_id).strip()
+        if not normalized.startswith("user-"):
+            return False
+
+        return self._user_store.delete_user_brick(normalized)
+
+    def update_brick(
+        self,
+        brick_id: str,
+        definition: dict[str, Any],
+        *,
+        svg_text: str | None = None,
+        layout_payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Update one user-defined brick definition in place.
+
+        Args:
+            brick_id: Public user brick id (e.g. ``user-3``).
+            definition: Updated brick definition payload.
+            svg_text: Re-rendered SVG asset, or ``None``.
+            layout_payload: Re-computed layout object, or ``None``.
+
+        Returns:
+            The updated stored definition, or ``None`` if the brick was not
+            found or is a system brick.
+        """
+
+        normalized = str(brick_id).strip()
+        if not normalized.startswith("user-"):
+            return None
+
+        if self._user_store.get_brick(normalized) is None:
+            return None
+
+        return self._user_store.upsert_user_brick(
+            definition,
+            public_id=normalized,
+            svg_text=svg_text,
+            layout_payload=layout_payload,
+        )
+
+    def promote_brick(
+        self,
+        brick_id: str,
+        *,
+        svg_text: str | None = None,
+        layout_payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Promote one user-defined brick into the system brick catalog.
+
+        Reads the user brick, assigns the next available numeric system id
+        (starting at 1000), and writes it to the system database.  The
+        original user brick is preserved.
+
+        Args:
+            brick_id: Public user brick id (e.g. ``user-3``).
+            svg_text: Pre-rendered SVG asset, or ``None``.
+            layout_payload: Pre-computed layout object, or ``None``.
+
+        Returns:
+            The newly stored system brick definition, or ``None`` if the user
+            brick was not found.
+        """
+
+        normalized = str(brick_id).strip()
+        definition = self._user_store.get_brick(normalized)
+        if definition is None:
+            return None
+
+        new_id = self._system_store.get_next_system_brick_id()
+        return self._system_store.save_system_brick(
+            new_id,
+            definition,
+            svg_text=svg_text,
+            layout_payload=layout_payload,
         )
 
     def count_bricks(self) -> int:

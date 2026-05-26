@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brickene Node Manager</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./node_manager.css" />
+    <script>
+      (() => {
+        const runtimeUrl = new URL(window.location.href);
+        const brickApiUrl = runtimeUrl.searchParams.get("brickApiUrl")
+          || "http://127.0.0.1:8765/bricks";
+        const marvinPort = runtimeUrl.searchParams.get("marvinPort");
+        const marvinWebUrl = (
+          runtimeUrl.searchParams.get("marvinUrl")
+          || (marvinPort ? `http://127.0.0.1:${marvinPort}` : "http://127.0.0.1:8080")
+        ).replace(/\/$/, "");
+        const brickConfigApiUrl = runtimeUrl.searchParams.get("brickConfigApiUrl")
+          || "http://127.0.0.1:8765/bricks/preview";
+
+        window.BrickeneNodeManagerConfig = {
+          brickApiUrl,
+          marvinWebUrl,
+          brickConfigApiUrl,
+        };
+      })();
+    </script>
+    <script src="./node_manager.js" defer></script>
+  </head>
+  <body class="node-manager-page">
+    <div class="app-shell node-manager-shell">
+      <header class="menu-region" aria-label="Node manager header">
+        <div class="menu-row node-manager-menu-row">
+          <div class="brand-block">
+            <p class="brand-label">Brickene</p>
+            <h1>Node Manager</h1>
+          </div>
+
+          <div class="node-manager-copy-block">
+            <p class="submenu-label">Browse, create, and organise node definitions</p>
+          </div>
+
+          <div class="menu-meta">
+            <p id="manager-status" class="node-inline-config-feedback" aria-live="polite"></p>
+          </div>
+        </div>
+      </header>
+
+      <main class="node-manager-main" aria-label="Node manager workspace">
+
+        <!-- Toolbar -->
+        <section class="node-manager-toolbar" aria-label="Manager toolbar">
+          <div class="node-manager-search-wrap">
+            <label for="manager-search" class="node-type-label sr-only">Search nodes</label>
+            <input
+              id="manager-search"
+              class="node-manager-search-input"
+              type="search"
+              placeholder="Search by name, alias, or id…"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="node-manager-toolbar-actions">
+            <button
+              type="button"
+              id="manager-filter-all"
+              class="node-manager-filter-button is-active"
+              data-filter="all"
+            >All</button>
+            <button
+              type="button"
+              id="manager-filter-system"
+              class="node-manager-filter-button"
+              data-filter="system"
+            >System</button>
+            <button
+              type="button"
+              id="manager-filter-user"
+              class="node-manager-filter-button"
+              data-filter="user"
+            >User defined</button>
+
+            <div class="node-manager-toolbar-divider" role="separator" aria-hidden="true"></div>
+
+            <button
+              type="button"
+              id="manager-add-button"
+              class="node-manager-action-button node-manager-action-button-primary"
+            >+ Add node</button>
+
+            <button
+              type="button"
+              id="manager-refresh-button"
+              class="node-manager-action-button"
+            >Refresh</button>
+          </div>
+        </section>
+
+        <!-- Node table -->
+        <section class="node-manager-table-section" aria-label="Node list">
+          <div class="node-manager-table-wrap" role="region" aria-label="Scrollable node list">
+            <table class="node-manager-table" id="manager-table">
+              <thead>
+                <tr>
+                  <th scope="col" class="col-id">ID</th>
+                  <th scope="col" class="col-name">Name</th>
+                  <th scope="col" class="col-aliases">Aliases</th>
+                  <th scope="col" class="col-type">Brick type</th>
+                  <th scope="col" class="col-ports">Ports</th>
+                  <th scope="col" class="col-source">Source</th>
+                  <th scope="col" class="col-updated">Last modified</th>
+                  <th scope="col" class="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="manager-table-body" aria-live="polite">
+                <tr class="node-manager-table-placeholder">
+                  <td colspan="8">Loading node catalog…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="manager-row-count" class="node-manager-row-count" aria-live="polite"></p>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- Confirm delete dialog -->
+    <dialog id="manager-confirm-dialog" class="node-manager-dialog" aria-labelledby="dialog-title">
+      <div class="node-manager-dialog-inner">
+        <p class="brand-label">Confirm</p>
+        <h2 id="dialog-title" class="node-manager-dialog-heading">Delete node</h2>
+        <p id="dialog-body" class="node-manager-dialog-body">Are you sure you want to delete this node?</p>
+        <div class="node-manager-dialog-actions">
+          <button type="button" id="dialog-confirm" class="node-manager-action-button node-manager-action-button-danger">Delete</button>
+          <button type="button" id="dialog-cancel" class="node-manager-action-button">Cancel</button>
+        </div>
+      </div>
+    </dialog>
+  </body>
+</html>

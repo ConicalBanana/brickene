@@ -561,6 +561,22 @@
     return true;
   }
 
+  function openNodeManager() {
+    const managerWindow = window.open(
+      frontend.config.nodeManagerUrl,
+      "brickene-node-manager",
+      "width=1360,height=860,resizable=yes,scrollbars=yes",
+    );
+
+    if (!managerWindow) {
+      frontend.setCanvasMessage("Allow pop-ups to open the node manager.");
+      return true;
+    }
+
+    frontend.setCanvasMessage("Node manager opened in a separate window.");
+    return true;
+  }
+
   async function handleMenuAction(menuKey, actionKey) {
     if (menuKey === "file") {
       if (actionKey === "new") {
@@ -658,6 +674,10 @@
 
       if (actionKey === "open-node-wizard") {
         return openNodeWizard();
+      }
+
+      if (actionKey === "node-manager") {
+        return openNodeManager();
       }
 
       return false;

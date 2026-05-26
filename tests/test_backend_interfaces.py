@@ -596,7 +596,7 @@ def test_render_server_options_returns_cors_headers(
     assert status == 204
     assert payload == b""
     assert headers["access-control-allow-origin"] == "*"
-    assert headers["access-control-allow-methods"] == "GET, POST, OPTIONS"
+    assert headers["access-control-allow-methods"] == "GET, POST, PUT, DELETE, OPTIONS"
 
 
 def test_render_server_smiles_endpoint_returns_smiles(

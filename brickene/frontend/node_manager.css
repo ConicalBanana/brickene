@@ -1,0 +1,382 @@
+/* =========================================================
+   Node Manager — page-specific overrides
+   Inherits CSS custom properties from styles.css
+   ========================================================= */
+
+html,
+body.node-manager-page {
+  min-width: 0;
+  overflow: auto;
+}
+
+body.node-manager-page {
+  min-height: 100vh;
+}
+
+.node-manager-shell {
+  min-height: 100vh;
+  height: auto;
+  overflow: visible;
+}
+
+/* ── Header row ─────────────────────────────────────────── */
+
+.node-manager-menu-row {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  align-items: center;
+  height: 100%;
+}
+
+.node-manager-copy-block {
+  text-align: center;
+  min-width: 0;
+}
+
+/* ── Accessibility helper ───────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Main layout ────────────────────────────────────────── */
+
+.node-manager-main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0;
+  height: calc(100vh - var(--menu-height));
+  overflow: hidden;
+}
+
+/* ── Toolbar ────────────────────────────────────────────── */
+
+.node-manager-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+
+.node-manager-search-wrap {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.node-manager-search-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.42rem 0.6rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.node-manager-search-input:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 2px;
+}
+
+.node-manager-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.node-manager-toolbar-divider {
+  width: 1px;
+  height: 1.4rem;
+  background: rgba(17, 17, 17, 0.2);
+  margin: 0 0.2rem;
+}
+
+/* ── Filter buttons ─────────────────────────────────────── */
+
+.node-manager-filter-button {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.node-manager-filter-button:hover,
+.node-manager-filter-button:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+
+.node-manager-filter-button.is-active {
+  background: var(--border);
+  color: var(--surface);
+}
+
+/* ── Action buttons ─────────────────────────────────────── */
+
+.node-manager-action-button {
+  padding: 0.38rem 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.node-manager-action-button:hover,
+.node-manager-action-button:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+
+.node-manager-action-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.node-manager-action-button-primary {
+  background: var(--border);
+  color: var(--surface);
+}
+
+.node-manager-action-button-primary:hover,
+.node-manager-action-button-primary:focus-visible {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.node-manager-action-button-danger {
+  border-color: #7a1010;
+  background: #7a1010;
+  color: #ffffff;
+}
+
+.node-manager-action-button-danger:hover,
+.node-manager-action-button-danger:focus-visible {
+  background: #a01414;
+}
+
+/* Row-level action buttons (compact) */
+.node-manager-row-button {
+  padding: 0.22rem 0.55rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.node-manager-row-button:hover,
+.node-manager-row-button:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+
+.node-manager-row-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.node-manager-row-button-danger {
+  border-color: #7a1010;
+  color: #7a1010;
+}
+
+.node-manager-row-button-danger:hover {
+  background: #7a1010;
+  color: #ffffff;
+}
+
+.node-manager-row-button-promote {
+  border-color: #145a14;
+  color: #145a14;
+}
+
+.node-manager-row-button-promote:hover {
+  background: #145a14;
+  color: #ffffff;
+}
+
+/* ── Table section ──────────────────────────────────────── */
+
+.node-manager-table-section {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+  padding: 1rem;
+  gap: 0.5rem;
+}
+
+.node-manager-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.node-manager-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  min-width: 780px;
+}
+
+.node-manager-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+}
+
+.node-manager-table th {
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.node-manager-table td {
+  padding: 0.48rem 0.75rem;
+  border-bottom: 1px solid var(--grid);
+  vertical-align: middle;
+}
+
+.node-manager-table tbody tr:hover {
+  background: var(--surface-muted);
+}
+
+/* Column widths */
+.col-id      { width: 7rem; }
+.col-name    { min-width: 9rem; }
+.col-aliases { min-width: 8rem; }
+.col-type    { width: 8rem; }
+.col-ports   { width: 4rem; text-align: center; }
+.col-source  { width: 6.5rem; }
+.col-updated { width: 8.5rem; }
+.col-actions { min-width: 12rem; }
+
+/* Cell content helpers */
+.node-manager-id-badge {
+  display: inline-block;
+  padding: 0.1rem 0.38rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.node-manager-source-badge {
+  display: inline-block;
+  padding: 0.1rem 0.38rem;
+  border: 1px solid currentColor;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.node-manager-source-badge.is-system {
+  color: var(--text-muted);
+  border-color: var(--accent);
+}
+
+.node-manager-source-badge.is-user {
+  color: #145a14;
+  border-color: #145a14;
+}
+
+.node-manager-row-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+/* Placeholder / empty state */
+.node-manager-table-placeholder td {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* Row count footer */
+.node-manager-row-count {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* ── Status feedback ────────────────────────────────────── */
+
+#manager-status {
+  max-width: 240px;
+  text-align: right;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+#manager-status.is-success {
+  color: #145a14;
+}
+
+#manager-status.is-error {
+  color: #7a1010;
+}
+
+/* ── Confirm dialog ─────────────────────────────────────── */
+
+.node-manager-dialog {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 0;
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+.node-manager-dialog::backdrop {
+  background: rgba(17, 17, 17, 0.35);
+}
+
+.node-manager-dialog-inner {
+  padding: 1.5rem 1.25rem 1.25rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.node-manager-dialog-heading {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.node-manager-dialog-body {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.node-manager-dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}

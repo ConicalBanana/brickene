@@ -9,6 +9,7 @@
     select: true,
     throwError: false,
   };
+  const editBrickId = config.editBrickId || null;
   const runtimeState = {
     marvinRef: null,
     baseDefinition: null,
@@ -225,8 +226,13 @@
   }
 
   async function saveDefinitionToDatabase(definition) {
-    const response = await fetch(config.brickApiUrl, {
-      method: "POST",
+    const isUpdate = Boolean(editBrickId);
+    const url = isUpdate
+      ? `${config.brickApiUrl.replace(/\/?$/, "/")}${encodeURIComponent(editBrickId)}`
+      : config.brickApiUrl;
+    const method = isUpdate ? "PUT" : "POST";
+    const response = await fetch(url, {
+      method,
       headers: {
         "Content-Type": "application/json",
       },
@@ -308,20 +314,24 @@
 
     try {
       const storedDefinition = await saveDefinitionToDatabase(nextDefinition);
+      const messageType = editBrickId
+        ? "brick-definition-updated"
+        : "brick-definition-saved";
 
       if (window.opener && !window.opener.closed) {
         window.opener.postMessage(
           {
             source: "brickene-node-wizard",
-            type: "brick-definition-saved",
+            type: messageType,
             definition: storedDefinition,
           },
           window.location.origin,
         );
       }
 
+      const actionLabel = editBrickId ? "Updated" : "Saved";
       setStatus(
-        `Saved node definition to the user database as ${storedDefinition.id}.`,
+        `${actionLabel} node definition to the user database as ${storedDefinition.id}.`,
         { success: true },
       );
       return storedDefinition;
@@ -367,6 +377,60 @@
 
     if (!runtimeState.isBusy) {
       setStatus("Structure changed. Detect ports again to refresh the node definition.");
+    }
+  }
+
+  async function loadEditDefinition(brickId) {
+    setBusy(true);
+    setStatus(`Loading definition for ${brickId}...`);
+
+    try {
+      const brickUrl = `${config.brickApiUrl.replace(/\/?$/, "/")}${encodeURIComponent(brickId)}`;
+      const smilesUrl = `${config.brickApiUrl.replace(/\/?$/, "/")}${encodeURIComponent(brickId)}/smiles`;
+
+      const [defResponse, smilesResponse] = await Promise.all([
+        fetch(brickUrl, { headers: { Accept: "application/json" } }),
+        fetch(smilesUrl, { headers: { Accept: "application/json" } }),
+      ]);
+
+      const defBody = await defResponse.json().catch(() => ({}));
+      if (!defResponse.ok) {
+        throw new Error(defBody.error || `Failed to load definition for ${brickId}.`);
+      }
+
+      const smilesBody = await smilesResponse.json().catch(() => ({}));
+      if (!smilesResponse.ok) {
+        throw new Error(smilesBody.error || `Failed to load SMILES for ${brickId}.`);
+      }
+
+      const definition = defBody.definition || defBody;
+      const smiles = String(smilesBody.smiles || "").trim();
+
+      dom.nameInput.value = String(definition.name || DEFAULT_NAME);
+      dom.aliasInput.value = Array.isArray(definition.alias)
+        ? definition.alias.join(", ")
+        : String(definition.alias || "");
+
+      const brickType = String(definition.brick_type || "BRIDGE").toUpperCase();
+      if (BRICK_TYPE_OPTIONS.includes(brickType)) {
+        dom.brickTypeSelect.value = brickType;
+      }
+
+      if (smiles && runtimeState.marvinRef) {
+        await runtimeState.marvinRef.importDocument(smiles, { clearCanvas: true });
+        runtimeState.baseDefinition = definition;
+        renderPortConfiguration(definition);
+        syncDefinitionOutput();
+      }
+
+      setStatus(`Editing node ${brickId}: ${dom.nameInput.value}. Modify the structure or metadata, then update.`, { success: true });
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : `Failed to load ${brickId} for editing.`,
+        { error: true },
+      );
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -437,6 +501,20 @@
     }
   }
 
+  function applyEditModeUi() {
+    if (!editBrickId) {
+      return;
+    }
+
+    if (dom.saveButton) {
+      dom.saveButton.textContent = "Update in database";
+    }
+
+    if (dom.sendButton) {
+      dom.sendButton.hidden = true;
+    }
+  }
+
   function bindEvents() {
     dom.addPortButton.addEventListener("click", () => {
       addDetachedPort().catch(() => {});
@@ -465,6 +543,15 @@
     });
   }
 
+  async function initializeWizard() {
+    applyEditModeUi();
+    await initializeMarvin();
+
+    if (editBrickId) {
+      await loadEditDefinition(editBrickId);
+    }
+  }
+
   bindEvents();
-  initializeMarvin();
+  initializeWizard();
 })();

@@ -40,7 +40,7 @@ PACKAGE_VERSION = get_version()
 
 _CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
@@ -159,6 +159,22 @@ def create_app(
             )
         return layout
 
+    @server.get("/bricks/{brick_id}/smiles")
+    def get_brick_smiles(brick_id: str) -> Any:
+        """Reconstruct and return the SMILES string for one brick definition."""
+
+        definition = brick_store.get_brick(brick_id)
+        if definition is None:
+            return _error(f"Unknown brick id: {brick_id}.", 404)
+
+        try:
+            node = BrickNode.from_dict(normalize_brick_definition(definition))
+            smiles = node.to_smiles()
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
+
+        return {"smiles": smiles, "brick_id": brick_id}
+
     @server.get("/bricks/{brick_id}")
     def get_brick(brick_id: str) -> Any:
         """Return the definition for one brick by id."""
@@ -246,6 +262,78 @@ def create_app(
             return _error(f"Save failed: {exc}", 500)
 
         return JSONResponse({"definition": stored_definition}, status_code=201)
+
+    @server.post("/bricks/{brick_id}/promote", status_code=201)
+    async def promote_brick(brick_id: str, request: Request) -> Any:
+        """Promote one user-defined brick into the system brick catalog."""
+
+        normalized_id = str(brick_id).strip()
+        if not normalized_id.startswith("user-"):
+            return _error(f"Only user-defined bricks can be promoted: {brick_id}.")
+
+        definition = brick_store.get_brick(normalized_id)
+        if definition is None:
+            return _error(f"Unknown brick id: {brick_id}.", 404)
+
+        try:
+            clean_def = normalize_brick_definition(definition)
+            shared_coordinate_size = brick_store.get_catalog_shared_coordinate_size()
+            svg_text, layout = render_brick_definition_svg_and_layout(
+                clean_def,
+                image_size=image_size,
+                shared_coordinate_size=shared_coordinate_size,
+            )
+            stored_definition = brick_store.promote_brick(
+                normalized_id, svg_text=svg_text, layout_payload=layout
+            )
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
+        except Exception as exc:  # pragma: no cover
+            return _error(f"Promote failed: {exc}", 500)
+
+        if stored_definition is None:
+            return _error(f"Failed to promote brick: {brick_id}.", 500)
+
+        return JSONResponse({"definition": stored_definition}, status_code=201)
+
+    @server.put("/bricks/{brick_id}")
+    async def update_brick(brick_id: str, request: Request) -> Any:
+        """Update one user-defined brick definition in place."""
+
+        payload = await _read_json_body(request)
+        if isinstance(payload, JSONResponse):
+            return payload
+
+        try:
+            definition = normalize_brick_definition(payload)
+            shared_coordinate_size = brick_store.get_catalog_shared_coordinate_size()
+            svg_text, layout = render_brick_definition_svg_and_layout(
+                definition,
+                image_size=image_size,
+                shared_coordinate_size=shared_coordinate_size,
+            )
+            stored_definition = brick_store.update_brick(
+                brick_id, definition, svg_text=svg_text, layout_payload=layout
+            )
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
+        except Exception as exc:  # pragma: no cover
+            return _error(f"Update failed: {exc}", 500)
+
+        if stored_definition is None:
+            return _error(f"Brick not found or cannot be updated: {brick_id}.", 404)
+
+        return {"definition": stored_definition}
+
+    @server.delete("/bricks/{brick_id}")
+    def delete_brick(brick_id: str) -> Any:
+        """Delete one user-defined brick from the user database."""
+
+        deleted = brick_store.delete_brick(brick_id)
+        if not deleted:
+            return _error(f"Brick not found or cannot be deleted: {brick_id}.", 404)
+
+        return {"deleted": True, "brick_id": brick_id}
 
     @server.post("/graph/render")
     async def render_graph(request: Request) -> Any:

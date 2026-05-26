@@ -33,6 +33,7 @@
           marvinUrl,
           brickApiUrl,
           brickConfigApiUrl,
+          editBrickId: runtimeUrl.searchParams.get("editBrickId") || null,
         };
         window.BrickeneNodeWizardMarvinReady = marvinScriptUrls.reduce(
           (promise, scriptUrl) => promise.then(

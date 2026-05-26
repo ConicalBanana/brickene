@@ -38,6 +38,15 @@
     return wizardUrl.toString();
   })();
 
+  const nodeManagerUrl = (() => {
+    const managerUrl = new URL("./node_manager.html", runtimeUrl);
+
+    managerUrl.searchParams.set("brickApiUrl", brickApiUrl);
+    managerUrl.searchParams.set("brickConfigApiUrl", brickConfigApiUrl);
+    managerUrl.searchParams.set("marvinUrl", marvinWebUrl);
+    return managerUrl.toString();
+  })();
+
   frontend.config = {
     appVersion: "",
     submenuMap: {
@@ -63,7 +72,7 @@
         },
       ],
       edit: ["Undo", "Redo", "|", "Copy", "Paste", "Delete"],
-      node: ["Create node", "Open node wizard"],
+      node: ["Create node", "Open node wizard", "Node manager"],
       view: ["Center canvas", "Grid", "Reset zoom", "Zoom in", "Zoom out"],
     },
     stateMap: {
@@ -80,6 +89,7 @@
     versionApiUrl,
     marvinWebUrl,
     nodeWizardUrl,
+    nodeManagerUrl,
     nodeSize: { width: 340, height: 188 },
     defaultPortCount: 3,
     initialNodeConfigs: [],

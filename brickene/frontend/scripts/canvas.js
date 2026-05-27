@@ -127,10 +127,9 @@
     }
 
     const ui = frontend.getUiState();
-    const cs = frontend.getContainerScale();
     ui.canvasOffset = {
-      x: ui.canvasOffset.x + deltaX / cs,
-      y: ui.canvasOffset.y + deltaY / cs,
+      x: ui.canvasOffset.x + deltaX,
+      y: ui.canvasOffset.y + deltaY,
     };
     frontend.applyViewportOffset();
     return { x: deltaX, y: deltaY };
@@ -219,8 +218,7 @@
 
     event.preventDefault();
     frontend.closeAllContextMenus();
-    const cs = frontend.getContainerScale();
-    applyCanvasOffset(-wheelDeltaX / cs, -wheelDeltaY / cs);
+    applyCanvasOffset(-wheelDeltaX, -wheelDeltaY);
   }
 
   function syncPanShortcutState() {
@@ -276,10 +274,9 @@
       return;
     }
 
-    const cs = frontend.getContainerScale();
     ui.canvasOffset = {
-      x: ui.canvasPanState.originX + (event.clientX - ui.canvasPanState.startX) / cs,
-      y: ui.canvasPanState.originY + (event.clientY - ui.canvasPanState.startY) / cs,
+      x: ui.canvasPanState.originX + event.clientX - ui.canvasPanState.startX,
+      y: ui.canvasPanState.originY + event.clientY - ui.canvasPanState.startY,
     };
     frontend.applyViewportOffset();
     frontend.setCanvasMessage(`Canvas translated to x ${ui.canvasOffset.x}, y ${ui.canvasOffset.y}.`);
@@ -702,14 +699,13 @@
     const portRect = portElement.getBoundingClientRect();
     const panelWidth = dom.portCommandPanel.offsetWidth || 320;
     const panelHeight = dom.portCommandPanel.offsetHeight || 220;
-    const cs = frontend.getContainerScale();
-    const preferredLeft = (portRect.right - viewportRect.left) / cs + 12;
-    const fallbackLeft = (portRect.left - viewportRect.left) / cs - panelWidth - 12;
-    const maxLeft = dom.canvasViewport.offsetWidth - panelWidth - 8;
+    const preferredLeft = portRect.right - viewportRect.left + 12;
+    const fallbackLeft = portRect.left - viewportRect.left - panelWidth - 12;
+    const maxLeft = viewportRect.width - panelWidth - 8;
     const left = preferredLeft <= maxLeft ? preferredLeft : Math.max(8, fallbackLeft);
     const top = Math.min(
-      Math.max(8, (portRect.top - viewportRect.top) / cs),
-      dom.canvasViewport.offsetHeight - panelHeight - 8,
+      Math.max(8, portRect.top - viewportRect.top),
+      viewportRect.height - panelHeight - 8,
     );
 
     dom.portCommandPanel.style.left = `${left}px`;
@@ -728,14 +724,13 @@
 
     const panelWidth = dom.portCommandPanel.offsetWidth || 320;
     const panelHeight = dom.portCommandPanel.offsetHeight || 220;
-    const cs = frontend.getContainerScale();
     const left = Math.min(
-      Math.max(8, (clientX - viewportRect.left) / cs - panelWidth / 2),
-      dom.canvasViewport.offsetWidth - panelWidth - 8,
+      Math.max(8, clientX - viewportRect.left - panelWidth / 2),
+      viewportRect.width - panelWidth - 8,
     );
     const top = Math.min(
-      Math.max(8, (clientY - viewportRect.top) / cs - panelHeight / 2),
-      dom.canvasViewport.offsetHeight - panelHeight - 8,
+      Math.max(8, clientY - viewportRect.top - panelHeight / 2),
+      viewportRect.height - panelHeight - 8,
     );
 
     dom.portCommandPanel.style.left = `${left}px`;
@@ -778,29 +773,6 @@
   function createNodeFromPortCommand(candidate) {
     if (!candidate || !activePortCommand) {
       return false;
-    }
-
-    // ── TEMPLATE bricks: paste the full stored graph instead of a single node ──
-    if (candidate.definition?.brick_type === "TEMPLATE") {
-      const templateGraph = candidate.definition?.template_graph;
-      if (templateGraph) {
-        try {
-          const targetWorld = activePortCommand.targetWorld || null;
-          const result = frontend.pasteSelectionSnapshot(
-            templateGraph,
-            targetWorld ? { atPoint: targetWorld } : {},
-          );
-          frontend.setCanvasMessage(
-            `Template "${candidate.definition.name}" pasted (${result.nodeCount} nodes, ${result.edgeCount} edges).`,
-          );
-        } catch (_err) {
-          frontend.setCanvasMessage("Failed to paste template graph.");
-        }
-      } else {
-        frontend.setCanvasMessage("Template has no graph to paste.");
-      }
-      closePortCommandPanel();
-      return true;
     }
 
     const sourcePort = activePortCommand.sourcePort;
@@ -1393,67 +1365,6 @@
     return true;
   }
 
-  // Natural menu widths, measured once before any compact class is applied.
-  let naturalMenuWidths = null;
-
-  function syncMenuCompactState() {
-    const menuRegion = dom.menuRegion;
-    if (!menuRegion) {
-      return;
-    }
-
-    // Measure natural widths on first call (before any compact class is set).
-    if (!naturalMenuWidths) {
-      naturalMenuWidths = {
-        nav: dom.menuActionsWrap?.offsetWidth || 0,
-        brand: dom.brandBlock?.offsetWidth || 0,
-        meta: dom.menuMeta?.offsetWidth || 0,
-      };
-    }
-
-    const { nav, brand, meta } = naturalMenuWidths;
-    // editorRoot.offsetWidth is the CSS layout width (scale-independent).
-    const availableWidth = dom.editorRoot.offsetWidth;
-    const GAP = 8;
-
-    // Hide version badge first: when nav + brand + meta no longer fit side-by-side.
-    // (brand is centred; each side needs space for nav/meta + half-brand.)
-    const hideVersion = availableWidth < 2 * nav + brand + meta + 2 * GAP;
-    // Hide title next: when nav alone crowds the centred brand.
-    const hideTitle = availableWidth < 2 * nav + brand + 2 * GAP;
-
-    menuRegion.classList.toggle("menu--compact", hideVersion);
-    menuRegion.classList.toggle("menu--minimal", hideTitle);
-  }
-
-  function clampOpenMenusToBounds() {
-    const vpWidth = dom.canvasViewport.offsetWidth;
-    const vpHeight = dom.canvasViewport.offsetHeight;
-
-    function clampMenu(el, defaultWidth, defaultHeight) {
-      const menuWidth = el.offsetWidth || defaultWidth;
-      const menuHeight = el.offsetHeight || defaultHeight;
-      const left = parseFloat(el.style.left) || 8;
-      const top = parseFloat(el.style.top) || 8;
-
-      el.style.left = `${Math.min(Math.max(8, left), vpWidth - menuWidth - 8)}px`;
-      el.style.top = `${Math.min(Math.max(8, top), vpHeight - menuHeight - 8)}px`;
-    }
-
-    if (dom.canvasContextMenu?.classList.contains("is-open")) {
-      clampMenu(dom.canvasContextMenu, 192, 152);
-    }
-    if (dom.nodeContextMenu?.classList.contains("is-open")) {
-      clampMenu(dom.nodeContextMenu, 160, 120);
-    }
-    if (dom.edgeContextMenu?.classList.contains("is-open")) {
-      clampMenu(dom.edgeContextMenu, 160, 120);
-    }
-    if (dom.portCommandPanel?.offsetParent) {
-      clampMenu(dom.portCommandPanel, 320, 220);
-    }
-  }
-
   function endComponentInteraction(event) {
     const ui = frontend.getUiState();
     if (!ui.componentInteraction || event.pointerId !== ui.componentInteraction.pointerId) {
@@ -1502,8 +1413,6 @@
       resizeFrameId = window.requestAnimationFrame(() => {
         resizeFrameId = null;
         frontend.renderEdges();
-        syncMenuCompactState();
-        clampOpenMenusToBounds();
       });
     }
 
@@ -1566,12 +1475,6 @@
     });
 
     window.visualViewport?.addEventListener("resize", refreshLayoutAfterResize);
-
-    // Also watch the editor container itself so embedded iframes react when
-    // the host page resizes the editor column without triggering window.resize.
-    if (typeof ResizeObserver !== "undefined") {
-      new ResizeObserver(() => refreshLayoutAfterResize()).observe(dom.editorRoot);
-    }
   }
 
   function bindKeyboardEvents() {
@@ -1670,6 +1573,30 @@
         return;
       }
 
+      if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+        if (event.key.toLowerCase() === "d") {
+          event.preventDefault();
+          const center = getViewportCenterClientPoint();
+          if (center) {
+            const world = frontend.clientToWorldPoint(center.x, center.y);
+            const node = frontend.createNodeAt(world.x, world.y, { brickId: "900" });
+            frontend.setCanvasMessage(`Duplicator node ${node.id} created.`);
+          }
+          return;
+        }
+
+        if (event.key.toLowerCase() === "p") {
+          event.preventDefault();
+          const center = getViewportCenterClientPoint();
+          if (center) {
+            const world = frontend.clientToWorldPoint(center.x, center.y);
+            const node = frontend.createNodeAt(world.x, world.y, { brickId: "902" });
+            frontend.setCanvasMessage(`Period node ${node.id} created.`);
+          }
+          return;
+        }
+      }
+
       if (event.code !== "Space") {
         return;
       }
@@ -1679,16 +1606,16 @@
     });
 
     document.addEventListener("keyup", (event) => {
+      // Always release the space lock, even when focus moved to an input.
+      if (event.code === "Space") {
+        frontend.getUiState().isSpacePressed = false;
+        syncPanShortcutState();
+        return;
+      }
+
       if (shouldIgnoreKeyboardShortcut(event.target)) {
         return;
       }
-
-      if (event.code !== "Space") {
-        return;
-      }
-
-      frontend.getUiState().isSpacePressed = false;
-      syncPanShortcutState();
     });
 
     window.addEventListener("blur", () => {
@@ -1729,8 +1656,6 @@
       ) {
         return;
       }
-
-      dom.canvasViewport.focus({ preventScroll: true });
 
       const edgeId = frontend.findEdgeAtClientPoint(event.clientX, event.clientY);
 
@@ -1873,8 +1798,6 @@
     bindMenuEvents();
     bindKeyboardEvents();
     bindViewportEvents();
-    bindMessageBridge();
-    syncMenuCompactState();
   }
 
   frontend.syncPanShortcutState = syncPanShortcutState;
@@ -1890,105 +1813,5 @@
   frontend.setInteractionGuard = setInteractionGuard;
   frontend.prepareCanvasContextMenu = prepareCanvasContextMenu;
   frontend.resetContextMenuPortals = resetContextMenuPortals;
-
-  // ---------------------------------------------------------------------------
-  // iframe postMessage communication bridge
-  //
-  // Protocol:
-  //   Request  → { type: "brickene:requestGraphState" }
-  //   Response ← { type: "brickene:graphState", graph: { version, nodes, edges } }
-  //
-  //   Request  → { type: "brickene:requestSmiles" }
-  //   Response ← { type: "brickene:smiles", smiles: "<SMILES string>" }
-  //            ← { type: "brickene:error", request: "brickene:requestSmiles", message: "..." } on failure
-  //
-  // All responses carry the original request `type` in `requestType` and a
-  // monotonic `timestamp` (ms since epoch) for correlation.
-  // ---------------------------------------------------------------------------
-
-  const BRIDGE_ORIGIN_ANY = "*";
-
-  function sendBridgeMessage(target, origin, payload) {
-    try {
-      target.postMessage(payload, origin);
-    } catch (_err) {
-      // Target may have closed; ignore silently.
-    }
-  }
-
-  function bindMessageBridge() {
-    window.addEventListener("message", async (event) => {
-      const data = event.data;
-      if (!data || typeof data !== "object" || typeof data.type !== "string") {
-        return;
-      }
-
-      const replyTarget = event.source;
-      const replyOrigin = event.origin || BRIDGE_ORIGIN_ANY;
-      const ts = Date.now();
-
-      if (data.type === "brickene:requestGraphState") {
-        sendBridgeMessage(replyTarget, replyOrigin, {
-          type: "brickene:graphState",
-          requestType: data.type,
-          timestamp: ts,
-          graph: frontend.exportGraphState(),
-        });
-        return;
-      }
-
-      if (data.type === "brickene:requestSmiles") {
-        try {
-          const smiles = (await frontend.fetchGraphSmilesText()).trim();
-          sendBridgeMessage(replyTarget, replyOrigin, {
-            type: "brickene:smiles",
-            requestType: data.type,
-            timestamp: ts,
-            smiles,
-          });
-        } catch (err) {
-          sendBridgeMessage(replyTarget, replyOrigin, {
-            type: "brickene:error",
-            requestType: data.type,
-            timestamp: ts,
-            message: err instanceof Error ? err.message : "Failed to export SMILES.",
-          });
-        }
-        return;
-      }
-
-      if (data.type === "brickene:loadGraphState") {
-        try {
-          if (data.graph) {
-            frontend.importGraphState(data.graph);
-          }
-        } catch (_err) {
-          // Ignore invalid graph state silently.
-        }
-        return;
-      }
-    });
-
-    // Push SMILES to parent whenever the graph changes (debounced).
-    let _pushDebounceTimer = null;
-    frontend.dom.canvasViewport.addEventListener(frontend.GRAPH_CHANGE_EVENT, () => {
-      clearTimeout(_pushDebounceTimer);
-      _pushDebounceTimer = setTimeout(async () => {
-        try {
-          const smiles = (await frontend.fetchGraphSmilesText()).trim();
-          sendBridgeMessage(window.parent, BRIDGE_ORIGIN_ANY, {
-            type: "brickene:graphStateChanged",
-            timestamp: Date.now(),
-            smiles,
-            graph: frontend.exportGraphState(),
-          });
-        } catch (_err) {
-          // Ignore fetch errors during auto-push.
-        }
-      }, 600);
-    });
-  }
-
-  frontend.bindMessageBridge = bindMessageBridge;
   frontend.bootstrap = bootstrap;
 })();

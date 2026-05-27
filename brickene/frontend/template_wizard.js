@@ -150,6 +150,52 @@
     setStatus("Template graph sent to canvas.", { success: true });
   }
 
+  async function loadEditTemplate(templateId) {
+    setBusy(true);
+    setStatus(`Loading template ${templateId}…`);
+
+    try {
+      const baseUrl = String(config.brickApiUrl || "http://127.0.0.1:8765/bricks").replace(/\/?$/, "/");
+      const response = await fetch(`${baseUrl}${encodeURIComponent(templateId)}`, {
+        headers: { Accept: "application/json" },
+      });
+      const body = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(body.error || `Failed to load template ${templateId}.`);
+      }
+
+      const definition = body.definition || body;
+
+      if (wizardDom.nameInput) {
+        wizardDom.nameInput.value = String(definition.name || DEFAULT_NAME);
+      }
+
+      if (wizardDom.aliasInput) {
+        wizardDom.aliasInput.value = Array.isArray(definition.alias)
+          ? definition.alias.join(", ")
+          : String(definition.alias || "");
+      }
+
+      if (definition.template_graph) {
+        frontend.importGraphState(definition.template_graph);
+      }
+
+      if (wizardDom.saveButton) {
+        wizardDom.saveButton.textContent = "Update in database";
+      }
+
+      setStatus(`Editing template ${templateId}: ${definition.name}. Modify the graph, then update.`, { success: true });
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : `Failed to load template ${templateId}.`,
+        { error: true },
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   // Bootstrap the canvas engine (loads brick catalog, wires events, etc.).
   frontend.bootstrap();
 
@@ -164,4 +210,9 @@
   wizardDom.sendButton?.addEventListener("click", () => {
     handleSend();
   });
+
+  // If opened for editing, load the existing template definition.
+  if (editTemplateId) {
+    void loadEditTemplate(editTemplateId);
+  }
 })();

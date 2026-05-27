@@ -194,7 +194,7 @@
       return { copied: false, nodeCount: 0, edgeCount: 0 };
     }
 
-    await writeClipboardText(`${JSON.stringify(selectionSnapshot, null, 2)}\n`);
+    await writeClipboardText(JSON.stringify(selectionSnapshot));
     return {
       copied: true,
       nodeCount: selectionSnapshot.nodes.length,
@@ -232,7 +232,7 @@
   }
 
   async function copyGraphAsBrickene() {
-    const text = formatGraphState();
+    const text = serializeGraphState();
 
     await writeClipboardTextFromPromise(text);
     return text;

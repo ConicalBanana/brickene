@@ -11,6 +11,7 @@
     isBusy: false,
     pendingDeleteId: null,
     wizardWindow: null,
+    templateWizardWindow: null,
   };
 
   // ── DOM references ─────────────────────────────────────────────────────────
@@ -181,6 +182,7 @@
           class="node-manager-row-button"
           data-action="edit"
           data-brick-id="${escapeHtml(id)}"
+          data-brick-type="${escapeHtml(String(brick.brick_type || ''))}"
           aria-label="Edit ${escapeHtml(String(brick.name || id))}"
         >Edit</button>
         <button
@@ -279,6 +281,27 @@
     state.wizardWindow = window.open(
       url,
       "brickene-node-wizard",
+      "width=1280,height=900,resizable=yes,scrollbars=yes",
+    );
+  }
+
+  function buildTemplateWizardUrl(brickId) {
+    const base = new URL("./template_wizard.html", window.location.href);
+    base.searchParams.set("brickApiUrl", brickApiUrl);
+    base.searchParams.set("editTemplateId", String(brickId));
+    return base.toString();
+  }
+
+  function openTemplateWizard(brickId) {
+    if (state.templateWizardWindow && !state.templateWizardWindow.closed) {
+      state.templateWizardWindow.focus();
+      return;
+    }
+
+    const url = buildTemplateWizardUrl(brickId);
+    state.templateWizardWindow = window.open(
+      url,
+      "brickene-template-wizard",
       "width=1280,height=900,resizable=yes,scrollbars=yes",
     );
   }
@@ -412,7 +435,11 @@
       }
 
       if (action === "edit") {
-        openWizard({ editBrickId: brickId });
+        if (button.dataset.brickType === "TEMPLATE") {
+          openTemplateWizard(brickId);
+        } else {
+          openWizard({ editBrickId: brickId });
+        }
         return;
       }
 
@@ -466,13 +493,15 @@
       const data = event.data;
       if (
         !data
-        || data.source !== "brickene-node-wizard"
-        || !["brick-definition-saved", "brick-definition-updated"].includes(data.type)
+        || !["brickene-node-wizard", "brickene-template-wizard"].includes(data.source)
+        || !["brick-definition-saved", "brick-definition-updated",
+            "template-definition-saved", "template-definition-updated"].includes(data.type)
       ) {
         return;
       }
 
-      const actionLabel = data.type === "brick-definition-updated" ? "Updated" : "Saved";
+      const actionLabel = ["brick-definition-updated", "template-definition-updated"].includes(data.type)
+        ? "Updated" : "Saved";
       const id = data.definition?.id || "?";
       setStatus(`${actionLabel}: ${id}.`, { success: true });
       loadBricks();

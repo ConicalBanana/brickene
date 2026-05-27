@@ -145,6 +145,7 @@
     <script src="./scripts/nodes.js"></script>
     <script src="./scripts/edges.js"></script>
     <script src="./scripts/persistence.js"></script>
+    <script src="./scripts/shortcuts.js"></script>
     <script src="./scripts/render-layer.js"></script>
     <script src="./scripts/canvas.js"></script>
     <script src="./app.js"></script>
@@ -233,11 +234,14 @@
 
           if (data.type === "brickene:loadGraphState") {
             try { frontend.importGraphState(data.graph); } catch (_) {}
+            // Refocus the canvas so keyboard shortcuts work without a manual click.
+            frontend.dom.canvasViewport?.focus();
             return;
           }
 
           if (data.type === "brickene:clearPage") {
             try { frontend.importGraphState({ version: 1, nodes: [], edges: [] }); } catch (_) {}
+            frontend.dom.canvasViewport?.focus();
           }
         });
 

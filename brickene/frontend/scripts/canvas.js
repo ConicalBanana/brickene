@@ -8,10 +8,6 @@
   let activePortCommand = null;
   let activeCanvasNodeMenu = null;
 
-  function isPrimaryShortcutPressed(event) {
-    return frontend.platform?.isMacOS ? event.metaKey : event.ctrlKey;
-  }
-
   function isZoomResizeShortcutPressed(event) {
     return frontend.platform?.isMacOS ? event.metaKey : event.ctrlKey;
   }
@@ -42,11 +38,6 @@
     ui.selectedEdgeIds = nextEdgeIds;
     frontend.renderNodes();
     return true;
-  }
-
-  function shouldIgnoreKeyboardShortcut(target) {
-    return target instanceof Element
-      && Boolean(target.closest('input, select, textarea, [contenteditable="true"]'));
   }
 
   function deleteSelectedGraphItems() {
@@ -1574,122 +1565,185 @@
     window.visualViewport?.addEventListener("resize", refreshLayoutAfterResize);
   }
 
-  function bindKeyboardEvents() {
-    document.addEventListener("keydown", (event) => {
-      if (shouldIgnoreKeyboardShortcut(event.target)) {
-        return;
-      }
-
-      if (isPrimaryShortcutPressed(event) && !event.altKey) {
-        const lowerKey = event.key.toLowerCase();
-
-        if (lowerKey === "a") {
-          if (selectAllGraphItems()) {
-            frontend.setCanvasMessage("All nodes and edges selected.");
-          }
-          event.preventDefault();
-          return;
+  function bindKeyboardShortcuts() {
+    // ── Primary-modifier shortcuts (Cmd / Ctrl) ──────────────────────────
+    frontend.registerShortcut({
+      keys: ["a"],
+      metaOrCtrl: true,
+      alt: false,
+      description: "Select all nodes and edges",
+      handler(event) {
+        if (selectAllGraphItems()) {
+          frontend.setCanvasMessage("All nodes and edges selected.");
         }
+        event.preventDefault();
+      },
+    });
 
-        if (lowerKey === "c") {
-          event.preventDefault();
-          void frontend.copySelection()
-            .then((result) => {
-              if (!result.copied) {
-                frontend.setCanvasMessage("Select nodes or edges to copy.");
-                return;
-              }
+    frontend.registerShortcut({
+      keys: ["c"],
+      metaOrCtrl: true,
+      alt: false,
+      description: "Copy selected nodes & edges",
+      handler(event) {
+        event.preventDefault();
+        void frontend.copySelection()
+          .then((result) => {
+            if (!result.copied) {
+              frontend.setCanvasMessage("Select nodes or edges to copy.");
+              return;
+            }
+            frontend.setCanvasMessage(`Copied ${result.nodeCount} node(s) and ${result.edgeCount} edge(s).`);
+          })
+          .catch(() => { frontend.setCanvasMessage("Copy failed."); });
+      },
+    });
 
-              frontend.setCanvasMessage(`Copied ${result.nodeCount} node(s) and ${result.edgeCount} edge(s).`);
-            })
-            .catch(() => {
-              frontend.setCanvasMessage("Copy failed.");
-            });
-          return;
-        }
+    frontend.registerShortcut({
+      keys: ["v"],
+      metaOrCtrl: true,
+      alt: false,
+      description: "Paste copied nodes & edges",
+      handler(event) {
+        event.preventDefault();
+        void frontend.pasteSelection()
+          .then((result) => {
+            frontend.setCanvasMessage(`Pasted ${result.nodeCount} node(s) and ${result.edgeCount} edge(s).`);
+          })
+          .catch((error) => {
+            frontend.setCanvasMessage(error instanceof Error ? error.message : "Paste failed.");
+          });
+      },
+    });
 
-        if (lowerKey === "v") {
-          event.preventDefault();
-          void frontend.pasteSelection()
-            .then((result) => {
-              frontend.setCanvasMessage(`Pasted ${result.nodeCount} node(s) and ${result.edgeCount} edge(s).`);
-            })
-            .catch((error) => {
-              frontend.setCanvasMessage(error instanceof Error ? error.message : "Paste failed.");
-            });
-          return;
-        }
+    frontend.registerShortcut({
+      keys: ["z"],
+      metaOrCtrl: true,
+      alt: false,
+      shift: false,
+      description: "Undo",
+      handler(event) {
+        event.preventDefault();
+        frontend.setCanvasMessage(frontend.undo() ? "Undo applied." : "Nothing to undo.");
+      },
+    });
 
-        if (lowerKey === "z" && !event.shiftKey) {
-          event.preventDefault();
-          frontend.setCanvasMessage(frontend.undo() ? "Undo applied." : "Nothing to undo.");
-          return;
-        }
+    frontend.registerShortcut({
+      keys: ["y"],
+      metaOrCtrl: true,
+      alt: false,
+      description: "Redo (Y)",
+      handler(event) {
+        event.preventDefault();
+        frontend.setCanvasMessage(frontend.redo() ? "Redo applied." : "Nothing to redo.");
+      },
+    });
 
-        if (lowerKey === "y" || (lowerKey === "z" && event.shiftKey)) {
-          event.preventDefault();
-          frontend.setCanvasMessage(frontend.redo() ? "Redo applied." : "Nothing to redo.");
-          return;
-        }
-      }
+    frontend.registerShortcut({
+      keys: ["z"],
+      metaOrCtrl: true,
+      alt: false,
+      shift: true,
+      description: "Redo (Shift+Z)",
+      handler(event) {
+        event.preventDefault();
+        frontend.setCanvasMessage(frontend.redo() ? "Redo applied." : "Nothing to redo.");
+      },
+    });
 
-      if (event.key === "Delete" || event.key === "Backspace") {
+    // ── Special keys ──────────────────────────────────────────────────────
+    frontend.registerShortcut({
+      keys: ["delete", "backspace"],
+      description: "Delete selected graph items",
+      handler(event) {
         if (deleteSelectedGraphItems()) {
           event.preventDefault();
         }
-        return;
-      }
+      },
+    });
 
-      if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "q") {
+    // ── No-modifier shortcuts ─────────────────────────────────────────────
+    frontend.registerShortcut({
+      keys: ["q"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: false,
+      description: "Open port command panel",
+      handler(event) {
         if (frontend.getUiState().componentInteraction || frontend.getUiState().canvasPanState) {
           return;
         }
-
-        if (event.shiftKey) {
-          if (openCanvasNodeCommandPanel()) {
-            event.preventDefault();
-          }
-          return;
-        }
-
         if (openPortCommandPanel(frontend.getUiState().hoveredPort)) {
           event.preventDefault();
         }
-        return;
-      }
+      },
+    });
 
-      if (!event.metaKey && !event.ctrlKey && !event.altKey && event.shiftKey && event.key.toLowerCase() === "s") {
+    frontend.registerShortcut({
+      keys: ["q"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: true,
+      description: "Open canvas node command panel",
+      handler(event) {
+        if (frontend.getUiState().componentInteraction || frontend.getUiState().canvasPanState) {
+          return;
+        }
+        if (openCanvasNodeCommandPanel()) {
+          event.preventDefault();
+        }
+      },
+    });
+
+    frontend.registerShortcut({
+      keys: ["s"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: true,
+      description: "Copy graph as SMILES",
+      handler(event) {
         event.preventDefault();
         void frontend.copyGraphAsSmiles()
-          .then(() => {
-            frontend.setCanvasMessage("Copied graph as SMILES.");
-          })
+          .then(() => { frontend.setCanvasMessage("Copied graph as SMILES."); })
           .catch((error) => {
             frontend.setCanvasMessage(error instanceof Error ? error.message : "SMILES export failed.");
           });
+      },
+    });
+
+    frontend.registerShortcut({
+      keys: ["d"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: false,
+      description: "Create Duplicator node",
+      handler(event) {
+        event.preventDefault();
+        createNodeFromPort("900");
+      },
+    });
+
+    frontend.registerShortcut({
+      keys: ["p"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: false,
+      description: "Create Period node",
+      handler(event) {
+        event.preventDefault();
+        createNodeFromPort("902");
+      },
+    });
+
+    // ── Space (stateful hold — not suitable for pure registry dispatch) ──
+    document.addEventListener("keydown", (event) => {
+      if (frontend.shouldIgnoreKeyboardShortcut(event.target)) {
         return;
       }
-
-      if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
-        if (event.key.toLowerCase() === "d") {
-          event.preventDefault();
-          createNodeFromPort("900");
-          return;
-        }
-
-        if (event.key.toLowerCase() === "p") {
-          event.preventDefault();
-          createNodeFromPort("902");
-          return;
-        }
+      if (!frontend.dispatchShortcut(event) && event.code === "Space") {
+        frontend.getUiState().isSpacePressed = true;
+        syncPanShortcutState();
       }
-
-      if (event.code !== "Space") {
-        return;
-      }
-
-      frontend.getUiState().isSpacePressed = true;
-      syncPanShortcutState();
     });
 
     document.addEventListener("keyup", (event) => {
@@ -1699,15 +1753,13 @@
         syncPanShortcutState();
         return;
       }
-
-      if (shouldIgnoreKeyboardShortcut(event.target)) {
+      if (frontend.shouldIgnoreKeyboardShortcut(event.target)) {
         return;
       }
     });
 
     window.addEventListener("blur", () => {
       const ui = frontend.getUiState();
-
       ui.isSpacePressed = false;
       closePortCommandPanel();
       cancelCanvasPan();
@@ -1883,7 +1935,7 @@
     frontend.applyViewportOffset();
     syncPanShortcutState();
     bindMenuEvents();
-    bindKeyboardEvents();
+    bindKeyboardShortcuts();
     bindViewportEvents();
   }
 

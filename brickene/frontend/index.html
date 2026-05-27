@@ -170,5 +170,124 @@
         root.style.height = `${100 / scale}vh`;
       })();
     </script>
+
+    <!--
+      IFRAME HOST BRIDGE
+      Implements the postMessage protocol so this page can be embedded in a
+      host frame (e.g. cabbage_labeling).
+
+      Inbound (host → editor):
+        { type: "brickene:requestSmiles" }
+        { type: "brickene:requestGraphState" }
+        { type: "brickene:loadGraphState", graph }
+        { type: "brickene:clearPage" }
+
+      Outbound (editor → host):
+        { type: "brickene:smiles",            requestType, timestamp, smiles }
+        { type: "brickene:graphState",         requestType, timestamp, graph  }
+        { type: "brickene:graphStateChanged",  smiles, graph }
+        { type: "brickene:keydown",            key, ctrlKey, metaKey, shiftKey, altKey }
+        { type: "brickene:error",              requestType, timestamp, message }
+    -->
+    <script>
+      (function brickeneIframeBridge() {
+        // Only activate when actually embedded in a parent frame.
+        if (window === window.parent) return;
+
+        const frontend = window.BrickeneFrontend;
+
+        // ── Inbound postMessage handler ───────────────────────────────
+        window.addEventListener("message", async (event) => {
+          const data = event.data;
+          if (!data || typeof data.type !== "string" || !data.type.startsWith("brickene:")) return;
+
+          if (data.type === "brickene:requestSmiles") {
+            try {
+              const smiles = (await frontend.fetchGraphSmilesText()).trim();
+              window.parent.postMessage({
+                type: "brickene:smiles",
+                requestType: "brickene:requestSmiles",
+                timestamp: Date.now(),
+                smiles,
+              }, "*");
+            } catch (err) {
+              window.parent.postMessage({
+                type: "brickene:error",
+                requestType: "brickene:requestSmiles",
+                timestamp: Date.now(),
+                message: err instanceof Error ? err.message : "SMILES export failed.",
+              }, "*");
+            }
+            return;
+          }
+
+          if (data.type === "brickene:requestGraphState") {
+            window.parent.postMessage({
+              type: "brickene:graphState",
+              requestType: "brickene:requestGraphState",
+              timestamp: Date.now(),
+              graph: frontend.exportGraphState(),
+            }, "*");
+            return;
+          }
+
+          if (data.type === "brickene:loadGraphState") {
+            try { frontend.importGraphState(data.graph); } catch (_) {}
+            return;
+          }
+
+          if (data.type === "brickene:clearPage") {
+            try { frontend.importGraphState({ version: 1, nodes: [], edges: [] }); } catch (_) {}
+          }
+        });
+
+        // ── Graph-change → parent ─────────────────────────────────────
+        // Debounce so rapid edits only fire one postMessage.
+        let _changeTimer = null;
+        const viewport = frontend.dom.canvasViewport;
+        if (viewport) {
+          viewport.addEventListener(frontend.GRAPH_CHANGE_EVENT, () => {
+            clearTimeout(_changeTimer);
+            _changeTimer = setTimeout(async () => {
+              const graph = frontend.exportGraphState();
+              let smiles = "";
+              try { smiles = (await frontend.fetchGraphSmilesText()).trim(); } catch (_) {}
+              window.parent.postMessage({ type: "brickene:graphStateChanged", smiles, graph }, "*");
+            }, 300);
+          });
+        }
+
+        // ── Keyboard shortcut forwarding ──────────────────────────────
+        // Arrow keys and Ctrl/Cmd+S are not used by the canvas editor but
+        // ARE used by the host page (navigation and save).  Capture them
+        // here and relay them to the parent so the host shortcuts still work
+        // while the brickene frame has focus.
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            window.parent.postMessage({
+              type: "brickene:keydown",
+              key: event.key,
+              ctrlKey: event.ctrlKey,
+              metaKey: event.metaKey,
+              shiftKey: event.shiftKey,
+              altKey: event.altKey,
+            }, "*");
+            return;
+          }
+          // Ctrl/Cmd+S (without Shift, which brickene uses for its own SMILES copy)
+          if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "s") {
+            event.preventDefault();
+            window.parent.postMessage({
+              type: "brickene:keydown",
+              key: "s",
+              ctrlKey: event.ctrlKey,
+              metaKey: event.metaKey,
+              shiftKey: false,
+              altKey: false,
+            }, "*");
+          }
+        }, true); // capture phase — runs before canvas.js bubble-phase listeners
+      })();
+    </script>
   </body>
 </html>

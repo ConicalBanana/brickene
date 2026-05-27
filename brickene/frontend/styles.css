@@ -445,6 +445,7 @@ textarea {
   border: 1px dashed rgba(17, 17, 17, 0.38);
   background: var(--surface);
   box-shadow: var(--shadow);
+  pointer-events: auto;
 }
 
 .render-preview-label,
@@ -474,6 +475,8 @@ textarea {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  transition: transform 0.12s ease;
+  transform-origin: 50% 50%;
 }
 
 .component-world,

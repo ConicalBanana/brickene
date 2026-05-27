@@ -291,3 +291,66 @@ class TestMainEditorTemplateWizardEntry:
         expect(submenu).to_have_class(re.compile(r"is-open"), timeout=5000)
         item = page.locator("#submenu-content .submenu-pill:has-text('Template wizard')")
         expect(item).to_be_visible(timeout=3000)
+
+
+class TestTemplateInsertion:
+    """TEMPLATE bricks chosen from Shift+Q must paste their full graph."""
+
+    def test_shift_q_pastes_full_template_graph(self, page: Page):
+        page.goto(EDITOR_PAGE, wait_until="networkidle")
+        page.wait_for_function(
+            "() => typeof window.BrickeneFrontend !== 'undefined'",
+            timeout=10_000,
+        )
+
+        page.evaluate(
+            """() => {
+                window.BrickeneFrontend.registerBrickDefinition({
+                    id: "user-template-shift-q",
+                    name: "ShiftQ Paste Template",
+                    alias: ["shiftq-template"],
+                    brick_type: "TEMPLATE",
+                    nodes: [],
+                    edges: [],
+                    template_graph: {
+                        version: 1,
+                        nodes: [
+                            {
+                                id: 1,
+                                title: "Node 1",
+                                type: "rectangular",
+                                nodeTypeId: "39",
+                                position: { x: 100, y: 100 },
+                                portConfiguration: [
+                                    { slotId: 0, side: null, actualPortId: "1" },
+                                ],
+                            },
+                            {
+                                id: 2,
+                                title: "Node 2",
+                                type: "rectangular",
+                                nodeTypeId: "39",
+                                position: { x: 320, y: 100 },
+                                portConfiguration: [
+                                    { slotId: 0, side: null, actualPortId: "1" },
+                                ],
+                            },
+                        ],
+                        edges: [
+                            { id: 1, startNode: 1, startPort: 0, endNode: 2, endPort: 0 },
+                        ],
+                    },
+                });
+            }"""
+        )
+
+        page.locator("#canvas-viewport").click()
+        page.keyboard.press("Shift+Q")
+        command_input = page.locator("#port-command-input")
+        expect(command_input).to_be_visible(timeout=3000)
+        command_input.fill("ShiftQ Paste Template")
+        page.keyboard.press("Enter")
+
+        graph = page.evaluate("() => window.BrickeneFrontend.exportGraphState()")
+        assert len(graph["nodes"]) == 2, graph
+        assert len(graph["edges"]) == 1, graph

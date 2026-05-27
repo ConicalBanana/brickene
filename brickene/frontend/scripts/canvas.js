@@ -546,6 +546,74 @@
     frontend.setCanvasMessage("Canvas translation reset to origin.");
   }
 
+  // Create a node at the hovered port (if any) and auto-connect it, or fall
+  // back to placing it at the viewport centre.
+  function createNodeFromPort(brickId) {
+    const hoveredPort = frontend.getUiState().hoveredPort;
+
+    if (hoveredPort) {
+      const sourceNode = frontend.findNode(hoveredPort.nodeId);
+      const sourceSlot = frontend.findPortSlot(hoveredPort.nodeId, hoveredPort.slotId);
+
+      if (sourceNode && sourceSlot) {
+        const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
+        const direction = sourceSide === "left" ? -1 : 1;
+        const newNode = frontend.createNodeAt(
+          sourceNode.x + direction * (frontend.config.nodeSize.width + PORT_COMMAND_NODE_GAP),
+          sourceNode.y,
+          { brickId },
+        );
+
+        let connectMessage = "";
+
+        if (sourceSlot.edgeId !== null) {
+          connectMessage = " Port already occupied; new node left unconnected.";
+        } else {
+          const desiredSides = sourceSide === "left"
+            ? ["right", null]
+            : sourceSide === "right"
+              ? ["left", null]
+              : [null, "left", "right"];
+          const newSlot = desiredSides
+            .map((s) => newNode.portSlots.find((slot) => frontend.getEffectiveSlotSide(newNode, slot) === s))
+            .find(Boolean) || newNode.portSlots[0] || null;
+
+          if (!newSlot) {
+            connectMessage = " No compatible port found on the new node.";
+          } else {
+            const result = sourceSide === "left"
+              ? frontend.createEdgeBetweenPorts(
+                { nodeId: newNode.id, slotId: newSlot.id },
+                { nodeId: sourceNode.id, slotId: sourceSlot.id },
+              )
+              : frontend.createEdgeBetweenPorts(
+                { nodeId: sourceNode.id, slotId: sourceSlot.id },
+                { nodeId: newNode.id, slotId: newSlot.id },
+              );
+
+            if (!result.success) {
+              connectMessage = ` ${result.message}`;
+            }
+          }
+        }
+
+        schedulePortCommandEdgeRefresh(newNode.id);
+        frontend.setCanvasMessage(
+          `Node ${newNode.id} (${newNode.brickName}) created from port.${connectMessage}`,
+        );
+        return;
+      }
+    }
+
+    // No hovered port — place at viewport centre.
+    const center = getViewportCenterClientPoint();
+    if (center) {
+      const world = frontend.clientToWorldPoint(center.x, center.y);
+      const node = frontend.createNodeAt(world.x, world.y, { brickId });
+      frontend.setCanvasMessage(`Node ${node.id} (${node.brickName}) created.`);
+    }
+  }
+
   function createNodeAtContextTarget(brickId = null) {
     const ui = frontend.getUiState();
     const node = frontend.createNodeAt(
@@ -773,6 +841,35 @@
   function createNodeFromPortCommand(candidate) {
     if (!candidate || !activePortCommand) {
       return false;
+    }
+
+    if (candidate.definition?.brick_type === "TEMPLATE") {
+      const templateGraph = candidate.definition?.template_graph;
+
+      if (!templateGraph) {
+        frontend.setCanvasMessage("Template has no graph to paste.");
+        closePortCommandPanel();
+        return false;
+      }
+
+      try {
+        const targetWorld = activePortCommand.targetWorld || undefined;
+        const result = frontend.pasteSelectionSnapshot(
+          templateGraph,
+          targetWorld ? { atPoint: targetWorld } : {},
+        );
+
+        frontend.setCanvasMessage(
+          `Template "${candidate.definition.name}" pasted (${result.nodeCount} nodes, ${result.edgeCount} edges).`,
+        );
+      } catch (_error) {
+        frontend.setCanvasMessage("Failed to paste template graph.");
+        closePortCommandPanel();
+        return false;
+      }
+
+      closePortCommandPanel();
+      return true;
     }
 
     const sourcePort = activePortCommand.sourcePort;
@@ -1576,23 +1673,13 @@
       if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
         if (event.key.toLowerCase() === "d") {
           event.preventDefault();
-          const center = getViewportCenterClientPoint();
-          if (center) {
-            const world = frontend.clientToWorldPoint(center.x, center.y);
-            const node = frontend.createNodeAt(world.x, world.y, { brickId: "900" });
-            frontend.setCanvasMessage(`Duplicator node ${node.id} created.`);
-          }
+          createNodeFromPort("900");
           return;
         }
 
         if (event.key.toLowerCase() === "p") {
           event.preventDefault();
-          const center = getViewportCenterClientPoint();
-          if (center) {
-            const world = frontend.clientToWorldPoint(center.x, center.y);
-            const node = frontend.createNodeAt(world.x, world.y, { brickId: "902" });
-            frontend.setCanvasMessage(`Period node ${node.id} created.`);
-          }
+          createNodeFromPort("902");
           return;
         }
       }

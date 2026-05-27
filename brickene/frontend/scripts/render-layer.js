@@ -98,6 +98,25 @@
 
       refreshRenderPreview(detail);
     });
+
+    // Zoom preview image around the cursor while hovering over the preview frame.
+    const frame = dom.renderPreviewWindow?.querySelector(".render-preview-frame");
+    const img = dom.renderPreviewImage;
+
+    if (frame && img) {
+      frame.addEventListener("mousemove", (event) => {
+        const rect = frame.getBoundingClientRect();
+        const xPct = ((event.clientX - rect.left) / rect.width) * 100;
+        const yPct = ((event.clientY - rect.top) / rect.height) * 100;
+        img.style.transformOrigin = `${xPct}% ${yPct}%`;
+        img.style.transform = "scale(2.5)";
+      });
+
+      frame.addEventListener("mouseleave", () => {
+        img.style.transform = "";
+        img.style.transformOrigin = "50% 50%";
+      });
+    }
   }
 
   frontend.refreshRenderPreview = refreshRenderPreview;

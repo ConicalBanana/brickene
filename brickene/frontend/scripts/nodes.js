@@ -480,11 +480,11 @@
   }
 
   function isDirectionalBrickDefinition(brickDefinition) {
-    return brickDefinition?.brick_type === "TOOL";
+    return brickDefinition?.brick_type === "TOOL" && String(brickDefinition?.id) !== PERIOD_BRICK_ID;
   }
 
   function isDirectionalNode(node) {
-    return node?.brickType === "TOOL";
+    return node?.brickType === "TOOL" && String(node?.brickId) !== PERIOD_BRICK_ID;
   }
 
   function getSlotSide(index, total) {

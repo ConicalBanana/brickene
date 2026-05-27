@@ -7,6 +7,8 @@
   const PORT_COMMAND_NODE_GAP = 96;
   let activePortCommand = null;
   let activeCanvasNodeMenu = null;
+  let lastPointerClientX = 0;
+  let lastPointerClientY = 0;
 
   function isZoomResizeShortcutPressed(event) {
     return frontend.platform?.isMacOS ? event.metaKey : event.ctrlKey;
@@ -301,15 +303,32 @@
       return;
     }
 
+    const ui = frontend.getUiState();
+    const graph = frontend.getGraphState();
+    const pointerWorld = frontend.clientToWorldPoint(event.clientX, event.clientY);
+
+    // If the dragged node is selected, move all selected nodes as a group.
+    const groupNodeIds = ui.selectedNodeIds.has(nodeId)
+      ? [...ui.selectedNodeIds]
+      : [nodeId];
+    const groupStartPositions = Object.fromEntries(
+      groupNodeIds.map((id) => {
+        const n = graph.nodes.find((g) => g.id === id);
+        return [id, n ? { x: n.x, y: n.y } : { x: 0, y: 0 }];
+      }),
+    );
+
     frontend.getUiState().componentInteraction = {
       type: "node-drag",
       pointerId: event.pointerId,
       nodeId,
       startX: event.clientX,
       startY: event.clientY,
-      pointerOffsetX: frontend.clientToWorldPoint(event.clientX, event.clientY).x - node.x,
-      pointerOffsetY: frontend.clientToWorldPoint(event.clientX, event.clientY).y - node.y,
+      pointerOffsetX: pointerWorld.x - node.x,
+      pointerOffsetY: pointerWorld.y - node.y,
       moved: false,
+      groupNodeIds,
+      groupStartPositions,
     };
     event.preventDefault();
     setInteractionGuard(true);
@@ -439,29 +458,43 @@
       || autoPanDelta.y !== 0
     );
 
-    graph.nodes = graph.nodes.map((node) => (
-      node.id === interaction.nodeId
-        ? { ...node, x: nextX, y: nextY }
-        : node
-    ));
+    const dragNode = graph.nodes.find((n) => n.id === interaction.nodeId);
+    if (!dragNode) {
+      return;
+    }
+    const deltaX = nextX - dragNode.x;
+    const deltaY = nextY - dragNode.y;
+
+    const groupNodeIds = interaction.groupNodeIds || [interaction.nodeId];
+    graph.nodes = graph.nodes.map((node) => {
+      if (!groupNodeIds.includes(node.id)) {
+        return node;
+      }
+      return { ...node, x: node.x + deltaX, y: node.y + deltaY };
+    });
     interaction.moved = moved;
     frontend.renderNodes();
   }
 
   function endNodeDragInteraction(_event, interaction) {
-    const movedNodeId = interaction.nodeId;
     const didMove = interaction.moved;
+    const groupNodeIds = interaction.groupNodeIds || [interaction.nodeId];
 
     clearComponentInteraction(interaction);
     frontend.renderNodes();
     if (didMove) {
-      frontend.notifyGraphChanged({
-        reason: "node-moved",
-        nodeId: movedNodeId,
-        refreshPreview: false,
-      });
+      for (const nodeId of groupNodeIds) {
+        frontend.notifyGraphChanged({
+          reason: "node-moved",
+          nodeId,
+          refreshPreview: false,
+        });
+      }
     }
-    frontend.setCanvasMessage(didMove ? `Node ${movedNodeId} moved.` : `Node ${movedNodeId} selected.`);
+    const count = groupNodeIds.length;
+    frontend.setCanvasMessage(didMove
+      ? (count > 1 ? `${count} nodes moved.` : `Node ${groupNodeIds[0]} moved.`)
+      : `Node ${interaction.nodeId} selected.`);
   }
 
   function cancelNodeDragInteraction(interaction) {
@@ -783,13 +816,14 @@
 
     const panelWidth = dom.portCommandPanel.offsetWidth || 320;
     const panelHeight = dom.portCommandPanel.offsetHeight || 220;
+    // Anchor the panel's top‑left corner at the cursor, clamped to viewport.
     const left = Math.min(
-      Math.max(8, clientX - viewportRect.left - panelWidth / 2),
-      viewportRect.width - panelWidth - 8,
+      Math.max(0, clientX - viewportRect.left),
+      viewportRect.width - panelWidth,
     );
     const top = Math.min(
-      Math.max(8, clientY - viewportRect.top - panelHeight / 2),
-      viewportRect.height - panelHeight - 8,
+      Math.max(0, clientY - viewportRect.top),
+      viewportRect.height - panelHeight,
     );
 
     dom.portCommandPanel.style.left = `${left}px`;
@@ -961,20 +995,20 @@
       return false;
     }
 
-    const centerPoint = getViewportCenterClientPoint();
-    if (!centerPoint) {
-      return false;
-    }
+    // Use the last known pointer position so the panel and the created node
+    // are aligned to the mouse cursor.
+    const clientX = lastPointerClientX;
+    const clientY = lastPointerClientY;
 
     frontend.closeAllContextMenus();
     activePortCommand = {
       sourcePort: null,
-      targetWorld: frontend.clientToWorldPoint(centerPoint.x, centerPoint.y),
+      targetWorld: frontend.clientToWorldPoint(clientX, clientY),
       candidates: [],
       selectedIndex: 0,
     };
     dom.portCommandPanel.hidden = false;
-    positionPortCommandPanelAtClientPoint(centerPoint.x, centerPoint.y);
+    positionPortCommandPanelAtClientPoint(clientX, clientY);
     dom.portCommandInput.value = "";
     refreshPortCommandCandidates();
     dom.portCommandInput.focus();
@@ -1735,6 +1769,30 @@
       },
     });
 
+    frontend.registerShortcut({
+      keys: ["c"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: false,
+      description: "Create Carbon node",
+      handler(event) {
+        event.preventDefault();
+        createNodeFromPort("user-1");
+      },
+    });
+
+    frontend.registerShortcut({
+      keys: ["n"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: false,
+      description: "Create Nitrogen node",
+      handler(event) {
+        event.preventDefault();
+        createNodeFromPort("user-37");
+      },
+    });
+
     // ── Space (stateful hold — not suitable for pure registry dispatch) ──
     document.addEventListener("keydown", (event) => {
       if (frontend.shouldIgnoreKeyboardShortcut(event.target)) {
@@ -1877,7 +1935,12 @@
       beginMarqueeSelection(event);
     });
 
-    dom.canvasViewport.addEventListener("pointermove", (event) => {
+    // Use document-level listeners for pointermove / pointerup so marquee
+    // and drag interactions continue to work when the pointer moves outside
+    // an iframe boundary.
+    document.addEventListener("pointermove", (event) => {
+      lastPointerClientX = event.clientX;
+      lastPointerClientY = event.clientY;
       updateHoveredPortFromTarget(event.target);
 
       const ui = frontend.getUiState();
@@ -1893,8 +1956,8 @@
       );
     });
 
-    dom.canvasViewport.addEventListener("pointerup", endComponentInteraction);
-    dom.canvasViewport.addEventListener("pointercancel", endComponentInteraction);
+    document.addEventListener("pointerup", endComponentInteraction);
+    document.addEventListener("pointercancel", endComponentInteraction);
     dom.canvasViewport.addEventListener("pointerleave", () => {
       setHoveredPort(null);
     });

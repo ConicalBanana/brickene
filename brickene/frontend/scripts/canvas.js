@@ -4,7 +4,6 @@
   const AUTO_PAN_BOUNDARY_RATIO = 0.05;
   const AUTO_PAN_MAX_STEP = 28;
   const PORT_COMMAND_RESULT_LIMIT = 12;
-  const PORT_COMMAND_NODE_GAP = 96;
   let activePortCommand = null;
   let activeCanvasNodeMenu = null;
   let lastPointerClientX = 0;
@@ -583,7 +582,7 @@
         const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
         const direction = sourceSide === "left" ? -1 : 1;
         const newNode = frontend.createNodeAt(
-          sourceNode.x + direction * (frontend.config.nodeSize.width + PORT_COMMAND_NODE_GAP),
+          sourceNode.x + direction * frontend.config.nodeSize.width * 0.5,
           sourceNode.y,
           { brickId },
         );
@@ -926,7 +925,7 @@
     const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
     const direction = sourceSide === "left" ? -1 : 1;
     const newNode = frontend.createNodeAt(
-      sourceNode.x + direction * (frontend.config.nodeSize.width + PORT_COMMAND_NODE_GAP),
+      sourceNode.x + direction * frontend.config.nodeSize.width,
       sourceNode.y,
       { brickId: candidate.id },
     );

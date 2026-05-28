@@ -648,18 +648,6 @@
     });
   }
 
-  function renderNodeTypeOptions(selectedBrickId) {
-    return Object.entries(brickTypeGroups).map(([groupLabel, options]) => `
-      <optgroup label="${escapeHtml(groupLabel)}">
-        ${options.map((option) => `
-          <option value="${escapeHtml(option.id)}"${option.id === selectedBrickId ? " selected" : ""}>
-            ${escapeHtml(option.label)}
-          </option>
-        `).join("")}
-      </optgroup>
-    `).join("");
-  }
-
   function getBrickTypeGroups() {
     return Object.entries(brickTypeGroups).map(([label, options]) => ({
       label,
@@ -954,25 +942,15 @@
   }
 
   function renderNodeFooter(node, leftSlots) {
-    return `
+    const hasControls = isPeriodNode(node) || (node.supportsInlineConfiguration) || (!node.lockPortAssignments && leftSlots.length);
+
+    return hasControls ? `
       <div class="node-editor-panel">
-        <div class="node-editor-row">
-          <label class="node-type-field node-type-field-compact">
-            <span class="node-type-label">Node type</span>
-            <select
-              class="node-type-select node-control"
-              data-node-id="${node.id}"
-              aria-label="${escapeHtml(node.title)} type"
-            >
-              ${renderNodeTypeOptions(node.brickId)}
-            </select>
-          </label>
-        </div>
         ${isPeriodNode(node) ? renderPeriodNumberEditor(node) : ""}
         ${renderCompactPortAssignments(node, leftSlots)}
         ${node.supportsInlineConfiguration ? renderInlineConfigurationEditor(node) : ""}
       </div>
-    `;
+    ` : "";
   }
 
   function renderPeriodNumberEditor(node) {
@@ -1215,25 +1193,6 @@
     };
   }
 
-  function handleNodeTypeChange(event) {
-    const select = event.target.closest(".node-type-select");
-    if (!select) {
-      return;
-    }
-
-    const nodeId = Number(select.dataset.nodeId);
-    const brickId = select.value;
-    const result = setNodeBrickName(nodeId, brickId);
-    if (!result.updated) {
-      return;
-    }
-
-    const removedEdgeCopy = result.removedEdgeCount > 0
-      ? ` ${result.removedEdgeCount} edge(s) cleared.`
-      : "";
-    frontend.setCanvasMessage(`Node ${nodeId} switched to ${result.brickName}.${removedEdgeCopy}`);
-  }
-
   function handlePortAssignmentChange(event) {
     const select = event.target.closest(".node-port-select");
     if (!select) {
@@ -1333,11 +1292,6 @@
     });
 
     dom.nodeContainer.addEventListener("change", (event) => {
-      if (event.target.closest(".node-type-select")) {
-        handleNodeTypeChange(event);
-        return;
-      }
-
       if (event.target.closest(".node-port-select")) {
         handlePortAssignmentChange(event);
         return;
@@ -1369,6 +1323,7 @@
         style="left: ${node.x}px; top: ${node.y}px; --node-surface-width: ${imageMetrics.surfaceWidth}px"
         aria-selected="${String(isSelected)}"
       >
+        <span class="node-name-label">${escapeHtml(node.brickName)}</span>
         <div
           class="node-selection-surface${isSelected ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}"
           data-node-id="${node.id}"

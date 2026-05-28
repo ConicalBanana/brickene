@@ -182,6 +182,7 @@
         { type: "brickene:requestGraphState" }
         { type: "brickene:loadGraphState", graph }
         { type: "brickene:clearPage" }
+        { type: "brickene:focusCanvas" }
 
       Outbound (editor → host):
         { type: "brickene:smiles",            requestType, timestamp, smiles }
@@ -243,6 +244,10 @@
             try { frontend.importGraphState({ version: 1, nodes: [], edges: [] }); } catch (_) {}
             frontend.dom.canvasViewport?.focus();
           }
+
+          if (data.type === "brickene:focusCanvas") {
+            frontend.dom.canvasViewport?.focus();
+          }
         });
 
         // ── Graph-change → parent ─────────────────────────────────────
@@ -266,8 +271,14 @@
         // ARE used by the host page (navigation and save).  Capture them
         // here and relay them to the parent so the host shortcuts still work
         // while the brickene frame has focus.
+        //
+        // We run in the capture phase so we see the event before brickene's
+        // own shortcut system (shortcuts.js / dispatchShortcut).  We also
+        // stop propagation so the centralized shortcut dispatcher never sees
+        // these navigation keys — they belong exclusively to the host.
         document.addEventListener("keydown", (event) => {
           if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            event.stopPropagation();
             window.parent.postMessage({
               type: "brickene:keydown",
               key: event.key,
@@ -281,6 +292,7 @@
           // Ctrl/Cmd+S (without Shift, which brickene uses for its own SMILES copy)
           if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "s") {
             event.preventDefault();
+            event.stopPropagation();
             window.parent.postMessage({
               type: "brickene:keydown",
               key: "s",
@@ -290,7 +302,18 @@
               altKey: false,
             }, "*");
           }
-        }, true); // capture phase — runs before canvas.js bubble-phase listeners
+        }, true); // capture phase — runs before shortcuts.js bubble-phase listeners
+
+        // ── Click-to-focus ─────────────────────────────────────────
+        // Ensure the canvas-viewport receives focus on any click inside
+        // the editor, so keyboard shortcuts activate without needing to
+        // click the menu bar first.
+        document.addEventListener("click", () => {
+          const vp = document.getElementById("canvas-viewport");
+          if (vp && document.activeElement !== vp) {
+            vp.focus();
+          }
+        });
       })();
     </script>
   </body>

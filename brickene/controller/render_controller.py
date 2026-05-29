@@ -301,7 +301,7 @@ def create_app(
 
     @server.put("/bricks/{brick_id}")
     async def update_brick(brick_id: str, request: Request) -> Any:
-        """Update one user-defined brick definition in place."""
+        """Update one brick definition in place (user or system)."""
 
         payload = await _read_json_body(request)
         if isinstance(payload, JSONResponse):
@@ -318,9 +318,16 @@ def create_app(
                     image_size=image_size,
                     shared_coordinate_size=shared_coordinate_size,
                 )
-            stored_definition = brick_store.update_brick(
-                brick_id, definition, svg_text=svg_text, layout_payload=layout
-            )
+
+            normalized_id = str(brick_id).strip()
+            if normalized_id.startswith("user-"):
+                stored_definition = brick_store.update_brick(
+                    brick_id, definition, svg_text=svg_text, layout_payload=layout
+                )
+            else:
+                stored_definition = brick_store.update_system_brick(
+                    brick_id, definition, svg_text=svg_text, layout_payload=layout
+                )
         except (TypeError, ValueError) as exc:
             return _error(str(exc))
         except Exception as exc:  # pragma: no cover

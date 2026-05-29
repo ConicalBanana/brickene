@@ -531,6 +531,66 @@ class BrickStore:
         if cursor.rowcount == 0:
             raise ValueError(f"Unknown system brick id: {brick_id}")
 
+    def update_system_brick(
+        self,
+        brick_id: str,
+        definition: dict[str, Any],
+        *,
+        svg_text: str | None = None,
+        layout_json: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Update one system brick definition in place.
+
+        Args:
+            brick_id: The system brick identifier (e.g. ``"27"``).
+            definition: Updated brick-definition payload.
+            svg_text: Re-rendered SVG asset, or ``None`` to keep existing.
+            layout_json: Re-computed layout JSON string, or ``None``.
+
+        Returns:
+            The updated stored definition, or ``None`` if not found.
+        """
+
+        normalized_id = str(brick_id).strip()
+        serialized_definition = json.dumps(
+            self._strip_storage_metadata(definition),
+            sort_keys=True,
+        )
+
+        with self._connect() as connection:
+            if svg_text is not None or layout_json is not None:
+                cursor = connection.execute(
+                    """
+                    UPDATE system_bricks
+                    SET definition_json = ?,
+                        svg_text = COALESCE(?, svg_text),
+                        layout_json = COALESCE(?, layout_json),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (
+                        serialized_definition,
+                        svg_text,
+                        layout_json,
+                        normalized_id,
+                    ),
+                )
+            else:
+                cursor = connection.execute(
+                    """
+                    UPDATE system_bricks
+                    SET definition_json = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (serialized_definition, normalized_id),
+                )
+
+        if cursor.rowcount == 0:
+            return None
+
+        return self.get_brick(normalized_id)
+
     def _connect(self) -> sqlite3.Connection:
         """Open one SQLite connection configured for row access."""
 
@@ -834,6 +894,38 @@ class RuntimeBrickStore:
             public_id=normalized,
             svg_text=svg_text,
             layout_payload=layout_payload,
+        )
+
+    def update_system_brick(
+        self,
+        brick_id: str,
+        definition: dict[str, Any],
+        *,
+        svg_text: str | None = None,
+        layout_payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Update one system brick definition in place.
+
+        Args:
+            brick_id: The system brick identifier (e.g. ``"27"``).
+            definition: Updated brick definition payload.
+            svg_text: Re-rendered SVG asset, or ``None``.
+            layout_payload: Re-computed layout object, or ``None``.
+
+        Returns:
+            The updated stored definition, or ``None`` if not found.
+        """
+
+        layout_json = (
+            json.dumps(layout_payload, sort_keys=True)
+            if layout_payload is not None
+            else None
+        )
+        return self._system_store.update_system_brick(
+            brick_id,
+            definition,
+            svg_text=svg_text,
+            layout_json=layout_json,
         )
 
     def promote_brick(

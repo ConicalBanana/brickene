@@ -170,9 +170,40 @@
   function buildRowActions(brick) {
     const id = String(brick.id || "");
     const isUser = isUserBrick(brick);
+    const isTool = String(brick.brick_type || "") === "TOOL";
 
-    if (!isUser) {
-      return `<span class="node-manager-source-note" aria-label="System bricks are read-only">—</span>`;
+    if (isTool) {
+      return `<span class="node-manager-source-note" aria-label="TOOL bricks cannot be edited">—</span>`;
+    }
+
+    // System bricks get Edit only; user bricks get Edit, Delete, and Promote.
+    if (isUser) {
+      return `
+        <div class="node-manager-row-actions">
+          <button
+            type="button"
+            class="node-manager-row-button"
+            data-action="edit"
+            data-brick-id="${escapeHtml(id)}"
+            data-brick-type="${escapeHtml(String(brick.brick_type || ''))}"
+            aria-label="Edit ${escapeHtml(String(brick.name || id))}"
+          >Edit</button>
+          <button
+            type="button"
+            class="node-manager-row-button node-manager-row-button-danger"
+            data-action="delete"
+            data-brick-id="${escapeHtml(id)}"
+            aria-label="Delete ${escapeHtml(String(brick.name || id))}"
+          >Delete</button>
+          <button
+            type="button"
+            class="node-manager-row-button node-manager-row-button-promote"
+            data-action="promote"
+            data-brick-id="${escapeHtml(id)}"
+            aria-label="Register ${escapeHtml(String(brick.name || id))} as system node"
+          >Register as system</button>
+        </div>
+      `;
     }
 
     return `
@@ -185,20 +216,6 @@
           data-brick-type="${escapeHtml(String(brick.brick_type || ''))}"
           aria-label="Edit ${escapeHtml(String(brick.name || id))}"
         >Edit</button>
-        <button
-          type="button"
-          class="node-manager-row-button node-manager-row-button-danger"
-          data-action="delete"
-          data-brick-id="${escapeHtml(id)}"
-          aria-label="Delete ${escapeHtml(String(brick.name || id))}"
-        >Delete</button>
-        <button
-          type="button"
-          class="node-manager-row-button node-manager-row-button-promote"
-          data-action="promote"
-          data-brick-id="${escapeHtml(id)}"
-          aria-label="Register ${escapeHtml(String(brick.name || id))} as system node"
-        >Register as system</button>
       </div>
     `;
   }
@@ -444,6 +461,10 @@
       }
 
       if (action === "delete") {
+        if (!isUserBrick({ id: brickId })) {
+          setStatus("System bricks cannot be deleted from the node manager.", { error: true });
+          return;
+        }
         const row = button.closest("tr");
         const nameCell = row?.querySelector("td:nth-child(2)");
         const brickName = nameCell?.textContent?.trim() || brickId;

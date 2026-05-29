@@ -1823,7 +1823,11 @@
           return;
         }
 
-        frontend.selectOnlyNode(nodeId);
+        // If the node is already selected, start a group drag; otherwise
+        // select only this node before starting the drag.
+        if (!frontend.getUiState().selectedNodeIds.has(nodeId)) {
+          frontend.selectOnlyNode(nodeId);
+        }
         beginNodeDrag(event, nodeId);
         return;
       }

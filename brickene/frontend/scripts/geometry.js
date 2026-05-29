@@ -100,7 +100,7 @@
     const nextSelection = nodes
       .filter((node) => {
         const nodeElement = dom.nodeContainer.querySelector(
-          `.node-component[data-node-id="${node.id}"] .node-selection-surface`,
+          `.node-component[data-node-id="${node.id}"]`,
         );
         if (!nodeElement) {
           return false;

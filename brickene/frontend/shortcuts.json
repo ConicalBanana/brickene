@@ -1,0 +1,138 @@
+[
+  {
+    "keys": ["a"],
+    "metaOrCtrl": true,
+    "alt": false,
+    "action": "selectAll",
+    "description": "Select all nodes and edges"
+  },
+  {
+    "keys": ["c"],
+    "metaOrCtrl": true,
+    "alt": false,
+    "action": "copySelection",
+    "description": "Copy selected nodes & edges"
+  },
+  {
+    "keys": ["v"],
+    "metaOrCtrl": true,
+    "alt": false,
+    "action": "pasteSelection",
+    "description": "Paste copied nodes & edges"
+  },
+  {
+    "keys": ["z"],
+    "metaOrCtrl": true,
+    "alt": false,
+    "shift": false,
+    "action": "undo",
+    "description": "Undo"
+  },
+  {
+    "keys": ["y"],
+    "metaOrCtrl": true,
+    "alt": false,
+    "action": "redo",
+    "description": "Redo (Y)"
+  },
+  {
+    "keys": ["z"],
+    "metaOrCtrl": true,
+    "alt": false,
+    "shift": true,
+    "action": "redo",
+    "description": "Redo (Shift+Z)"
+  },
+  {
+    "keys": ["delete", "backspace"],
+    "action": "deleteSelected",
+    "description": "Delete selected graph items"
+  },
+  {
+    "keys": ["q"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "openPortCommand",
+    "description": "Open port command panel"
+  },
+  {
+    "keys": ["q"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "openCanvasNodeCommand",
+    "description": "Open canvas node command panel"
+  },
+  {
+    "keys": ["s"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "copySmiles",
+    "description": "Copy graph as SMILES"
+  },
+  {
+    "keys": ["d"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNode",
+    "args": "900",
+    "description": "Create Duplicator node"
+  },
+  {
+    "keys": ["p"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNode",
+    "args": "902",
+    "description": "Create Period node"
+  },
+  {
+    "keys": ["c"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNode",
+    "args": "user-1",
+    "description": "Create Carbon node"
+  },
+  {
+    "keys": ["n"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNode",
+    "args": "user-37",
+    "description": "Create Nitrogen node"
+  },
+  {
+    "keys": ["o"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNode",
+    "args": "30",
+    "description": "Create Oxygen node"
+  },
+  {
+    "keys": ["f"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNode",
+    "args": "39",
+    "description": "Create Fluorine node"
+  },
+  {
+    "keys": ["t"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNode",
+    "args": "27",
+    "description": "Create Thiophene node"
+  }
+]

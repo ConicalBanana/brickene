@@ -688,7 +688,7 @@
         return true;
       }
 
-      if (actionKey === "open-node-wizard") {
+      if (actionKey === "node-wizard") {
         return openNodeWizard();
       }
 

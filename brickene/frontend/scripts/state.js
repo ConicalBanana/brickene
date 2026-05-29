@@ -80,7 +80,7 @@
         },
       ],
       edit: ["Undo", "Redo", "|", "Copy", "Paste", "Delete"],
-      node: ["Create node", "Open node wizard", "|", "Template wizard", "Node manager"],
+      node: ["Create node", "|", "Node wizard", "Template wizard", "Node manager"],
       view: ["Center canvas", "Grid", "Reset zoom", "Zoom in", "Zoom out"],
     },
     stateMap: {

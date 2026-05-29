@@ -151,10 +151,60 @@
     return false;
   }
 
+  // ── Action registry (named handlers referenced by shortcuts.json) ─────────
+
+  /** @type {Record<string, Function>} */
+  const actionRegistry = {};
+
+  /**
+   * Register a named action handler.  Action names are referenced by the
+   * ``action`` field in ``shortcuts.json`` entries.
+   *
+   * @param {string} name - The action name (e.g. ``"copySelection"``).
+   * @param {Function} handler - ``function(event, args)`` where ``args`` is
+   *        the optional ``args`` value from the config entry.
+   */
+  function registerShortcutAction(name, handler) {
+    actionRegistry[name] = handler;
+  }
+
+  /**
+   * Load a shorthand config array (the parsed contents of ``shortcuts.json``)
+   * and register every entry as a shortcut.
+   *
+   * Each config entry must have at least ``action`` and ``keys``.  Optional
+   * fields: ``metaOrCtrl``, ``alt``, ``shift``, ``args``, ``description``.
+   *
+   * @param {Object[]} configArray
+   */
+  function loadShortcutConfig(configArray) {
+    for (const entry of configArray) {
+      const handler = actionRegistry[entry.action];
+
+      if (!handler) {
+        console.warn(`[shortcuts] Unknown action "${entry.action}" — shortcut skipped.`);
+        continue;
+      }
+
+      registerShortcut({
+        keys: entry.keys,
+        metaOrCtrl: entry.metaOrCtrl ?? null,
+        alt: entry.alt ?? null,
+        shift: entry.shift ?? null,
+        description: entry.description || "",
+        handler(event) {
+          handler(event, entry.args);
+        },
+      });
+    }
+  }
+
   // ── Exports ──────────────────────────────────────────────────────────────
 
   frontend.registerShortcut = registerShortcut;
   frontend.unregisterShortcut = unregisterShortcut;
   frontend.clearShortcuts = clearShortcuts;
   frontend.dispatchShortcut = dispatchShortcut;
+  frontend.registerShortcutAction = registerShortcutAction;
+  frontend.loadShortcutConfig = loadShortcutConfig;
 })();

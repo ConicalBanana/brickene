@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "brickene"
-version = "0.7.1"
+version = "0.7.2"
 description = "brickene – A flow-graph based visual builder for block-assembled organic molecules."
 readme = "README.md"
 authors = ["none <zhichen_xu@outlook.com>"]

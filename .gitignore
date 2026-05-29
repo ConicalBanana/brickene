@@ -1,5 +1,8 @@
 # Databse
 user.sqlite3
+# brickene/frontend/assets/images/
+brickene/frontend/assets/raw_brick_smiles.json
+brickene/frontend/assets/*py
 
 # MacOS
 .DS_Store

@@ -582,7 +582,7 @@
         const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
         const direction = sourceSide === "left" ? -1 : 1;
         const newNode = frontend.createNodeAt(
-          sourceNode.x + direction * frontend.config.nodeSize.width * 0.5,
+          sourceNode.x + direction * frontend.config.nodeSize.width * 0.7,
           sourceNode.y,
           { brickId },
         );
@@ -925,7 +925,7 @@
     const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
     const direction = sourceSide === "left" ? -1 : 1;
     const newNode = frontend.createNodeAt(
-      sourceNode.x + direction * frontend.config.nodeSize.width,
+      sourceNode.x + direction * frontend.config.nodeSize.width * 0.7,
       sourceNode.y,
       { brickId: candidate.id },
     );

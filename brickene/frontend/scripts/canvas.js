@@ -1792,6 +1792,42 @@
       },
     });
 
+    frontend.registerShortcut({
+      keys: ["o"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: false,
+      description: "Create Oxygen node",
+      handler(event) {
+        event.preventDefault();
+        createNodeFromPort("30");
+      },
+    });
+
+    frontend.registerShortcut({
+      keys: ["f"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: false,
+      description: "Create Fluorine node",
+      handler(event) {
+        event.preventDefault();
+        createNodeFromPort("39");
+      },
+    });
+
+    frontend.registerShortcut({
+      keys: ["t"],
+      metaOrCtrl: false,
+      alt: false,
+      shift: false,
+      description: "Create Thiophene node",
+      handler(event) {
+        event.preventDefault();
+        createNodeFromPort("27");
+      },
+    });
+
     // ── Space (stateful hold — not suitable for pure registry dispatch) ──
     document.addEventListener("keydown", (event) => {
       if (frontend.shouldIgnoreKeyboardShortcut(event.target)) {

@@ -571,69 +571,76 @@
 
   // Create a node at the hovered port (if any) and auto-connect it, or fall
   // back to placing it at the viewport centre.
-  function createNodeFromPort(brickId) {
-    const hoveredPort = frontend.getUiState().hoveredPort;
-
-    if (hoveredPort) {
-      const sourceNode = frontend.findNode(hoveredPort.nodeId);
-      const sourceSlot = frontend.findPortSlot(hoveredPort.nodeId, hoveredPort.slotId);
-
-      if (sourceNode && sourceSlot) {
-        const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
-        const direction = sourceSide === "left" ? -1 : 1;
-        const newNode = frontend.createNodeAt(
-          sourceNode.x + direction * frontend.config.nodeSize.width * 0.7,
-          sourceNode.y,
-          { brickId },
-        );
-
-        let connectMessage = "";
-
-        if (sourceSlot.edgeId !== null) {
-          connectMessage = " Port already occupied; new node left unconnected.";
-        } else {
-          const desiredSides = sourceSide === "left"
-            ? ["right", null]
-            : sourceSide === "right"
-              ? ["left", null]
-              : [null, "left", "right"];
-          const newSlot = desiredSides
-            .map((s) => newNode.portSlots.find((slot) => frontend.getEffectiveSlotSide(newNode, slot) === s))
-            .find(Boolean) || newNode.portSlots[0] || null;
-
-          if (!newSlot) {
-            connectMessage = " No compatible port found on the new node.";
-          } else {
-            const result = sourceSide === "left"
-              ? frontend.createEdgeBetweenPorts(
-                { nodeId: newNode.id, slotId: newSlot.id },
-                { nodeId: sourceNode.id, slotId: sourceSlot.id },
-              )
-              : frontend.createEdgeBetweenPorts(
-                { nodeId: sourceNode.id, slotId: sourceSlot.id },
-                { nodeId: newNode.id, slotId: newSlot.id },
-              );
-
-            if (!result.success) {
-              connectMessage = ` ${result.message}`;
-            }
-          }
-        }
-
-        schedulePortCommandEdgeRefresh(newNode.id);
-        frontend.setCanvasMessage(
-          `Node ${newNode.id} (${newNode.brickName}) created from port.${connectMessage}`,
-        );
-        return;
-      }
-    }
-
-    // No hovered port — place at viewport centre.
+  function createNodeAtViewportCenter(brickId) {
     const center = getViewportCenterClientPoint();
     if (center) {
       const world = frontend.clientToWorldPoint(center.x, center.y);
       const node = frontend.createNodeAt(world.x, world.y, { brickId });
       frontend.setCanvasMessage(`Node ${node.id} (${node.brickName}) created.`);
+    }
+  }
+
+  function createNodeOnPortOnly(brickId) {
+    const hoveredPort = frontend.getUiState().hoveredPort;
+    if (!hoveredPort) return;
+
+    const sourceNode = frontend.findNode(hoveredPort.nodeId);
+    const sourceSlot = frontend.findPortSlot(hoveredPort.nodeId, hoveredPort.slotId);
+
+    if (sourceNode && sourceSlot) {
+      const sourceSide = frontend.getEffectiveSlotSide(sourceNode, sourceSlot);
+      const direction = sourceSide === "left" ? -1 : 1;
+      const newNode = frontend.createNodeAt(
+        sourceNode.x + direction * frontend.config.nodeSize.width * 0.7,
+        sourceNode.y,
+        { brickId },
+      );
+
+      let connectMessage = "";
+
+      if (sourceSlot.edgeId !== null) {
+        connectMessage = " Port already occupied; new node left unconnected.";
+      } else {
+        const desiredSides = sourceSide === "left"
+          ? ["right", null]
+          : sourceSide === "right"
+            ? ["left", null]
+            : [null, "left", "right"];
+        const newSlot = desiredSides
+          .map((s) => newNode.portSlots.find((slot) => frontend.getEffectiveSlotSide(newNode, slot) === s))
+          .find(Boolean) || newNode.portSlots[0] || null;
+
+        if (!newSlot) {
+          connectMessage = " No compatible port found on the new node.";
+        } else {
+          const result = sourceSide === "left"
+            ? frontend.createEdgeBetweenPorts(
+              { nodeId: newNode.id, slotId: newSlot.id },
+              { nodeId: sourceNode.id, slotId: sourceSlot.id },
+            )
+            : frontend.createEdgeBetweenPorts(
+              { nodeId: sourceNode.id, slotId: sourceSlot.id },
+              { nodeId: newNode.id, slotId: newSlot.id },
+            );
+
+          if (!result.success) {
+            connectMessage = ` ${result.message}`;
+          }
+        }
+      }
+
+      schedulePortCommandEdgeRefresh(newNode.id);
+      frontend.setCanvasMessage(
+        `Node ${newNode.id} (${newNode.brickName}) created from port.${connectMessage}`,
+      );
+    }
+  }
+
+  function createNodeFromPort(brickId) {
+    if (frontend.getUiState().hoveredPort) {
+      createNodeOnPortOnly(brickId);
+    } else {
+      createNodeAtViewportCenter(brickId);
     }
   }
 
@@ -1296,6 +1303,29 @@
       close: () => {},
     },
     node: {
+      "edit-in-wizard": () => {
+        const { activeNodeContextId } = frontend.getUiState();
+
+        if (activeNodeContextId === null) {
+          return;
+        }
+
+        const node = frontend.findNode(activeNodeContextId);
+        if (!node) return;
+
+        const wizardUrl = new URL(frontend.config.nodeWizardUrl);
+
+        if (node.brickId && (String(node.brickId).startsWith("user-") || node.brickId === "901")) {
+          // Stored user brick: pass brick ID for edit mode.
+          wizardUrl.searchParams.set("editBrickId", String(node.brickId));
+        }
+
+        const wizardWindow = window.open(wizardUrl.toString(), "_blank", "popup=yes,width=1520,height=960");
+
+        if (!wizardWindow) {
+          frontend.setCanvasMessage("Allow pop-ups to open the node wizard.");
+        }
+      },
       delete: () => {
         const { activeNodeContextId } = frontend.getUiState();
 
@@ -1677,6 +1707,16 @@
     frontend.registerShortcutAction("createNode", (event, brickId) => {
       event.preventDefault();
       createNodeFromPort(String(brickId));
+    });
+
+    frontend.registerShortcutAction("createNodeOnPort", (event, brickId) => {
+      event.preventDefault();
+      createNodeOnPortOnly(String(brickId));
+    });
+
+    frontend.registerShortcutAction("createNodeOnCanvas", (event, brickId) => {
+      event.preventDefault();
+      createNodeAtViewportCenter(String(brickId));
     });
 
     // ── Load shortcut definitions from the external config ────────────────

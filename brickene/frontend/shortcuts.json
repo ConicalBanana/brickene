@@ -65,14 +65,6 @@
     "description": "Open canvas node command panel"
   },
   {
-    "keys": ["s"],
-    "metaOrCtrl": false,
-    "alt": false,
-    "shift": true,
-    "action": "copySmiles",
-    "description": "Copy graph as SMILES"
-  },
-  {
     "keys": ["d"],
     "metaOrCtrl": false,
     "alt": false,
@@ -95,44 +87,287 @@
     "metaOrCtrl": false,
     "alt": false,
     "shift": false,
-    "action": "createNode",
+    "action": "createNodeOnPort",
     "args": "user-1",
-    "description": "Create Carbon node"
+    "description": "Create Carbon node on port"
+  },
+  {
+    "keys": ["c"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "user-1",
+    "description": "Create Carbon node on canvas"
   },
   {
     "keys": ["n"],
     "metaOrCtrl": false,
     "alt": false,
     "shift": false,
-    "action": "createNode",
+    "action": "createNodeOnPort",
     "args": "user-37",
-    "description": "Create Nitrogen node"
+    "description": "Create Nitrogen node on port"
+  },
+  {
+    "keys": ["n"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "user-37",
+    "description": "Create Nitrogen node on canvas"
+  },
+  {
+    "keys": ["s"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "29",
+    "description": "Create Sulphur node on port"
+  },
+  {
+    "keys": ["s"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "29",
+    "description": "Create Sulphur node on canvas"
   },
   {
     "keys": ["o"],
     "metaOrCtrl": false,
     "alt": false,
     "shift": false,
-    "action": "createNode",
+    "action": "createNodeOnPort",
     "args": "30",
-    "description": "Create Oxygen node"
+    "description": "Create Oxygen node on port"
+  },
+  {
+    "keys": ["o"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "30",
+    "description": "Create Oxygen node on canvas"
   },
   {
     "keys": ["f"],
     "metaOrCtrl": false,
     "alt": false,
     "shift": false,
-    "action": "createNode",
+    "action": "createNodeOnPort",
     "args": "39",
-    "description": "Create Fluorine node"
+    "description": "Create Fluorine node on port"
+  },
+  {
+    "keys": ["f"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "39",
+    "description": "Create Fluorine node on canvas"
   },
   {
     "keys": ["t"],
     "metaOrCtrl": false,
     "alt": false,
     "shift": false,
-    "action": "createNode",
+    "action": "createNodeOnPort",
     "args": "27",
-    "description": "Create Thiophene node"
+    "description": "Create Thiophene node on port"
+  },
+  {
+    "keys": ["t"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "27",
+    "description": "Create Thiophene node on canvas"
+  },
+  {
+    "keys": ["a"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "user-6",
+    "description": "Create Benzene node on port"
+  },
+  {
+    "keys": ["a"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "user-6",
+    "description": "Create Benzene node on canvas"
+  },
+  {
+    "keys": ["1"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "43",
+    "description": "Create Methyl (C1) node on port"
+  },
+  {
+    "keys": ["1"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "43",
+    "description": "Create Methyl (C1) node on canvas"
+  },
+  {
+    "keys": ["2"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "44",
+    "description": "Create Ethyl (C2) node on port"
+  },
+  {
+    "keys": ["2"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "44",
+    "description": "Create Ethyl (C2) node on canvas"
+  },
+  {
+    "keys": ["3"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "45",
+    "description": "Create Propyl (C3) node on port"
+  },
+  {
+    "keys": ["3"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "45",
+    "description": "Create Propyl (C3) node on canvas"
+  },
+  {
+    "keys": ["4"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "46",
+    "description": "Create Butyl (C4) node on port"
+  },
+  {
+    "keys": ["4"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "46",
+    "description": "Create Butyl (C4) node on canvas"
+  },
+  {
+    "keys": ["5"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "47",
+    "description": "Create Pentyl (C5) node on port"
+  },
+  {
+    "keys": ["5"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "47",
+    "description": "Create Pentyl (C5) node on canvas"
+  },
+  {
+    "keys": ["6"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "48",
+    "description": "Create Hexyl (C6) node on port"
+  },
+  {
+    "keys": ["6"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "48",
+    "description": "Create Hexyl (C6) node on canvas"
+  },
+  {
+    "keys": ["7"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "49",
+    "description": "Create Heptyl (C7) node on port"
+  },
+  {
+    "keys": ["7"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "49",
+    "description": "Create Heptyl (C7) node on canvas"
+  },
+  {
+    "keys": ["8"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "50",
+    "description": "Create Octyl (C8) node on port"
+  },
+  {
+    "keys": ["8"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "50",
+    "description": "Create Octyl (C8) node on canvas"
+  },
+  {
+    "keys": ["9"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": false,
+    "action": "createNodeOnPort",
+    "args": "51",
+    "description": "Create Nonyl (C9) node on port"
+  },
+  {
+    "keys": ["9"],
+    "metaOrCtrl": false,
+    "alt": false,
+    "shift": true,
+    "action": "createNodeOnCanvas",
+    "args": "51",
+    "description": "Create Nonyl (C9) node on canvas"
   }
 ]

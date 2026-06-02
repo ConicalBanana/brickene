@@ -384,11 +384,17 @@ def trim_white_padding(image: Image.Image) -> Image.Image:
 def cap_hanging_ports_with_hydrogen(molecule: Chem.Mol) -> Chem.Mol:
     """Replace dangling dummy port atoms with implicit hydrogens.
 
+    Each dummy atom (atomic number 0) that has exactly one neighbor donates
+    a hydrogen to that neighbor.  RDKit fills the remaining valence with
+    implicit hydrogens so that an isolated alkyl side chain renders as its
+    parent alkane (e.g. hexyl → ``CCCCCC``) rather than as a radical.
+
     Args:
         molecule: RDKit molecule that may contain dummy port atoms.
 
     Returns:
-        Sanitized molecule with port atoms replaced by explicit hydrogens.
+        Sanitized molecule with port atoms removed and neighbour valence
+        adjusted.
 
     Raises:
         ValueError: If a dummy atom connects to more than one neighbor.
@@ -410,7 +416,6 @@ def cap_hanging_ports_with_hydrogen(molecule: Chem.Mol) -> Chem.Mol:
         if len(neighbors) == 1:
             neighbor = neighbors[0]
             neighbor.SetNumExplicitHs(neighbor.GetNumExplicitHs() + 1)
-            neighbor.SetNoImplicit(True)
 
         dummy_atom_indices.append(atom.GetIdx())
 

@@ -74,7 +74,7 @@
     "description": "Create Duplicator node"
   },
   {
-    "keys": ["p"],
+    "keys": ["`"],
     "metaOrCtrl": false,
     "alt": false,
     "shift": false,

@@ -1303,29 +1303,6 @@
       close: () => {},
     },
     node: {
-      "edit-in-wizard": () => {
-        const { activeNodeContextId } = frontend.getUiState();
-
-        if (activeNodeContextId === null) {
-          return;
-        }
-
-        const node = frontend.findNode(activeNodeContextId);
-        if (!node) return;
-
-        const wizardUrl = new URL(frontend.config.nodeWizardUrl);
-
-        if (node.brickId && (String(node.brickId).startsWith("user-") || node.brickId === "901")) {
-          // Stored user brick: pass brick ID for edit mode.
-          wizardUrl.searchParams.set("editBrickId", String(node.brickId));
-        }
-
-        const wizardWindow = window.open(wizardUrl.toString(), "_blank", "popup=yes,width=1520,height=960");
-
-        if (!wizardWindow) {
-          frontend.setCanvasMessage("Allow pop-ups to open the node wizard.");
-        }
-      },
       delete: () => {
         const { activeNodeContextId } = frontend.getUiState();
 

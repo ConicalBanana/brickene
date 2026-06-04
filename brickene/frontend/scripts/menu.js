@@ -154,20 +154,6 @@
     closeCanvasContextMenu();
     closeEdgeContextMenu();
 
-    // Show "Edit in node wizard" only for user-defined nodes.
-    const editButton = dom.nodeContextMenu.querySelector('[data-action="edit-in-wizard"]');
-    if (editButton) {
-      const node = frontend.findNode(nodeId);
-      const isUserDefined = node
-        && (String(node.brickId || "").startsWith("user-") || node.brickId === "901");
-      editButton.hidden = !isUserDefined;
-      // Also hide the trailing separator when the button is hidden.
-      const nextSeparator = editButton.nextElementSibling;
-      if (nextSeparator && nextSeparator.classList.contains("context-menu-separator")) {
-        nextSeparator.hidden = !isUserDefined;
-      }
-    }
-
     dom.nodeContextMenu.classList.add("is-open");
   }
 
